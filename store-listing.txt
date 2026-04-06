@@ -1,0 +1,159 @@
+================================================================
+PASAL MANAGER — APP STORE LISTING
+(Copy-paste these into App Store Connect / Google Play Console)
+================================================================
+
+--- APP NAME ---
+Pasal Manager - Shop Book
+
+--- SUBTITLE (App Store only, max 30 chars) ---
+Sales, Udhaar & Stock Tracker
+
+--- SHORT DESCRIPTION (Play Store, max 80 chars) ---
+Track sales, udhaar, stock & staff. Free shop manager for India & Nepal.
+
+--- FULL DESCRIPTION (both stores) ---
+Pasal Manager is the complete business management app built for small shopkeepers in India and Nepal. Whether you run a grocery store, clothing shop, shoe store, or any retail business — Pasal Manager keeps your entire business organized in one place.
+
+🛒 SALES & EXPENSES
+• Record daily sales in seconds — just type amount and tap +
+• Track payment modes: Cash, UPI, PhonePe, GPay, Paytm, Card
+• Record business expenses by category
+• Daily, monthly, and yearly P&L reports
+
+📒 UDHAAR (CREDIT) BOOK
+• Track who owes you money
+• Set due dates and get automatic reminders
+• Send WhatsApp payment reminders with one tap
+• Mark payments as received
+
+📦 STOCK MANAGEMENT
+• Add products with buy/sell price and quantity
+• Barcode scanner support
+• Low stock alerts
+• Track profit margin per item
+
+👥 STAFF & SALARY
+• Mark daily attendance (full day / half day / absent)
+• Auto-calculate monthly salary
+• Record salary payments and advances
+
+💳 EMI TRACKER
+• Create installment plans for customers buying on credit
+• Track which installments are paid / pending
+• Send WhatsApp reminders for due EMIs
+
+🏦 LOAN MANAGER
+• Track business loans from banks or lenders
+• Auto-generate full repayment schedule (reducing balance)
+• See outstanding balance and next due date
+
+📊 REPORTS & EXPORT
+• Daily business summary via WhatsApp
+• Full Audit Report in Excel (12 sheets)
+• Export sales, expenses, udhaar, stock to Excel
+• GST Invoice generator
+
+🏪 MORE FEATURES
+• Multi-branch support
+• Cashbook (daily cash register)
+• Supplier & dealer management
+• Returns & refunds tracking
+• Purchase ledger (Kharidi Book)
+• Digital bill for customers
+• Works OFFLINE — no internet needed to use
+• Available in English, हिंदी, नेपाली
+
+---
+Free to use. No ads. Your data is private and secure.
+---
+
+--- KEYWORDS (App Store, comma-separated, max 100 chars) ---
+shop manager,udhaar book,khata,sales tracker,stock manager,dukan,pasal,expense tracker
+
+--- KEYWORDS (Play Store tags) ---
+shop management, udhaar book, khata book, sales tracker, expense tracker, stock manager, business app, dukan manager, pasal manager, small business, retail shop, nepal shop, india shop, hisab kitab
+
+--- CATEGORY ---
+App Store: Business
+Play Store: Business
+
+--- AGE RATING ---
+4+ (App Store) / Everyone (Play Store)
+
+--- PRIVACY POLICY URL ---
+https://[your-website]/privacy.html
+(Host the privacy.html file on your website or GitHub Pages)
+
+--- SUPPORT URL ---
+https://[your-website] or your email
+
+--- VERSION ---
+2.0.0
+
+--- WHAT'S NEW (version notes) ---
+• Loan Manager: Track bank loans with full EMI schedule
+• EMI Tracker: Create installment plans for customers
+• Multi-branch support
+• Full Audit Report export in Excel
+• GST Invoice generator
+• Staff attendance & salary calculator
+• Improved offline support
+
+================================================================
+SCREENSHOTS NEEDED (take these on iPhone/Android)
+================================================================
+
+Take screenshots of these 5 screens (required by both stores):
+
+1. Today's Sales screen — shows ₹ sales amount, payment modes
+2. Udhaar list — shows customer names and amounts owed
+3. Stock page — shows items with qty and prices
+4. More menu — shows all features (Dashboard, Staff, EMI, Loan etc.)
+5. P&L Report or Dashboard — shows monthly graph/summary
+
+iPhone sizes needed:
+- 6.7 inch (iPhone 14 Pro Max): 1290 × 2796 px
+- 6.5 inch (iPhone 11 Pro Max): 1242 × 2688 px
+- 5.5 inch (iPhone 8 Plus): 1242 × 2208 px
+
+Android sizes needed:
+- Phone: 1080 × 1920 px minimum
+
+TIP: Use iPhone Simulator in Xcode to take perfect screenshots.
+
+================================================================
+STEPS TO SUBMIT — APPLE APP STORE
+================================================================
+
+1. Pay $99/year at developer.apple.com/programs
+2. Install Node.js from nodejs.org
+3. Run in terminal:
+   cd /Users/sanjanathakur/Desktop/pasal-manager
+   npm install @capacitor/core @capacitor/cli @capacitor/ios
+   npx cap init "Pasal Manager" "com.pasalmanager.app"
+   npx cap add ios
+   npx cap copy
+   npx cap open ios
+4. Xcode opens → set your Apple Developer account → Archive → Upload to App Store
+5. Go to appstoreconnect.apple.com → fill in this listing → Submit for Review
+
+================================================================
+STEPS TO SUBMIT — GOOGLE PLAY STORE
+================================================================
+
+1. Pay $25 one-time at play.google.com/console
+2. Run in terminal:
+   npm install @capacitor/android
+   npx cap add android
+   npx cap copy
+   npx cap open android
+3. Android Studio opens → Build → Generate Signed APK/Bundle
+4. Upload to Play Console → fill in this listing → Submit for Review
+
+================================================================
+BUNDLE ID (use this everywhere)
+================================================================
+com.pasalmanager.app
+
+================================================================
