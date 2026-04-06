@@ -1231,6 +1231,11 @@ function cacheWrite(){
     localStorage.setItem(cacheKey('emiPayments'),JSON.stringify(emiPayments));
     localStorage.setItem(cacheKey('loans'),JSON.stringify(loans));
     localStorage.setItem(cacheKey('loanPayments'),JSON.stringify(loanPayments));
+    // Fix: previously missing arrays
+    localStorage.setItem(cacheKey('kharidiEntries'),JSON.stringify(kharidiEntries));
+    localStorage.setItem(cacheKey('dealers'),JSON.stringify(dealers));
+    localStorage.setItem(cacheKey('dealerEntries'),JSON.stringify(dealerEntries));
+    localStorage.setItem(cacheKey('cacheWriteAt'),Date.now().toString());
   }catch(e){}
 }
 function cacheRead(){
@@ -1253,9 +1258,55 @@ function cacheRead(){
     emiPayments=JSON.parse(localStorage.getItem(cacheKey('emiPayments'))||'[]');
     loans=JSON.parse(localStorage.getItem(cacheKey('loans'))||'[]');
     loanPayments=JSON.parse(localStorage.getItem(cacheKey('loanPayments'))||'[]');
+    kharidiEntries=JSON.parse(localStorage.getItem(cacheKey('kharidiEntries'))||'[]');
+    dealers=JSON.parse(localStorage.getItem(cacheKey('dealers'))||'[]');
+    dealerEntries=JSON.parse(localStorage.getItem(cacheKey('dealerEntries'))||'[]');
     const set=JSON.parse(localStorage.getItem(cacheKey('settings'))||'null');
     if(set){S=set;udhaarUnlocked=!!set.udhaarUnlocked;billUnlocked=!!set.billUnlocked;exportUnlocked=!!set.exportUnlocked;}
   }catch(e){}
+}
+
+// ===== OFFLINE WRITE QUEUE =====
+// Queues failed Supabase writes and retries when back online
+const _WQ_KEY='pm_write_queue';
+function _wqLoad(){try{return JSON.parse(localStorage.getItem(_WQ_KEY)||'[]');}catch(e){return[];}}
+function _wqSave(q){try{localStorage.setItem(_WQ_KEY,JSON.stringify(q));}catch(e){}}
+function _wqPush(op){const q=_wqLoad();q.push({...op,ts:Date.now()});_wqSave(q);}
+async function _wqFlush(){
+  if(!currentUser||!navigator.onLine) return;
+  const q=_wqLoad();
+  if(!q.length) return;
+  const remaining=[];
+  for(const op of q){
+    try{
+      if(op.type==='insert') await sb.from(op.table).insert(op.row);
+      else if(op.type==='delete') await sb.from(op.table).delete().eq('id',op.id).eq('user_id',currentUser.id);
+      else if(op.type==='update') await sb.from(op.table).update(op.fields).eq('id',op.id).eq('user_id',currentUser.id);
+    }catch(e){remaining.push(op);}
+  }
+  _wqSave(remaining);
+  if(q.length>remaining.length) console.log(`Synced ${q.length-remaining.length} offline writes`);
+}
+// Retry when back online
+window.addEventListener('online',()=>{_wqFlush();});
+// Retry every 60s if queue has items
+setInterval(()=>{if(_wqLoad().length>0) _wqFlush();},60000);
+
+// ===== WEEKLY BACKUP REMINDER =====
+function _checkBackupReminder(){
+  const last=parseInt(localStorage.getItem('pm_last_backup_remind')||'0');
+  const daysSince=(Date.now()-last)/(1000*60*60*24);
+  if(daysSince<7) return;
+  const totalRecords=sales.length+expenses.length+udhaars.length+stock.length;
+  if(totalRecords<5) return; // No reminder if barely any data
+  localStorage.setItem('pm_last_backup_remind',Date.now().toString());
+  setTimeout(()=>{
+    const el=document.createElement('div');
+    el.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;z-index:9999;max-width:320px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.3)';
+    el.innerHTML=`💾 <strong>Weekly Backup Reminder</strong><br>Export your data to Excel to keep a safe copy.<br><span style="color:#A78BFA;cursor:pointer;font-weight:600" onclick="goMore('export');this.closest('div').remove()">Export Now</span> &nbsp;·&nbsp; <span style="color:#888;cursor:pointer" onclick="this.closest('div').remove()">Later</span>`;
+    document.body.appendChild(el);
+    setTimeout(()=>{if(el.parentNode) el.remove();},10000);
+  },3000);
 }
 
 // ===== DATABASE =====
@@ -1330,17 +1381,20 @@ async function dbAdd(table,row){
   if(!currentUser) return;
   const _BRANCH_TABLES=['pm_sales','pm_expenses','pm_udhaar','pm_stock','pm_kharidi','pm_dealer_entries','pm_cashbook'];
   const rowToInsert=(currentBranchId&&_BRANCH_TABLES.includes(table))?{...row,branch_id:currentBranchId}:row;
-  try{await sb.from(table).insert(rowToInsert);}catch(e){console.error('Insert failed',e);}
+  try{await sb.from(table).insert(rowToInsert);}
+  catch(e){console.error('Insert failed, queued for retry',e);_wqPush({type:'insert',table,row:rowToInsert});}
 }
 async function dbDel(table,id){
   cacheWrite();
   if(!currentUser) return;
-  try{await sb.from(table).delete().eq('id',id).eq('user_id',currentUser.id);}catch(e){console.error('Delete failed',e);}
+  try{await sb.from(table).delete().eq('id',id).eq('user_id',currentUser.id);}
+  catch(e){console.error('Delete failed, queued for retry',e);_wqPush({type:'delete',table,id});}
 }
 async function dbUpdate(table,id,fields){
   cacheWrite();
   if(!currentUser) return;
-  try{await sb.from(table).update(fields).eq('id',id).eq('user_id',currentUser.id);}catch(e){console.error('Update failed',e);}
+  try{await sb.from(table).update(fields).eq('id',id).eq('user_id',currentUser.id);}
+  catch(e){console.error('Update failed, queued for retry',e);_wqPush({type:'update',table,id,fields});}
 }
 
 // ===== AUTH =====
@@ -1409,6 +1463,8 @@ async function afterLogin(){
   initVoice();
   setTimeout(checkOverdueNotification,1500);
   setTimeout(initReminderCheck,2000);
+  setTimeout(_wqFlush,3000);       // Retry any queued offline writes
+  setTimeout(_checkBackupReminder,5000); // Weekly backup reminder
   initVisibilityLock();
   await initPin();
 }
