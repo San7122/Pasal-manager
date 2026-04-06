@@ -777,6 +777,11 @@ body {
       <svg viewBox="0 0 56 56" width="56" height="56"><rect width="56" height="56" rx="14" fill="#6D28D9"/><text x="28" y="40" font-family="sans-serif" font-size="30" font-weight="800" fill="#fff" text-anchor="middle">P</text></svg>
       <div class="auth-brand">Pasal Manager</div>
       <div class="auth-sub">Shopkeeper's Digital Katha</div>
+      <a href="https://varaai-final.vercel.app" target="_blank" style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:4px 12px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);border-radius:20px;text-decoration:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#a78bfa" stroke="#a78bfa" stroke-width="1" stroke-linejoin="round"/></svg>
+        <span style="font-size:11px;color:#c4b5fd;font-weight:600;letter-spacing:0.3px">Powered by</span>
+        <span style="font-size:12px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent">VaraAI</span>
+      </a>
     </div>
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login" onclick="renderAuthForm('login')">Login</button>
@@ -2427,7 +2432,15 @@ function renderMoreMenu(el){
       <div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--color-text-secondary);letter-spacing:0.5px;text-transform:uppercase">Advanced Features</div>`+
       advancedItems.map(renderItem).join('')
     :'')+
-    `<div style="text-align:center;padding:20px;font-size:12px;color:var(--color-text-secondary)">Pasal Manager v2.0</div>`;
+    `<div style="text-align:center;padding:16px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div style="font-size:12px;color:var(--color-text-secondary)">Pasal Manager v2.0</div>
+      <a href="https://varaai-final.vercel.app" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 14px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);border-radius:20px;text-decoration:none">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#a78bfa" stroke="#a78bfa" stroke-width="1" stroke-linejoin="round"/></svg>
+        <span style="font-size:11px;color:#c4b5fd;font-weight:600">Powered by</span>
+        <span style="font-size:12px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent">VaraAI</span>
+        <span style="font-size:10px;color:#7c6fba;font-style:italic">Divine Intelligence</span>
+      </a>
+    </div>`;
 }
 
 // =============== CUSTOMERS ===============
