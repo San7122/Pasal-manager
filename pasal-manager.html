@@ -64,13 +64,51 @@ body {
   overflow: hidden;
 }
 
+/* Desktop: show phone frame with instructions beside it */
+@media (min-width: 768px) {
+  body {
+    background: #f0eef8;
+    overflow: auto;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px;
+    gap: 32px;
+  }
+  .desktop-side {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 320px;
+    padding-top: 40px;
+  }
+}
+@media (max-width: 767px) {
+  .desktop-side { display: none !important; }
+}
+
 .app {
   display: flex;
   flex-direction: column;
   height: 640px;
   max-width: 480px;
+  width: 100%;
   margin: 0 auto;
   background: var(--color-background-primary);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  border-radius: 0;
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .app {
+    border-radius: 36px;
+    height: 780px;
+    max-width: 390px;
+    margin: 0;
+    overflow: hidden;
+    border: 8px solid #1a1a1a;
+  }
 }
 
 /* ===== TOPBAR ===== */
@@ -800,6 +838,45 @@ body {
       <span id="branch-combined-label">All Branches (Combined)</span>
     </button>
   </div>
+</div>
+
+<!-- ===== DESKTOP SIDEBAR ===== -->
+<div class="desktop-side" style="display:none">
+  <div style="font-size:28px;font-weight:900;color:#6D28D9;margin-bottom:4px">पसल</div>
+  <div style="font-size:22px;font-weight:800;color:#1a1a1a;margin-bottom:12px">Pasal Manager</div>
+  <div style="font-size:15px;color:#555;margin-bottom:24px;line-height:1.6">Complete shop management for small businesses in India & Nepal. Track sales, udhaar, stock, staff and more.</div>
+
+  <!-- Install on Phone -->
+  <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+    <div style="font-size:13px;font-weight:700;color:#6D28D9;margin-bottom:10px">📱 Install on iPhone</div>
+    <div style="font-size:13px;color:#444;line-height:1.8">
+      1. Open this link in <strong>Safari</strong><br>
+      2. Tap the <strong>Share</strong> button (□↑)<br>
+      3. Tap <strong>"Add to Home Screen"</strong><br>
+      4. Tap <strong>Add</strong> — done!
+    </div>
+  </div>
+
+  <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+    <div style="font-size:13px;font-weight:700;color:#16A34A;margin-bottom:10px">🤖 Install on Android</div>
+    <div style="font-size:13px;color:#444;line-height:1.8">
+      1. Open this link in <strong>Chrome</strong><br>
+      2. Tap <strong>⋮ menu</strong> (top right)<br>
+      3. Tap <strong>"Add to Home Screen"</strong><br>
+      4. Tap <strong>Add</strong> — done!
+    </div>
+  </div>
+
+  <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+    <div style="font-size:13px;font-weight:700;color:#555;margin-bottom:10px">💻 Install on Mac/PC</div>
+    <div style="font-size:13px;color:#444;line-height:1.8">
+      1. Open in <strong>Chrome</strong><br>
+      2. Click the <strong>install icon</strong> (⊕) in address bar<br>
+      3. Click <strong>Install</strong> — done!
+    </div>
+  </div>
+
+  <div style="font-size:12px;color:#888;text-align:center">Works offline · Free forever · Your data is private</div>
 </div>
 
 <!-- ===== MAIN APP ===== -->
