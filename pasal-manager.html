@@ -766,6 +766,54 @@ body {
 .branch-row-loc{font-size:12px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .branch-row-check{color:var(--color-accent);flex-shrink:0;}
 .branch-combined-btn{display:flex;align-items:center;gap:8px;width:calc(100% - 32px);margin:12px 16px 0;padding:12px 16px;border:1.5px solid var(--color-accent);border-radius:12px;background:var(--color-accent-light);color:var(--color-accent);font-size:14px;font-weight:600;cursor:pointer;}
+
+/* ===== GUEST MODE ===== */
+.auth-divider {
+  text-align:center; font-size:12px; color:#bbb;
+  position:relative; margin:2px 0; line-height:1;
+}
+.auth-divider::before,.auth-divider::after {
+  content:''; position:absolute; top:50%;
+  width:42%; height:1px; background:#E0E0E0;
+}
+.auth-divider::before{left:0;} .auth-divider::after{right:0;}
+.btn-guest {
+  width:100%; padding:13px 16px;
+  border:2px dashed #6D28D9; border-radius:10px;
+  background:#F5F3FF; color:#6D28D9;
+  font-size:15px; font-weight:700; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  transition:background 0.15s;
+}
+.btn-guest:active{background:#EDE9FE;}
+.guest-banner {
+  background:linear-gradient(90deg,#F59E0B,#FBBF24);
+  color:#1A1A1A; font-size:12px; font-weight:600;
+  padding:5px 12px; display:flex; align-items:center;
+  justify-content:space-between; flex-shrink:0; gap:8px;
+}
+.guest-banner-link {
+  font-size:11px; font-weight:700; text-decoration:underline;
+  cursor:pointer; white-space:nowrap; color:#4C1D95;
+}
+.guest-nudge {
+  position:fixed; bottom:68px; left:50%; transform:translateX(-50%);
+  width:calc(100% - 24px); max-width:452px;
+  background:#1A1A1A; color:#FFF;
+  border-radius:16px; padding:16px 16px 14px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  z-index:9990; animation:nudgeIn 0.3s ease;
+}
+@keyframes nudgeIn {
+  from{opacity:0;transform:translateX(-50%) translateY(16px);}
+  to{opacity:1;transform:translateX(-50%) translateY(0);}
+}
+.guest-nudge-title{font-size:16px;font-weight:800;margin-bottom:4px;}
+.guest-nudge-desc{font-size:13px;opacity:0.72;margin-bottom:14px;line-height:1.45;}
+.guest-nudge-row{display:flex;gap:8px;}
+.guest-nudge-row .g-yes{flex:1;padding:11px;background:#6D28D9;color:#FFF;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;}
+.guest-nudge-row .g-no{padding:11px 14px;background:rgba(255,255,255,0.1);color:#FFF;border:none;border-radius:8px;font-size:14px;cursor:pointer;}
+#guest-setup{display:none;}
 </style>
 </head>
 <body>
@@ -788,6 +836,37 @@ body {
       <button class="auth-tab" id="tab-signup" onclick="renderAuthForm('signup')">Sign Up</button>
     </div>
     <div id="auth-form-area"></div>
+
+    <!-- Guest entry — shown below login form -->
+    <div id="guest-section">
+      <div class="auth-divider">or</div>
+      <button class="btn-guest" onclick="showGuestSetup()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Start as Guest — No signup needed
+      </button>
+    </div>
+
+    <!-- Guest shop-name setup (swaps in when guest chosen) -->
+    <div id="guest-setup">
+      <div style="text-align:center;padding:4px 0 16px">
+        <div style="font-size:32px;line-height:1;margin-bottom:10px">🏪</div>
+        <div style="font-size:19px;font-weight:800;color:#1A1A1A" id="guest-setup-title">What is your shop called?</div>
+        <div style="font-size:13px;color:#888;margin-top:5px" id="guest-setup-sub">You can change this anytime</div>
+      </div>
+      <input class="input-md" id="guest-shop-input" type="text"
+             placeholder="e.g. Ram Stores"
+             maxlength="40"
+             style="width:100%;font-size:19px;font-weight:700;text-align:center;height:52px"
+             onkeydown="if(event.key==='Enter')confirmGuest()">
+      <button class="btn-block" style="margin-top:12px;font-size:17px" onclick="confirmGuest()" id="guest-start-btn">
+        Start →
+      </button>
+      <button onclick="hideGuestSetup()"
+              style="width:100%;padding:10px;background:none;border:none;color:#aaa;font-size:14px;cursor:pointer;margin-top:2px">
+        ← Back to Login
+      </button>
+    </div>
+
   </div>
 </div>
 
@@ -1043,6 +1122,7 @@ let branches=[], currentBranchId='', _rawSales=[], _rawExpenses=[];
 let currentKharidiSupplier='', currentDealerName='';
 let kharidiEntryType='purchase', dealerEntryType='given';
 let currentUser=null;
+let isGuestMode=false;
 let authMode='login';
 let scannerTarget='stock', scannerStream=null, scannerActive=false, _zxingReader=null;
 let returns=[], todayTab='sale', selReturnType='customer', selReturnReason='Defective';
@@ -1120,7 +1200,20 @@ const LANG = {
     loanOutstanding:'Outstanding',loanTotalPaid:'Total Paid',loanTotalInterest:'Total Interest',
     loanPrincipal:'Principal',loanMarkPaid:'Mark Paid',loanDueThisMonth:'Loan EMI Due This Month',
     noLoan:'No loans added yet.',loanCompleted:'Loan Cleared',loanOverdue:'Overdue EMI',
-    loanDelete:'Delete Loan',loanAutoEmi:'Auto-calculate EMI'
+    loanDelete:'Delete Loan',loanAutoEmi:'Auto-calculate EMI',
+    guestBtn:'Start as Guest — No signup needed',
+    guestSetupTitle:'What is your shop called?',
+    guestSetupSub:'You can change this anytime',
+    guestStartBtn:'Start →',
+    guestBannerMsg:'Guest Mode — data saved on this phone only',
+    guestBannerLink:'Save your data',
+    guestNudgeTitle:'Your data has no backup yet',
+    guestNudgeDesc:'Create a free account in 30 seconds to keep your data safe across devices.',
+    guestNudgeBtn:'Save My Data — Free',
+    guestNudgeSkip:'Later',
+    guestAccountLabel:'Guest Mode',
+    guestConvertBtn:'Create Free Account',
+    guestExitBtn:'Exit Guest Mode'
   },
   hi:{
     today:'आज',katha:'खाता',udhaar:'उधार',stock:'स्टॉक',more:'और',
@@ -1191,7 +1284,20 @@ const LANG = {
     loanOutstanding:'बाकी',loanTotalPaid:'कुल चुकाया',loanTotalInterest:'कुल ब्याज',
     loanPrincipal:'मूलधन',loanMarkPaid:'चुकाया',loanDueThisMonth:'इस महीने की EMI',
     noLoan:'कोई लोन नहीं।',loanCompleted:'लोन चुकता',loanOverdue:'बकाया EMI',
-    loanDelete:'लोन हटाएं',loanAutoEmi:'EMI खुद गणना करें'
+    loanDelete:'लोन हटाएं',loanAutoEmi:'EMI खुद गणना करें',
+    guestBtn:'बिना खाता शुरू करें',
+    guestSetupTitle:'आपकी दुकान का नाम क्या है?',
+    guestSetupSub:'बाद में बदल सकते हैं',
+    guestStartBtn:'शुरू करें →',
+    guestBannerMsg:'अतिथि मोड — डेटा सिर्फ इस फोन पर',
+    guestBannerLink:'डेटा सुरक्षित करें',
+    guestNudgeTitle:'आपका डेटा अभी सुरक्षित नहीं',
+    guestNudgeDesc:'30 सेकंड में मुफ्त खाता बनाएं और अपना सारा डेटा सुरक्षित रखें।',
+    guestNudgeBtn:'डेटा सुरक्षित करें — मुफ्त',
+    guestNudgeSkip:'बाद में',
+    guestAccountLabel:'अतिथि मोड',
+    guestConvertBtn:'मुफ्त खाता बनाएं',
+    guestExitBtn:'अतिथि मोड छोड़ें'
   },
   np:{
     today:'आज',katha:'खाता',udhaar:'उधारो',stock:'स्टक',more:'थप',
@@ -1262,7 +1368,20 @@ const LANG = {
     loanOutstanding:'बाँकी',loanTotalPaid:'जम्मा तिरिएको',loanTotalInterest:'जम्मा ब्याज',
     loanPrincipal:'मूलधन',loanMarkPaid:'तिरियो',loanDueThisMonth:'यस महिनाको किस्त',
     noLoan:'कुनै ऋण छैन।',loanCompleted:'ऋण तिरियो',loanOverdue:'बाँकी किस्त',
-    loanDelete:'ऋण मेट्नुहोस्',loanAutoEmi:'किस्त स्वतः गणना'
+    loanDelete:'ऋण मेट्नुहोस्',loanAutoEmi:'किस्त स्वतः गणना',
+    guestBtn:'खाता बिना सुरु गर्नुहोस्',
+    guestSetupTitle:'तपाईंको पसलको नाम के हो?',
+    guestSetupSub:'पछि परिवर्तन गर्न सकिन्छ',
+    guestStartBtn:'सुरु गर्नुहोस् →',
+    guestBannerMsg:'अतिथि मोड — डेटा यही फोनमा मात्र',
+    guestBannerLink:'डेटा सुरक्षित गर्नुहोस्',
+    guestNudgeTitle:'तपाईंको डेटाको ब्याकअप छैन',
+    guestNudgeDesc:'३० सेकेन्डमा नि:शुल्क खाता बनाउनुहोस् र डेटा सुरक्षित राख्नुहोस्।',
+    guestNudgeBtn:'डेटा सुरक्षित गर्नुहोस् — नि:शुल्क',
+    guestNudgeSkip:'पछि',
+    guestAccountLabel:'अतिथि मोड',
+    guestConvertBtn:'नि:शुल्क खाता बनाउनुहोस्',
+    guestExitBtn:'अतिथि मोड छोड्नुहोस्'
   }
 };
 function t(k){ return (LANG[S.language]||LANG.en)[k]||LANG.en[k]||k; }
@@ -1537,12 +1656,29 @@ function showAuthErr(msg){
 }
 
 async function afterLogin(){
+  // If a guest just created an account, migrate their local data first
+  const wasGuest=isGuestMode && !!currentUser;
+  if(wasGuest){
+    isGuestMode=false;
+    await _migrateGuestData();
+  }
+
   document.getElementById('auth-page').style.display='none';
   document.getElementById('app').style.display='flex';
+  // Remove any stale guest banner from previous session
+  const oldBanner=document.getElementById('guest-banner-el');if(oldBanner)oldBanner.remove();
+
   await loadAll();
   updateTopbar();updateNavLabels();renderToday();
   updateUdhaarBadge();
   initVoice();
+
+  // Guest mode post-login setup
+  if(isGuestMode){
+    _renderGuestBanner();
+    setTimeout(_checkGuestNudge, 5000); // Show nudge after 5s if eligible
+  }
+
   setTimeout(checkOverdueNotification,1500);
   setTimeout(initReminderCheck,2000);
   setTimeout(_wqFlush,3000);       // Retry any queued offline writes
@@ -1552,7 +1688,8 @@ async function afterLogin(){
 }
 
 async function signOut(){
-  await sb.auth.signOut();
+  if(!isGuestMode) await sb.auth.signOut();
+  isGuestMode=false;
   currentUser=null;
   sales=[];expenses=[];udhaars=[];stock=[];suppliers=[];billItems=[];cashbookEntries=[];customers=[];staffList=[];staffEntries=[];gstBills=[];returns=[];
   kharidiEntries=[];dealers=[];dealerEntries=[];
@@ -1561,9 +1698,151 @@ async function signOut(){
   _pinLastUnlock=0; pinAttempts=0; pinLockoutUntil=0;
   S={country:'IN',language:'en',shopName:'',ownPhone:'',reminderTime:'21:00',gstin:'',bizAddress:'',bizState:''};
   udhaarUnlocked=false;billUnlocked=false;exportUnlocked=false;
+  // Remove guest banner if present
+  const gb=document.getElementById('guest-banner-el');if(gb)gb.remove();
+  const gn=document.getElementById('guest-nudge-el');if(gn)gn.remove();
   document.getElementById('app').style.display='none';
   document.getElementById('auth-page').style.display='flex';
+  hideGuestSetup();
   renderAuthForm('login');
+}
+
+// ===== GUEST MODE =====
+const GUEST_DATE_KEY='pm_guest_start';
+
+function showGuestSetup(){
+  // Swap auth card contents: hide login tabs/form, show guest setup
+  document.getElementById('tab-login').closest('.auth-tabs').style.display='none';
+  document.getElementById('auth-form-area').style.display='none';
+  document.getElementById('guest-section').style.display='none';
+  document.getElementById('guest-setup').style.display='block';
+  // Update text to current language (if already set)
+  document.getElementById('guest-setup-title').textContent=t('guestSetupTitle');
+  document.getElementById('guest-setup-sub').textContent=t('guestSetupSub');
+  document.getElementById('guest-start-btn').textContent=t('guestStartBtn');
+  setTimeout(()=>{ const i=document.getElementById('guest-shop-input'); if(i)i.focus(); },120);
+}
+
+function hideGuestSetup(){
+  document.getElementById('guest-setup').style.display='none';
+  const tabs=document.getElementById('tab-login').closest('.auth-tabs');
+  if(tabs) tabs.style.display='';
+  document.getElementById('auth-form-area').style.display='';
+  document.getElementById('guest-section').style.display='';
+}
+
+async function confirmGuest(){
+  const nameEl=document.getElementById('guest-shop-input');
+  const shopName=(nameEl?.value||'').trim();
+  // Require a shop name — gentle validation
+  if(!shopName){
+    nameEl.style.borderColor='#DC2626';
+    nameEl.placeholder='Please enter your shop name';
+    nameEl.focus();
+    setTimeout(()=>{nameEl.style.borderColor='';nameEl.placeholder='e.g. Ram Stores';},2500);
+    return;
+  }
+  S.shopName=shopName;
+  isGuestMode=true;
+  currentUser=null;
+  // Record first-time guest start date
+  if(!localStorage.getItem(GUEST_DATE_KEY)){
+    localStorage.setItem(GUEST_DATE_KEY, Date.now().toString());
+  }
+  // Save shop name to local settings
+  const localSettings=JSON.parse(localStorage.getItem('local_settings')||'null')||{};
+  localSettings.shopName=shopName;
+  localStorage.setItem('local_settings',JSON.stringify({...localSettings,...S}));
+  await afterLogin();
+}
+
+function _renderGuestBanner(){
+  if(document.getElementById('guest-banner-el')) return;
+  const app=document.getElementById('app');
+  const topbar=app.querySelector('.topbar');
+  const banner=document.createElement('div');
+  banner.id='guest-banner-el';
+  banner.className='guest-banner';
+  banner.innerHTML=`<span>${t('guestBannerMsg')}</span><span class="guest-banner-link" onclick="startConvertGuest()">${t('guestBannerLink')} →</span>`;
+  topbar.after(banner);
+}
+
+function _checkGuestNudge(){
+  if(!isGuestMode) return;
+  const start=parseInt(localStorage.getItem(GUEST_DATE_KEY)||'0');
+  if(!start) return;
+  const daysSince=(Date.now()-start)/(1000*60*60*24);
+  // Show nudge after 3 days AND only if they have real data
+  if(daysSince>=3 && (sales.length+expenses.length+udhaars.length)>=3){
+    _showGuestNudge();
+  }
+}
+
+function _showGuestNudge(){
+  if(document.getElementById('guest-nudge-el')) return;
+  const el=document.createElement('div');
+  el.id='guest-nudge-el';
+  el.className='guest-nudge';
+  el.innerHTML=`
+    <div style="font-size:22px;margin-bottom:8px">💾</div>
+    <div class="guest-nudge-title">${t('guestNudgeTitle')}</div>
+    <div class="guest-nudge-desc">${t('guestNudgeDesc')}</div>
+    <div class="guest-nudge-row">
+      <button class="g-yes" onclick="startConvertGuest()">${t('guestNudgeBtn')}</button>
+      <button class="g-no" onclick="_dismissGuestNudge()">${t('guestNudgeSkip')}</button>
+    </div>`;
+  document.body.appendChild(el);
+  setTimeout(_dismissGuestNudge, 12000); // auto-dismiss after 12s
+}
+
+function _dismissGuestNudge(){
+  const el=document.getElementById('guest-nudge-el');
+  if(el){el.style.animation='nudgeIn 0.25s ease reverse';setTimeout(()=>el.remove(),220);}
+  // Snooze: push the start date forward so nudge shows again in 3 more days
+  const snoozed=Date.now()-(2*24*60*60*1000); // 2 days ago = 1 day from nudge
+  localStorage.setItem(GUEST_DATE_KEY, snoozed.toString());
+}
+
+function startConvertGuest(){
+  // Hide nudge + banner
+  _dismissGuestNudge();
+  // Show auth page with signup tab
+  document.getElementById('app').style.display='none';
+  document.getElementById('auth-page').style.display='flex';
+  hideGuestSetup();
+  renderAuthForm('signup');
+  // Pre-fill their shop name so it carries over
+  setTimeout(()=>{
+    const nameEl=document.getElementById('a-name');
+    if(nameEl) nameEl.value=S.shopName||'';
+  },150);
+}
+
+// Migrate guest local data to Supabase after account creation
+async function _migrateGuestData(){
+  if(!currentUser) return;
+  const uid=currentUser.id;
+  try{
+    // Read all local guest data
+    const gSales=JSON.parse(localStorage.getItem('local_sales')||'[]');
+    const gExp=JSON.parse(localStorage.getItem('local_expenses')||'[]');
+    const gUdhaars=JSON.parse(localStorage.getItem('local_udhaar')||'[]');
+    const gStock=JSON.parse(localStorage.getItem('local_stock')||'[]');
+    const inserts=[];
+    if(gSales.length) inserts.push(sb.from('pm_sales').insert(gSales.map(r=>({id:r.id,user_id:uid,date:r.date,ts:r.ts,amt:r.amt,cost:r.cost||0,note:r.note||'',pay_mode:r.payMode||'Cash',country:r.country||'IN'}))));
+    if(gExp.length) inserts.push(sb.from('pm_expenses').insert(gExp.map(r=>({id:r.id,user_id:uid,date:r.date,ts:r.ts,amt:r.amt,note:r.note||'',category:r.category||'Shop',country:r.country||'IN'}))));
+    if(gUdhaars.length) inserts.push(sb.from('pm_udhaar').insert(gUdhaars.map(r=>({id:r.id,user_id:uid,name:r.name,phone:r.phone||'',amt:r.amt,date:r.date,ts:r.ts,paid:!!r.paid,due_date:r.dueDate||'',country:r.country||'IN'}))));
+    if(gStock.length) inserts.push(sb.from('pm_stock').insert(gStock.map(r=>({id:r.id,user_id:uid,name:r.name,size:r.size||'',qty:r.qty,buy:r.buy,sell:r.sell,country:r.country||'IN',barcode:r.barcode||''}))));
+    await Promise.allSettled(inserts);
+    // Clear local guest data after migration
+    ['local_sales','local_expenses','local_udhaar','local_stock','local_settings',
+     'local_cashbook','local_customers','local_staffList','local_staffEntries',
+     'local_gstBills','local_returns','local_branches','local_emiPlans',
+     'local_emiPayments','local_loans','local_loanPayments','local_kharidiEntries',
+     'local_dealers','local_dealerEntries'].forEach(k=>localStorage.removeItem(k));
+    localStorage.removeItem(GUEST_DATE_KEY);
+    console.log('Guest data migrated successfully');
+  }catch(e){console.error('Guest migration partial failure',e);}
 }
 
 // ===== TAB SWITCHING =====
@@ -3883,8 +4162,17 @@ function renderSettingsPage(el){
     </div>
     <div class="settings-section">
       <div class="settings-label">Account</div>
-      <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:10px">${currentUser?.email||''}</div>
-      <button class="settings-opt" style="border-color:var(--color-danger);color:var(--color-danger);flex:none;padding:12px 24px" onclick="signOut()">Sign Out</button>
+      ${isGuestMode ? `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="background:#FEF3C7;color:#92400E;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px">👤 ${t('guestAccountLabel')}</span>
+        </div>
+        <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.5">${t('guestNudgeDesc')}</div>
+        <button class="settings-opt" style="border-color:var(--color-accent);color:var(--color-accent);flex:none;padding:12px 24px;font-weight:700" onclick="startConvertGuest()">${t('guestConvertBtn')}</button>
+        <button class="settings-opt" style="border-color:var(--color-danger);color:var(--color-danger);flex:none;padding:12px 24px;margin-top:8px" onclick="signOut()">${t('guestExitBtn')}</button>
+      ` : `
+        <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:10px">${currentUser?.email||''}</div>
+        <button class="settings-opt" style="border-color:var(--color-danger);color:var(--color-danger);flex:none;padding:12px 24px" onclick="signOut()">Sign Out</button>
+      `}
     </div>`;
   setTimeout(()=>{
     const inp=document.getElementById('s-shop');
