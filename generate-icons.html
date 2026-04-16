@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pasal Manager — Icon Generator</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background: #f5f5f5; }
+  h1 { color: #6D28D9; }
+  .btn { background: #6D28D9; color: #fff; border: none; padding: 14px 28px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin: 8px 4px; }
+  .btn:hover { background: #5B21B6; }
+  .status { margin-top: 16px; padding: 12px; background: #fff; border-radius: 8px; font-size: 14px; line-height: 1.8; }
+  .done { color: #16A34A; font-weight: 600; }
+  canvas { display: none; }
+  .preview { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+  .preview img { border-radius: 8px; border: 1px solid #ddd; }
+</style>
+</head>
+<body>
+<h1>🎨 Pasal Manager Icon Generator</h1>
+<p>This tool generates all required PNG icons from the SVG icon. Click the button below — all icons will download automatically into your <strong>pasal-manager/icons/</strong> folder.</p>
+<p style="color:#DC2626;font-size:13px">⚠️ Your browser will ask to allow multiple downloads — click <strong>Allow</strong>.</p>
+
+<button class="btn" onclick="generateAll()">⬇️ Generate & Download All Icons</button>
+<button class="btn" style="background:#059669" onclick="previewAll()">👁 Preview Icons</button>
+
+<div class="status" id="status">Ready. Click the button to start.</div>
+<div class="preview" id="preview"></div>
+<canvas id="canvas"></canvas>
+
+<script>
+const SVG_URL = './icon.svg';
+const SIZES = [72, 96, 128, 144, 152, 180, 192, 512, 1024];
+
+async function loadSVG() {
+  const res = await fetch(SVG_URL);
+  const svgText = await res.text();
+  return svgText;
+}
+
+function svgToPng(svgText, size) {
+  return new Promise(resolve => {
+    const canvas = document.getElementById('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, size, size);
+
+    // Draw rounded background
+    ctx.fillStyle = '#6D28D9';
+    const r = size * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(size - r, 0);
+    ctx.quadraticCurveTo(size, 0, size, r);
+    ctx.lineTo(size, size - r);
+    ctx.quadraticCurveTo(size, size, size - r, size);
+    ctx.lineTo(r, size);
+    ctx.quadraticCurveTo(0, size, 0, size - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw SVG on top
+    const blob = new Blob([svgText], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const padding = size * 0.12;
+      ctx.drawImage(img, padding, padding, size - padding * 2, size - padding * 2);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.src = url;
+  });
+}
+
+function downloadPng(dataUrl, filename) {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+async function generateAll() {
+  const status = document.getElementById('status');
+  status.innerHTML = '⏳ Loading SVG...';
+  let svgText;
+  try {
+    svgText = await loadSVG();
+  } catch(e) {
+    status.innerHTML = '❌ Could not load icon.svg. Make sure this file is opened via <strong>http://localhost:8080/generate-icons.html</strong> (not as a file://)';
+    return;
+  }
+
+  status.innerHTML = '⏳ Generating icons...<br>';
+
+  for (const size of SIZES) {
+    try {
+      const png = await svgToPng(svgText, size);
+      downloadPng(png, `icon-${size}.png`);
+      status.innerHTML += `<span class="done">✅ icon-${size}.png downloaded</span><br>`;
+      await new Promise(r => setTimeout(r, 300));
+    } catch(e) {
+      status.innerHTML += `❌ Failed icon-${size}: ${e.message}<br>`;
+    }
+  }
+
+  status.innerHTML += `<br><strong style="color:#6D28D9">✅ Done! Move all downloaded files into: pasal-manager/icons/ folder</strong>
+  <br><br>
+  <strong>Next steps:</strong><br>
+  1. Create a folder called <code>icons</code> inside your pasal-manager folder<br>
+  2. Move all downloaded icon-*.png files into it<br>
+  3. Create a folder called <code>screenshots</code> inside pasal-manager<br>
+  4. Take screenshots of the app on iPhone and save them there`;
+}
+
+async function previewAll() {
+  const status = document.getElementById('status');
+  const preview = document.getElementById('preview');
+  preview.innerHTML = '';
+  status.innerHTML = '⏳ Generating previews...';
+  let svgText;
+  try { svgText = await loadSVG(); }
+  catch(e) { status.innerHTML = '❌ Open via http://localhost:8080/'; return; }
+
+  for (const size of [72, 96, 128, 192, 512]) {
+    const png = await svgToPng(svgText, size);
+    const img = document.createElement('img');
+    img.src = png;
+    img.width = Math.min(size, 80);
+    img.height = Math.min(size, 80);
+    img.title = `${size}x${size}`;
+    preview.appendChild(img);
+  }
+  status.innerHTML = '👆 Preview above (showing 5 sizes). Click "Generate & Download All Icons" to save all 9 sizes.';
+}
+</script>
+</body>
+</html>

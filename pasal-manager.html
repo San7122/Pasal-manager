@@ -33,6 +33,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <!-- ZXing loaded lazily on first scan if BarcodeDetector API unavailable -->
 <style>
 :root {
@@ -724,6 +727,49 @@ body {
 .voice-result.show { display: block; }
 .voice-action-row { display: flex; gap: 10px; }
 
+/* ===== VOICE UI — ENHANCED ===== */
+.voice-lang-row{display:flex;gap:6px;justify-content:center;margin-bottom:14px;}
+.voice-lang-chip{padding:6px 14px;border-radius:20px;font-size:14px;font-weight:700;border:2px solid #E0E0E0;background:#F5F5F5;color:#888;cursor:pointer;transition:all 0.15s;}
+.voice-lang-chip.active{border-color:var(--color-accent);background:var(--color-accent-light);color:var(--color-accent);}
+/* Waveform bars inside ring */
+.voice-wave{display:none;gap:5px;align-items:center;justify-content:center;width:100%;height:38px;}
+.voice-ring.listening .voice-wave{display:flex;}
+.voice-ring.listening .voice-mic-icon{display:none;}
+.voice-ring.listening{border:3px solid var(--color-accent);animation:vrPulse 1.3s ease-in-out infinite;background:var(--color-accent-light);}
+@keyframes vrPulse{0%,100%{box-shadow:0 0 0 0 rgba(109,40,217,0.25);}50%{box-shadow:0 0 0 14px rgba(109,40,217,0);}}
+.v-bar{width:5px;border-radius:5px;background:var(--color-accent);height:8px;animation:vbar 1s ease-in-out infinite;}
+.v-bar:nth-child(1){animation-delay:0s;}
+.v-bar:nth-child(2){animation-delay:0.15s;}
+.v-bar:nth-child(3){animation-delay:0.3s;}
+.v-bar:nth-child(4){animation-delay:0.45s;}
+.v-bar:nth-child(5){animation-delay:0.6s;}
+@keyframes vbar{0%,100%{height:8px;opacity:0.45;}50%{height:36px;opacity:1;}}
+/* Confirmation card */
+.voice-confirm-card{background:var(--color-accent-light);border-radius:14px;padding:14px 16px;margin:10px 0 14px;text-align:left;}
+.vcr{display:flex;align-items:flex-start;gap:10px;padding:5px 0;font-size:15px;}
+.vcr-label{font-size:18px;flex-shrink:0;width:24px;text-align:center;}
+.vcr-body{flex:1;min-width:0;}
+.vcr-key{font-size:12px;color:var(--color-text-secondary);font-weight:600;margin-bottom:1px;}
+.vcr-val{font-size:16px;font-weight:700;color:var(--color-text-primary);}
+.vcr-val.big{font-size:22px;color:var(--color-accent);}
+.voice-heard-line{font-size:12px;color:var(--color-text-secondary);font-style:italic;margin-bottom:8px;line-height:1.4;padding:6px 10px;background:#F9FAFB;border-radius:8px;}
+/* Ambiguity resolution */
+.voice-ambig-title{font-size:17px;font-weight:800;margin-bottom:12px;text-align:center;color:var(--color-text-primary);}
+.voice-ambig-row{display:flex;gap:8px;margin-bottom:12px;}
+.voice-ambig-btn{flex:1;padding:14px 6px;border:2px solid var(--color-border-secondary);background:#fff;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--color-text-primary);}
+.voice-ambig-btn:active{background:var(--color-accent-light);border-color:var(--color-accent);color:var(--color-accent);}
+.vab-emoji{font-size:22px;line-height:1;}
+/* Success state */
+.voice-success-wrap{text-align:center;padding:16px 0 8px;}
+.voice-success-ring{width:76px;height:76px;border-radius:50%;background:#DCFCE7;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:34px;animation:vSuccessPop 0.45s cubic-bezier(.17,.67,.39,1.45);}
+@keyframes vSuccessPop{0%{transform:scale(0.4);opacity:0;}80%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
+.voice-success-text{font-size:16px;font-weight:800;color:var(--color-success);margin-bottom:5px;line-height:1.3;}
+.voice-success-sub{font-size:13px;color:var(--color-text-secondary);}
+/* Examples */
+.voice-examples-box{text-align:left;font-size:13px;background:#F9FAFB;border-radius:12px;padding:12px 14px;margin:8px 0 4px;border:1px solid var(--color-border-tertiary);}
+.vex-item{padding:4px 0;color:var(--color-text-secondary);line-height:1.5;}
+.vex-item b{color:var(--color-text-primary);}
+
 /* ===== PIN LOCK ===== */
 #pin-overlay{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#4C1D95 0%,#6D28D9 50%,#7C3AED 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;color:#fff;user-select:none;-webkit-user-select:none;}
 #pin-overlay.hidden{display:none;}
@@ -814,6 +860,172 @@ body {
 .guest-nudge-row .g-yes{flex:1;padding:11px;background:#6D28D9;color:#FFF;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;}
 .guest-nudge-row .g-no{padding:11px 14px;background:rgba(255,255,255,0.1);color:#FFF;border:none;border-radius:8px;font-size:14px;cursor:pointer;}
 #guest-setup{display:none;}
+
+/* ===== SAHI-CHHAP PROMPT ===== */
+#sahi-prompt-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2500;display:none;align-items:flex-end;justify-content:center;}
+#sahi-prompt-overlay.show{display:flex;}
+.sahi-prompt-sheet{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;text-align:center;animation:promptSlide 0.3s ease;}
+@keyframes promptSlide{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.sahi-prompt-icon{font-size:36px;margin-bottom:10px;}
+.sahi-prompt-title{font-size:18px;font-weight:800;color:#1A1A1A;margin-bottom:8px;}
+.sahi-prompt-desc{font-size:14px;color:#666;line-height:1.5;margin-bottom:20px;}
+.sahi-prompt-row{display:flex;gap:10px;}
+.sahi-prompt-add{flex:2;padding:14px;background:var(--color-accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;}
+.sahi-prompt-skip{flex:1;padding:14px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:none;border-radius:12px;font-size:15px;cursor:pointer;}
+/* ===== BUSINESS SCORE ===== */
+.score-hero{text-align:center;padding:22px 16px 14px;background:linear-gradient(160deg,#F5F3FF 0%,#EDE9FE 100%);border-bottom:1px solid #DDD6FE;}
+.score-number{font-size:58px;font-weight:900;color:#4C1D95;line-height:1;letter-spacing:-2px;}
+.score-denom{font-size:22px;font-weight:600;color:#A78BFA;}
+.score-grade-pill{display:inline-block;padding:4px 16px;border-radius:99px;font-size:13px;font-weight:700;margin:6px 0 2px;}
+.score-master-bar{height:10px;background:rgba(255,255,255,0.6);border-radius:5px;overflow:hidden;margin:8px 0 4px;}
+.score-master-bar-fill{height:100%;border-radius:5px;transition:width 0.9s cubic-bezier(.4,0,.2,1);width:0;}
+.score-sub{font-size:12px;color:#7C3AED;opacity:0.7;margin-top:2px;}
+.score-section-title{font-size:11px;font-weight:700;color:var(--color-text-secondary);letter-spacing:0.7px;text-transform:uppercase;padding:14px 16px 4px;}
+.score-card{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:14px 16px;margin:0 12px 10px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.score-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.score-card-label{font-size:13px;font-weight:600;color:var(--color-text-primary);}
+.score-card-pts{font-size:15px;font-weight:800;color:#6D28D9;}
+.score-bar{height:8px;background:#F3F4F6;border-radius:4px;overflow:hidden;margin:0 0 7px;}
+.score-bar-fill{height:100%;border-radius:4px;transition:width 0.8s cubic-bezier(.4,0,.2,1);width:0;}
+.score-insight{font-size:12px;color:#6B7280;line-height:1.4;}
+.score-improve-item{display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:13px;color:var(--color-text-primary);line-height:1.4;}
+.score-improve-dot{width:6px;height:6px;border-radius:50%;background:#F59E0B;flex-shrink:0;margin-top:5px;}
+.score-cert-btn{width:100%;padding:15px;background:linear-gradient(135deg,#4C1D95,#7C3AED);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;}
+.score-wa-btn{width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.score-low-data{text-align:center;padding:48px 28px;color:#9CA3AF;}
+/* ===== SAHI-CHHAP MODAL ===== */
+#sahi-modal{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:3000;display:none;align-items:flex-end;justify-content:center;}
+#sahi-modal.show{display:flex;}
+.sahi-sheet{width:100%;max-width:480px;background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 32px;max-height:85vh;overflow-y:auto;}
+.sahi-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.sahi-header h3{font-size:17px;font-weight:800;color:#1A1A1A;}
+.sahi-close{background:none;border:none;font-size:22px;cursor:pointer;color:#666;padding:4px;}
+#sp-loading{text-align:center;padding:24px 0;}
+.sahi-spinner{width:48px;height:48px;border:3px solid #EDE9FE;border-top-color:#6D28D9;border-radius:50%;animation:spin 0.9s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sahi-loading-txt{font-size:15px;font-weight:600;color:#6D28D9;}
+.sahi-loading-sub{font-size:12px;color:#888;margin-top:4px;}
+#sp-done{display:none;}
+.sahi-badge-row{display:flex;align-items:center;gap:8px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;padding:10px 12px;margin-bottom:12px;}
+.sahi-ok{color:#16A34A;font-size:20px;}
+.sahi-ok-txt{font-size:13px;font-weight:700;color:#15803D;}
+.sahi-ok-sub{font-size:11px;color:#16A34A;}
+.sahi-qr-wrap{display:flex;justify-content:center;margin:8px 0 10px;}
+.sahi-qr-wrap canvas{border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1);}
+.sahi-tx-link{display:block;text-align:center;font-size:11px;color:#6D28D9;word-break:break-all;margin:2px 0 12px;text-decoration:none;}
+.sahi-share-btn{width:100%;padding:13px;background:#25D366;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px;}
+.sahi-explorer-btn{width:100%;padding:11px;background:#EDE9FE;color:#6D28D9;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;}
+#sp-verify{display:none;text-align:center;padding:24px 0;}
+.sc-get-btn{width:36px;height:36px;border:1px solid var(--color-border-secondary);background:var(--color-background-primary);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.sc-get-btn:active{background:var(--color-accent-light);}
+.sc-verified-badge{width:36px;height:36px;border:1px solid #BBF7D0;background:#F0FDF4;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+/* ===== VERIFY PAGE ===== */
+#verify-page{display:none;position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto;padding:24px 20px 40px;}
+#verify-page.show{display:block;}
+.verify-logo{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.verify-logo span{font-size:18px;font-weight:800;color:#6D28D9;}
+.verify-devnet-badge{display:inline-block;background:#FEF3C7;color:#D97706;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;margin-bottom:16px;}
+.verify-card{background:#F8F7FF;border:2px solid #EDE9FE;border-radius:16px;padding:18px;margin-bottom:14px;}
+.verify-result-valid{background:#F0FDF4;border-color:#BBF7D0;}
+.verify-result-invalid{background:#FEF2F2;border-color:#FECACA;}
+.verify-result-icon{font-size:44px;text-align:center;margin-bottom:8px;}
+.verify-result-title{font-size:19px;font-weight:800;text-align:center;margin-bottom:2px;}
+.verify-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:14px;}
+.verify-row:last-child{border-bottom:none;}
+.verify-row-label{color:#666;font-weight:500;}
+.verify-row-val{font-weight:700;color:#1A1A1A;text-align:right;}
+/* ===== MORNING BRIEFING ===== */
+#briefing-perm-card{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:420px;background:var(--color-card);border:1.5px solid var(--color-border);border-radius:18px;padding:18px 18px 14px;z-index:1500;box-shadow:0 8px 32px rgba(0,0,0,0.18);display:none;flex-direction:column;gap:10px;}
+#briefing-perm-card.show{display:flex;}
+.bpc-header{display:flex;align-items:center;gap:10px;}
+.bpc-icon{font-size:28px;line-height:1;}
+.bpc-title{font-size:16px;font-weight:800;color:var(--color-text);}
+.bpc-desc{font-size:13px;color:var(--color-text-secondary);line-height:1.5;}
+.bpc-actions{display:flex;gap:8px;margin-top:2px;}
+.bpc-allow{flex:1;padding:11px 0;background:var(--color-accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;}
+.bpc-skip{padding:11px 14px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;}
+.morning-section{margin-bottom:20px;}
+.morning-section-title{font-size:12px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+.morning-debtor-card{display:flex;align-items:center;justify-content:space-between;background:var(--color-card);border:1px solid var(--color-border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+.morning-debtor-name{font-size:15px;font-weight:700;color:var(--color-text);}
+.morning-debtor-amt{font-size:16px;font-weight:800;color:var(--color-danger);}
+.morning-remind-btn{padding:7px 12px;background:var(--color-accent-light);color:var(--color-accent);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.morning-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;}
+.morning-summary-card{background:var(--color-card);border:1px solid var(--color-border);border-radius:12px;padding:14px;text-align:center;}
+.morning-summary-label{font-size:11px;color:var(--color-text-secondary);font-weight:600;margin-bottom:4px;}
+.morning-summary-val{font-size:20px;font-weight:800;color:var(--color-text);}
+.morning-quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.morning-quick-btn{background:var(--color-card);border:1.5px solid var(--color-border);border-radius:14px;padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.morning-quick-btn:active{opacity:0.7;}
+.morning-quick-icon{font-size:24px;}
+.morning-quick-label{font-size:13px;font-weight:700;color:var(--color-text);}
+/* ===== BS CALENDAR ===== */
+.bs-date{font-size:11px;color:#9c7c38;font-weight:500;margin-top:2px;letter-spacing:0.2px;}
+.bs-today-chip{font-size:11px;background:#fff8e7;color:#9c7c38;border:1px solid #e8d5a0;border-radius:20px;padding:2px 8px;margin-left:6px;font-weight:600;white-space:nowrap;}
+.festival-banner{background:linear-gradient(135deg,#fff3cd,#ffe082);border-radius:12px;padding:14px 16px;margin-bottom:16px;border-left:4px solid #f9a825;}
+.festival-banner-title{font-weight:700;font-size:15px;margin-bottom:4px;}
+.festival-banner-sub{font-size:13px;color:#5d4037;line-height:1.4;}
+.festival-days-badge{display:inline-block;background:#f9a825;color:#fff;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:700;margin-left:6px;}
+/* ===== PHOTO KHATA ===== */
+.fab-photo{position:fixed;bottom:90px;right:16px;width:48px;height:48px;border-radius:50%;background:#fff;border:2px solid #e0e0e0;font-size:22px;cursor:pointer;z-index:900;box-shadow:0 2px 8px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;}
+.pk-title{font-size:18px;font-weight:700;margin-bottom:16px;}
+#pk-pick{display:flex;gap:12px;margin-bottom:12px;}
+.pk-source-btn{flex:1;padding:20px 12px;border-radius:14px;border:2px solid #e8e0ff;background:#f3f0ff;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#6c47ff;cursor:pointer;}
+.pk-source-icon{font-size:28px;}
+.pk-preview-wrap{text-align:center;margin-bottom:14px;}
+#pk-preview,#pk-preview2{max-width:100%;max-height:180px;border-radius:10px;object-fit:contain;border:1px solid #eee;}
+.pk-ocr-label{text-align:center;font-size:13px;color:#888;margin-bottom:8px;}
+.pk-progress-bar{height:6px;background:#eee;border-radius:3px;overflow:hidden;}
+.pk-progress-fill{height:100%;background:#6c47ff;border-radius:3px;width:0%;transition:width 0.3s ease;}
+.pk-amount-row{margin-bottom:12px;}
+.pk-amount-label{font-size:13px;color:#888;display:block;margin-bottom:4px;}
+.pk-amount-field{width:100%;padding:12px;border-radius:10px;border:2px solid #e8e0ff;font-size:22px;font-weight:700;color:#1a1a1a;box-sizing:border-box;}
+.pk-type-row{display:flex;gap:8px;margin-bottom:14px;}
+.pk-type-btn{flex:1;padding:10px;border-radius:8px;border:2px solid #e0e0e0;background:#fafafa;font-size:13px;font-weight:600;cursor:pointer;color:#555;}
+.pk-type-btn.active{border-color:#6c47ff;background:#f3f0ff;color:#6c47ff;}
+.pk-raw-details{margin-bottom:14px;}
+.pk-raw-details summary{font-size:12px;color:#999;cursor:pointer;padding:4px 0;}
+.pk-raw-text{font-size:11px;color:#555;background:#f9f9f9;border-radius:6px;padding:8px;margin-top:6px;white-space:pre-wrap;max-height:80px;overflow-y:auto;font-family:monospace;}
+.pk-save-btn{width:100%;padding:14px;background:#6c47ff;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;}
+.pk-close-btn{width:100%;padding:10px;background:none;border:none;font-size:14px;color:#999;cursor:pointer;}
+/* ===== SUPPLIER CALENDAR ===== */
+.sup-cal-badge{background:#e53935;color:#fff;border-radius:10px;font-size:11px;font-weight:700;padding:2px 6px;margin-left:auto;margin-right:6px;}
+.sup-due-row{margin-top:10px;}
+.sup-due-row label{font-size:13px;color:#888;display:block;margin-bottom:4px;}
+.sup-due-input{width:100%;padding:10px;border-radius:8px;border:1.5px solid #e8e0ff;font-size:15px;box-sizing:border-box;}
+.sup-section-title{font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;}
+.sup-card{background:var(--color-card);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.07);border-left:4px solid #e0e0e0;}
+.sup-card.due-overdue{border-left-color:#e53935;background:#fff8f8;}
+.sup-card.due-urgent{border-left-color:#f9a825;background:#fffdf0;}
+.sup-card.due-soon{border-left-color:#fb8c00;background:#fff9f0;}
+.sup-card.due-ok{border-left-color:#43a047;}
+.sup-card-name{font-weight:700;font-size:15px;margin-bottom:2px;}
+.sup-card-meta{font-size:13px;color:#666;margin-bottom:10px;}
+.due-overdue-text{color:#e53935;font-weight:600;}
+.due-urgent-text{color:#f9a825;font-weight:600;}
+.sup-card-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.sup-paid-btn{flex:1;padding:8px;background:#e8f5e9;color:#2e7d32;border:1.5px solid #a5d6a7;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+.sup-wa-btn{flex:1;padding:8px;background:#e8f5e9;color:#1b5e20;border:1.5px solid #25d366;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+.sup-setdue-btn{flex:1;padding:8px;background:#f3f0ff;color:#6c47ff;border:1.5px solid #d1c4ff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+.sup-due-inline{display:flex;gap:6px;margin-top:8px;align-items:center;}
+.sup-due-inline input{flex:1;padding:7px 10px;border-radius:8px;border:1.5px solid #e8e0ff;font-size:14px;}
+.sup-due-save{padding:7px 14px;background:#6c47ff;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;}
+/* ===== SMART REMINDERS ===== */
+.reminder-card{background:var(--color-card);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.07);border-left:4px solid #6c47ff;}
+.reminder-card.send-today{border-left-color:#43a047;background:#f1f8e9;}
+.reminder-card.upcoming{border-left-color:#1e88e5;}
+.reminder-card.no-data{border-left-color:#e0e0e0;opacity:0.7;}
+.reminder-card-name{font-weight:700;font-size:15px;margin-bottom:2px;}
+.reminder-card-meta{font-size:13px;color:#666;margin-bottom:8px;}
+.reminder-consistency-bar{height:6px;background:#eee;border-radius:3px;margin-bottom:10px;overflow:hidden;}
+.reminder-consistency-fill{height:100%;background:#6c47ff;border-radius:3px;}
+.reminder-actions{display:flex;gap:8px;}
+.reminder-wa-btn{flex:1;padding:9px;background:#25d366;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+.reminder-preview-btn{padding:9px 14px;background:#f3f0ff;color:#6c47ff;border:1.5px solid #d1c4ff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+.reminder-how-details{background:var(--color-background-secondary);border-radius:10px;padding:12px 14px;margin-top:16px;font-size:13px;color:var(--color-text-secondary);}
+.reminder-how-details summary{font-weight:600;color:var(--color-text);cursor:pointer;}
+.reminder-section-title{font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;}
+.pattern-chip{display:inline-block;font-size:10px;color:#9c7c38;background:#fff8e7;border:1px solid #e8d5a0;border-radius:10px;padding:1px 7px;margin-top:3px;font-weight:600;}
 </style>
 </head>
 <body>
@@ -972,6 +1184,7 @@ body {
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
       <div class="topbar-sub" id="topbar-date"></div>
+      <span class="bs-today-chip" id="bs-today-chip" style="display:none"></span>
       <button class="branch-chip" id="branch-chip" onclick="showBranchSwitcher()" style="display:none">
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span class="branch-chip-name" id="branch-chip-name">Shop</span>
@@ -1031,6 +1244,59 @@ body {
   </div>
 </div>
 
+<!-- ===== PHOTO KHATA FAB ===== -->
+<button class="fab-photo" id="fab-photo" onclick="openPhotoKhata()" title="Photo Khata">📷</button>
+
+<!-- ===== PHOTO KHATA BOTTOM SHEET ===== -->
+<div id="photo-khata-sheet" class="bottom-sheet" style="display:none">
+  <div class="bs-handle"></div>
+  <div class="pk-title" id="pk-title"></div>
+
+  <!-- Phase 1: source picker -->
+  <div id="pk-pick">
+    <button class="pk-source-btn" onclick="photoKhataCapture('camera')">
+      <span class="pk-source-icon">📷</span>
+      <span id="pk-lbl-camera"></span>
+    </button>
+    <button class="pk-source-btn" onclick="photoKhataCapture('file')">
+      <span class="pk-source-icon">🖼️</span>
+      <span id="pk-lbl-upload"></span>
+    </button>
+    <input id="pk-input-camera" type="file" accept="image/*" capture="environment"
+           style="display:none" onchange="if(this.files[0])_handlePhotoFile(this.files[0])">
+    <input id="pk-input-file" type="file" accept="image/*"
+           style="display:none" onchange="if(this.files[0])_handlePhotoFile(this.files[0])">
+  </div>
+
+  <!-- Phase 2: OCR progress -->
+  <div id="pk-progress" style="display:none">
+    <div class="pk-preview-wrap"><img id="pk-preview" src="" alt=""></div>
+    <div class="pk-ocr-label" id="pk-lbl-reading"></div>
+    <div class="pk-progress-bar"><div id="pk-progress-fill" class="pk-progress-fill"></div></div>
+  </div>
+
+  <!-- Phase 3: confirm -->
+  <div id="pk-confirm" style="display:none">
+    <div class="pk-preview-wrap"><img id="pk-preview2" src="" alt=""></div>
+    <div class="pk-amount-row">
+      <label class="pk-amount-label" id="pk-lbl-amount"></label>
+      <input id="pk-amount-input" type="number" class="pk-amount-field" placeholder="0">
+    </div>
+    <div class="pk-type-row">
+      <button class="pk-type-btn active" data-type="expense" onclick="pkSelectType(this,'expense')" id="pk-btn-expense"></button>
+      <button class="pk-type-btn" data-type="udhaar" onclick="pkSelectType(this,'udhaar')" id="pk-btn-udhaar"></button>
+      <button class="pk-type-btn" data-type="stock" onclick="pkSelectType(this,'stock')" id="pk-btn-stock"></button>
+    </div>
+    <details class="pk-raw-details">
+      <summary id="pk-lbl-raw"></summary>
+      <div id="pk-raw-text" class="pk-raw-text"></div>
+    </details>
+    <button class="pk-save-btn" onclick="photoKhataConfirm()" id="pk-btn-save"></button>
+  </div>
+
+  <button class="pk-close-btn" onclick="closePhotoKhata()" id="pk-btn-cancel"></button>
+</div>
+
 <!-- ===== MIC FAB ===== -->
 <button class="mic-fab" id="mic-fab" onclick="openVoice()" title="Voice command" style="display:none">
   <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
@@ -1042,21 +1308,165 @@ body {
 <!-- ===== VOICE MODAL ===== -->
 <div id="voice-modal">
   <div class="voice-sheet">
-    <div class="voice-ring" id="voice-ring">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="9" y="2" width="6" height="12" rx="3"/>
-        <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>
-      </svg>
+
+    <!-- ── PHASE: LISTEN ── -->
+    <div id="vp-listen">
+      <div class="voice-lang-row">
+        <button class="voice-lang-chip" id="vlc-ne" onclick="setVoiceLang('ne-NP')">नेपाली</button>
+        <button class="voice-lang-chip" id="vlc-hi" onclick="setVoiceLang('hi-IN')">हिंदी</button>
+        <button class="voice-lang-chip" id="vlc-en" onclick="setVoiceLang('en-IN')">English</button>
+      </div>
+      <div class="voice-ring" id="voice-ring">
+        <div class="voice-wave">
+          <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
+          <div class="v-bar"></div><div class="v-bar"></div>
+        </div>
+        <svg class="voice-mic-icon" viewBox="0 0 24 24" fill="none" stroke="#6D28D9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+          <rect x="9" y="2" width="6" height="12" rx="3"/>
+          <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>
+        </svg>
+      </div>
+      <div class="voice-transcript" id="voice-transcript" style="min-height:52px;font-size:17px;line-height:1.4"></div>
+      <div style="text-align:center;margin:6px 0 2px">
+        <button onclick="toggleVoiceExamples()" style="background:none;border:none;color:var(--color-accent);font-size:13px;font-weight:600;cursor:pointer;padding:4px 8px">
+          💡 <span id="voice-ex-lbl">Examples</span>
+        </button>
+      </div>
+      <div id="voice-examples-box" class="voice-examples-box" style="display:none">
+        <div class="vex-item">👤 <b>"Ramesh lai pach saya udhaar diye"</b></div>
+        <div class="vex-item">💰 <b>"Aaj tin hajaar ko bikri bhayo"</b></div>
+        <div class="vex-item">🧾 <b>"Ek hajaar pach saya kharcha bhayo"</b></div>
+        <div class="vex-item">📦 <b>"Pach kilo chini aayo stock ma"</b></div>
+        <div class="vex-item">✅ <b>"Ramesh ko udhaar tiryo"</b></div>
+      </div>
     </div>
-    <div class="voice-transcript" id="voice-transcript">Listening…</div>
-    <div class="voice-hint" id="voice-hint">Say: "sale 500 cash" · "kharcha 200" · "udhaar Ram 1000"</div>
-    <div class="voice-result" id="voice-result">
-      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">Will do:</div>
-      <div id="voice-action-text" style="font-size:15px;font-weight:700;color:var(--color-accent)"></div>
+
+    <!-- ── PHASE: CONFIRM ── -->
+    <div id="vp-confirm" style="display:none">
+      <div class="voice-heard-line" id="vp-heard"></div>
+      <div class="voice-confirm-card" id="vp-card"></div>
+      <div class="voice-action-row" style="margin-top:4px">
+        <button onclick="voiceConfirm()" style="flex:2;padding:14px;background:var(--color-accent);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer" id="voice-confirm-btn">✓ Thik Cha</button>
+        <button onclick="voiceRetry()" style="flex:1;padding:14px;background:var(--color-background-secondary);color:var(--color-text-primary);border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer">↺ Pheri</button>
+      </div>
     </div>
-    <div class="voice-action-row">
-      <button id="voice-confirm-btn" onclick="voiceConfirm()" style="display:none;flex:1;padding:13px;background:var(--color-accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Confirm ✓</button>
-      <button onclick="closeVoice()" style="flex:1;padding:13px;background:var(--color-background-secondary);color:var(--color-text-primary);border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer">Cancel</button>
+
+    <!-- ── PHASE: AMBIGUOUS ── -->
+    <div id="vp-ambig" style="display:none">
+      <div class="voice-transcript" id="vp-ambig-heard" style="font-size:14px;color:var(--color-text-secondary);margin-bottom:10px;font-style:italic"></div>
+      <div class="voice-ambig-title" id="vp-ambig-title"></div>
+      <div class="voice-ambig-row">
+        <button class="voice-ambig-btn" onclick="voiceResolve('sale')">
+          <span class="vab-emoji">💰</span><span id="vab-sale">Sale</span>
+        </button>
+        <button class="voice-ambig-btn" onclick="voiceResolve('udhaar-add')">
+          <span class="vab-emoji">📒</span><span id="vab-udhaar">Udhaar</span>
+        </button>
+        <button class="voice-ambig-btn" onclick="voiceResolve('expense')">
+          <span class="vab-emoji">🧾</span><span id="vab-expense">Kharcha</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── PHASE: SUCCESS ── -->
+    <div id="vp-success" style="display:none">
+      <div class="voice-success-wrap">
+        <div class="voice-success-ring">✓</div>
+        <div class="voice-success-text" id="vp-success-text"></div>
+        <div class="voice-success-sub" id="vp-success-sub"></div>
+      </div>
+    </div>
+
+    <!-- Cancel — shown in listen/confirm/ambig phases -->
+    <button onclick="closeVoice()" id="voice-cancel-btn"
+            style="width:100%;padding:12px;background:none;border:1px solid var(--color-border-tertiary);border-radius:12px;font-size:15px;color:var(--color-text-secondary);cursor:pointer;margin-top:10px">
+      Cancel
+    </button>
+
+  </div>
+</div>
+
+<!-- ===== SAHI-CHHAP MODAL ===== -->
+<div id="sahi-modal">
+  <div class="sahi-sheet">
+    <div class="sahi-header">
+      <h3>🔏 Sahi-Chhap</h3>
+      <button class="sahi-close" onclick="closeSahiModal()">✕</button>
+    </div>
+    <!-- Phase: Anchoring -->
+    <div id="sp-loading">
+      <div class="sahi-spinner"></div>
+      <div class="sahi-loading-txt" id="sp-loading-txt">Pakka Proof banaunu parchha...</div>
+      <div class="sahi-loading-sub">Tamper-proof digital record · ~5 seconds</div>
+    </div>
+    <!-- Phase: Done (QR + Share) -->
+    <div id="sp-done">
+      <div class="sahi-badge-row">
+        <span class="sahi-ok">✅</span>
+        <div>
+          <div class="sahi-ok-txt" id="sp-anchored-txt">✅ Pakka Proof taiyar bhayo</div>
+          <div class="sahi-ok-sub" id="sp-anchored-sub"></div>
+        </div>
+      </div>
+      <div class="sahi-qr-wrap"><canvas id="sahi-qr-canvas"></canvas></div>
+      <a id="sahi-tx-link" class="sahi-tx-link" target="_blank" rel="noopener"></a>
+      <button class="sahi-share-btn" id="sahi-wa-btn" onclick="sahiShareWA()">📲 Share Proof via WhatsApp</button>
+      <button class="sahi-explorer-btn" onclick="sahiOpenExplorer()">🔗 View Verified Record ↗</button>
+    </div>
+    <!-- Phase: Verifying -->
+    <div id="sp-verify">
+      <div class="sahi-spinner"></div>
+      <div class="sahi-loading-txt">Verifying...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VERIFY PAGE (standalone — no login needed) ===== -->
+<div id="verify-page">
+  <div class="verify-logo">
+    <svg viewBox="0 0 56 56" width="36" height="36"><rect width="56" height="56" rx="14" fill="#6D28D9"/><text x="28" y="40" font-family="sans-serif" font-size="30" font-weight="800" fill="#fff" text-anchor="middle">P</text></svg>
+    <span>Pasal Manager</span>
+  </div>
+  <div class="verify-devnet-badge">Tamper-Proof Digital Record</div>
+  <div id="verify-spinner" style="text-align:center;padding:32px 0">
+    <div class="sahi-spinner" style="margin:0 auto 12px"></div>
+    <div style="color:#666;font-size:14px">Verifying record...</div>
+  </div>
+  <div id="verify-result" style="display:none">
+    <div id="verify-result-card" class="verify-card">
+      <div class="verify-result-icon" id="verify-icon"></div>
+      <div class="verify-result-title" id="verify-title"></div>
+    </div>
+    <div id="verify-details" class="verify-card" style="display:none">
+      <div id="verify-rows"></div>
+    </div>
+    <a id="verify-explorer-link" href="#" target="_blank" rel="noopener" style="display:none;text-align:center;color:#6D28D9;font-size:13px;margin-top:4px;text-decoration:none;display:block"></a>
+  </div>
+  <div style="text-align:center;margin-top:28px;font-size:12px;color:#aaa">Powered by Pasal Manager · Digital Verification</div>
+</div>
+
+<!-- ===== MORNING BRIEFING PERMISSION CARD ===== -->
+<div id="briefing-perm-card">
+  <div class="bpc-header">
+    <div class="bpc-icon">🌅</div>
+    <div class="bpc-title" id="bpc-title">Daily Morning Summary</div>
+  </div>
+  <div class="bpc-desc" id="bpc-desc">Get a 7 AM push notification with your top debtors, yesterday's profit, and supplier dues.</div>
+  <div class="bpc-actions">
+    <button class="bpc-allow" onclick="requestBriefingPermission()" id="bpc-allow-btn">Allow Morning Briefing</button>
+    <button class="bpc-skip" onclick="dismissBriefingPerm(false)">Not now</button>
+  </div>
+</div>
+
+<!-- ===== SAHI-CHHAP PROMPT (post-udhaar) ===== -->
+<div id="sahi-prompt-overlay" onclick="if(event.target===this)dismissSahiPrompt()">
+  <div class="sahi-prompt-sheet">
+    <div class="sahi-prompt-icon">🔏</div>
+    <div class="sahi-prompt-title" id="sahi-prompt-title">Add Digital Sahi-Chhap?</div>
+    <div class="sahi-prompt-desc" id="sahi-prompt-desc">Creates a tamper-proof record of this udhaar. Share as proof link with the customer.</div>
+    <div class="sahi-prompt-row">
+      <button class="sahi-prompt-add" onclick="confirmSahiPrompt()" id="sahi-prompt-add-btn">🔏 Add Sahi-Chhap</button>
+      <button class="sahi-prompt-skip" onclick="dismissSahiPrompt()">Skip</button>
     </div>
   </div>
 </div>
@@ -1128,6 +1538,9 @@ let scannerTarget='stock', scannerStream=null, scannerActive=false, _zxingReader
 let returns=[], todayTab='sale', selReturnType='customer', selReturnReason='Defective';
 let emiPlans=[], emiPayments=[], currentEmiPlanId='', emiFreq='monthly';
 let loans=[], loanPayments=[], currentLoanId='';
+let sahiChhapMap={}; // udhaar_id → {txSig, hash, anchoredAt}
+let _currentSahiUdhaarId=null, _currentSahiTxSig=null;
+let _pkSelectedType='expense', _pkImageDataURL=null;
 
 // ===== I18N =====
 const LANG = {
@@ -1213,7 +1626,55 @@ const LANG = {
     guestNudgeSkip:'Later',
     guestAccountLabel:'Guest Mode',
     guestConvertBtn:'Create Free Account',
-    guestExitBtn:'Exit Guest Mode'
+    guestExitBtn:'Exit Guest Mode',
+    voiceListening:'Speak…',voiceHeard:'Heard:',voiceThikCha:'✓ Thik Cha — Save',voicePheri:'↺ Pheri',
+    voiceUdhaarAdd:'Udhaar diye',voiceUdhaarPaid:'Udhaar tiryo (paid)',voiceSale:'Bikri (Sale)',
+    voiceExpense:'Kharcha (Expense)',voiceStock:'Stock aayo',voiceWhatFor:'Ke ho?',
+    voiceUnknown:'Bujhiena — pheri bhannus',voiceNotFound:'Udhaar record fella parena',
+    voiceMicBlocked:'Microphone band cha — browser settings ma jaau',
+    voiceNoSpeech:'Kehi suniena — pheri koshis garnuhos',
+    voiceAdded:'Add bhayo!',voiceExamples:'Examples',voiceClose:'Close',
+    sahiChhap:'Sahi-Chhap',anchoring:'Creating Pakka Proof…',anchored:'✅ Pakka Proof Created',
+    shareProof:'Share Proof via WhatsApp',verifying:'Verifying...',proofValid:'Verified Record ✅',
+    proofInvalid:'Record Not Found',needInternet:'Internet required to anchor',
+    viewRecord:'View Verified Record ↗',
+    sahiPromptTitle:'Add Digital Sahi-Chhap?',
+    sahiPromptDesc:'Creates a tamper-proof record. Share proof with {name}.',
+    sahiPromptAdd:'🔏 Add Sahi-Chhap',sahiPromptSkip:'Skip',
+    scoreTitle:'Business Health Score',scoreSubtitle:'Based on your last 30 days of data',
+    scoreBreakdown:'Score Breakdown',scoreComp1:'Credit Recovery',scoreComp2:'Business Activity',
+    scoreComp3:'Payment Discipline',scoreComp4:'Record Keeping',scoreImprove:'How to Improve',
+    scoreCertBtn:'Download Score Certificate',scoreShareBtn:'Share on WhatsApp',
+    scoreLowData:'Use the app for a few more days — your score will appear once you have enough records.',
+    scoreExcellent:'Excellent',scoreGood:'Good',scoreFair:'Fair',scoreBuilding:'Building',
+    scoreCertTitle:'Business Health Certificate',
+    briefingTitle:'Morning Briefing',
+    briefingPermTitle:'Daily Morning Summary',
+    briefingPermDesc:"Get a 7 AM push notification with your top debtors, yesterday's profit, and supplier dues.",
+    briefingPermBtn:'Allow Morning Briefing',briefingPermSkip:'Not now',
+    briefingCollect:'Top to Collect',briefingSupplier:'Supplier Dues',
+    briefingYesterday:"Yesterday's Sales",briefingProfit:"Yesterday's Profit",
+    briefingRemind:'Remind on WhatsApp',briefingNoCollect:'All clear — no pending collections!',
+    briefingQuickAdd:'Quick Add',
+    bsCalendar:'Nepali Calendar',bsToday:'Today in Nepali Calendar',
+    bsFestival:'Upcoming Festival',bsStockTip:'Stock up early for the festival!',bsDaysAway:'days away',
+    photoKhataTitle:'Scan Bill',photoKhataCamera:'Take Photo',photoKhataUpload:'Upload Bill',
+    photoKhataReading:'Reading bill...',photoKhataAmount:'Amount',
+    photoKhataExpense:'Expense',photoKhataUdhaar:'Udhaar',photoKhataStock:'Stock',
+    photoKhataRaw:'See extracted text',photoKhataSave:'Save Entry',
+    photoKhataNoAmt:'No amount found — enter manually',
+    supCalTitle:'Supplier Calendar',supCalDueDate:'Payment Due Date',
+    supCalOverdue:'Overdue',supCalThisWeek:'Due This Week',supCalUpcoming:'Upcoming',
+    supCalMarkPaid:'Mark Paid',supCalSetDue:'Set Due Date',
+    supCalDaysLeft:'days left',supCalDaysOver:'days overdue',
+    supCalEmpty:'No supplier dues 🎉',supCalNotifTitle:'Payment Due Soon',
+    remindersTitle:'Smart Reminders',remindersSendToday:'Send Today',remindersUpcoming:'Upcoming',
+    remindersNoData:'Not enough data',remindersConsist:'Consistency',
+    remindersSendNow:'Send WhatsApp Now',remindersSendEarly:'Send Early',
+    remindersPreview:'Preview Message',remindersTypicalDay:'Usually pays on day',
+    remindersHowTitle:'How this works',
+    remindersHowDesc:'We analyze past payment dates to predict the next payment and remind you 2 days early.',
+    remindersNeedMore:'payments needed for pattern'
   },
   hi:{
     today:'आज',katha:'खाता',udhaar:'उधार',stock:'स्टॉक',more:'और',
@@ -1297,7 +1758,55 @@ const LANG = {
     guestNudgeSkip:'बाद में',
     guestAccountLabel:'अतिथि मोड',
     guestConvertBtn:'मुफ्त खाता बनाएं',
-    guestExitBtn:'अतिथि मोड छोड़ें'
+    guestExitBtn:'अतिथि मोड छोड़ें',
+    voiceListening:'बोलिए…',voiceHeard:'सुना:',voiceThikCha:'✓ ठीक है — Save',voicePheri:'↺ फिर से',
+    voiceUdhaarAdd:'उधार दिया',voiceUdhaarPaid:'उधार चुकता',voiceSale:'बिक्री',
+    voiceExpense:'खर्चा',voiceStock:'स्टॉक आया',voiceWhatFor:'क्या है?',
+    voiceUnknown:'समझ नहीं आया — फिर बोलें',voiceNotFound:'उधार रिकॉर्ड नहीं मिला',
+    voiceMicBlocked:'माइक्रोफोन बंद है — browser settings जाएं',
+    voiceNoSpeech:'कुछ नहीं सुना — फिर कोशिश करें',
+    voiceAdded:'जोड़ा गया!',voiceExamples:'Examples',voiceClose:'बंद करें',
+    sahiChhap:'सही छाप',anchoring:'Pakka Proof bana raha hai…',anchored:'✅ Pakka Proof taiyar',
+    shareProof:'WhatsApp se bhejein',verifying:'जांच रहे हैं...',proofValid:'Verified Record ✅',
+    proofInvalid:'Record nahi mila',needInternet:'प्रमाण के लिए इंटरनेट चाहिए',
+    viewRecord:'Verified Record dekhein ↗',
+    sahiPromptTitle:'Digital Sahi-Chhap lagayein?',
+    sahiPromptDesc:'Pakka proof banata hai. {name} ko link bhejein.',
+    sahiPromptAdd:'🔏 Sahi-Chhap lagayein',sahiPromptSkip:'Baad mein',
+    scoreTitle:'बिज़नेस हेल्थ स्कोर',scoreSubtitle:'पिछले 30 दिनों के डेटा पर आधारित',
+    scoreBreakdown:'स्कोर विवरण',scoreComp1:'उधार वसूली',scoreComp2:'व्यापार गतिविधि',
+    scoreComp3:'भुगतान अनुशासन',scoreComp4:'रिकॉर्ड रखरखाव',scoreImprove:'कैसे सुधारें',
+    scoreCertBtn:'स्कोर सर्टिफिकेट डाउनलोड करें',scoreShareBtn:'WhatsApp पर शेयर करें',
+    scoreLowData:'कुछ और दिन ऐप का उपयोग करें — पर्याप्त रिकॉर्ड होने पर स्कोर दिखेगा।',
+    scoreExcellent:'उत्कृष्ट',scoreGood:'अच्छा',scoreFair:'ठीक है',scoreBuilding:'बन रहा है',
+    scoreCertTitle:'व्यवसाय स्वास्थ्य प्रमाणपत्र',
+    briefingTitle:'सुबह की जानकारी',
+    briefingPermTitle:'रोज सुबह की रिपोर्ट',
+    briefingPermDesc:'सुबह 7 बजे पुश नोटिफिकेशन पाएं — शीर्ष देनदार, कल का मुनाफा और सप्लायर बकाया।',
+    briefingPermBtn:'सुबह की जानकारी चालू करें',briefingPermSkip:'अभी नहीं',
+    briefingCollect:'वसूली करनी है',briefingSupplier:'सप्लायर बकाया',
+    briefingYesterday:'कल की बिक्री',briefingProfit:'कल का मुनाफा',
+    briefingRemind:'WhatsApp पर याद दिलाएं',briefingNoCollect:'सब ठीक — कोई बकाया नहीं!',
+    briefingQuickAdd:'जल्दी जोड़ें',
+    bsCalendar:'नेपाली कैलेंडर',bsToday:'आज BS में',
+    bsFestival:'आने वाला त्योहार',bsStockTip:'त्योहार के लिए जल्दी स्टॉक करें!',bsDaysAway:'दिन बाद',
+    photoKhataTitle:'बिल स्कैन करें',photoKhataCamera:'फ़ोटो लें',photoKhataUpload:'बिल अपलोड करें',
+    photoKhataReading:'बिल पढ़ रहे हैं...',photoKhataAmount:'राशि',
+    photoKhataExpense:'खर्च',photoKhataUdhaar:'उधार',photoKhataStock:'स्टॉक',
+    photoKhataRaw:'निकाला गया टेक्स्ट देखें',photoKhataSave:'एंट्री सेव करें',
+    photoKhataNoAmt:'राशि नहीं मिली — खुद भरें',
+    supCalTitle:'सप्लायर कैलेंडर',supCalDueDate:'भुगतान की तारीख',
+    supCalOverdue:'बकाया',supCalThisWeek:'इस हफ्ते देय',supCalUpcoming:'आगामी',
+    supCalMarkPaid:'भुगतान किया',supCalSetDue:'तारीख सेट करें',
+    supCalDaysLeft:'दिन बाकी',supCalDaysOver:'दिन बीत गए',
+    supCalEmpty:'कोई सप्लायर बकाया नहीं',supCalNotifTitle:'भुगतान जल्द देय',
+    remindersTitle:'स्मार्ट रिमाइंडर',remindersSendToday:'आज भेजें',remindersUpcoming:'आगामी',
+    remindersNoData:'पर्याप्त डेटा नहीं',remindersConsist:'नियमितता',
+    remindersSendNow:'अभी WhatsApp करें',remindersSendEarly:'जल्दी भेजें',
+    remindersPreview:'संदेश देखें',remindersTypicalDay:'आमतौर पर दिन को भुगतान',
+    remindersHowTitle:'यह कैसे काम करता है',
+    remindersHowDesc:'हम पिछले भुगतान की तारीखों का विश्लेषण करते हैं और 2 दिन पहले याद दिलाते हैं।',
+    remindersNeedMore:'भुगतान पैटर्न के लिए चाहिए'
   },
   np:{
     today:'आज',katha:'खाता',udhaar:'उधारो',stock:'स्टक',more:'थप',
@@ -1381,13 +1890,199 @@ const LANG = {
     guestNudgeSkip:'पछि',
     guestAccountLabel:'अतिथि मोड',
     guestConvertBtn:'नि:शुल्क खाता बनाउनुहोस्',
-    guestExitBtn:'अतिथि मोड छोड्नुहोस्'
+    guestExitBtn:'अतिथि मोड छोड्नुहोस्',
+    voiceListening:'बोल्नुहोस्…',voiceHeard:'सुनियो:',voiceThikCha:'✓ ठीक छ — Save',voicePheri:'↺ फेरि',
+    voiceUdhaarAdd:'उधारो दिइयो',voiceUdhaarPaid:'उधारो तिरियो',voiceSale:'बिक्री',
+    voiceExpense:'खर्च',voiceStock:'स्टक आयो',voiceWhatFor:'के हो?',
+    voiceUnknown:'बुझिएन — फेरि बोल्नुहोस्',voiceNotFound:'उधारो रेकर्ड फेला परेन',
+    voiceMicBlocked:'Microphone बन्द छ — browser settings मा जानुहोस्',
+    voiceNoSpeech:'केही सुनिएन — फेरि कोशिस गर्नुहोस्',
+    voiceAdded:'थपियो!',voiceExamples:'Examples',voiceClose:'बन्द गर्नुहोस्',
+    sahiChhap:'सही छाप',anchoring:'Pakka Proof banaundai…',anchored:'✅ Pakka Proof taiyar bhayo',
+    shareProof:'WhatsApp bata share garnuhos',verifying:'प्रमाणीकरण...',proofValid:'Verified Record ✅',
+    proofInvalid:'Record fella parena',needInternet:'प्रमाणका लागि इन्टरनेट चाहिन्छ',
+    viewRecord:'Verified Record herna ↗',
+    sahiPromptTitle:'Digital Sahi-Chhap thapne?',
+    sahiPromptDesc:'Pakka proof banaunchha. {name} lai link pathaunuhos.',
+    sahiPromptAdd:'🔏 Sahi-Chhap thapnuhos',sahiPromptSkip:'Pachi',
+    scoreTitle:'व्यवसाय स्वास्थ्य स्कोर',scoreSubtitle:'अन्तिम ३० दिनको डेटामा आधारित',
+    scoreBreakdown:'स्कोर विवरण',scoreComp1:'उधारो असुली',scoreComp2:'व्यापार गतिविधि',
+    scoreComp3:'भुक्तानी अनुशासन',scoreComp4:'रेकर्ड राख्ने',scoreImprove:'कसरी सुधार्ने',
+    scoreCertBtn:'स्कोर प्रमाणपत्र डाउनलोड गर्नुस्',scoreShareBtn:'WhatsApp मा शेयर गर्नुस्',
+    scoreLowData:'केही दिन थप प्रयोग गर्नुस् — पर्याप्त रेकर्ड भएपछि स्कोर देखिन्छ।',
+    scoreExcellent:'उत्कृष्ट',scoreGood:'राम्रो',scoreFair:'ठीक छ',scoreBuilding:'बन्दैछ',
+    scoreCertTitle:'व्यवसाय स्वास्थ्य प्रमाणपत्र',
+    briefingTitle:'बिहानको जानकारी',
+    briefingPermTitle:'दैनिक बिहानको रिपोर्ट',
+    briefingPermDesc:'बिहान ७ बजे पुश नोटिफिकेसन पाउनुस् — शीर्ष उधारदाता, हिजोको नाफा र सप्लायर बाँकी।',
+    briefingPermBtn:'बिहानको जानकारी सुरु गर्नुस्',briefingPermSkip:'अहिले होइन',
+    briefingCollect:'असुल गर्नुपर्ने',briefingSupplier:'सप्लायर बाँकी',
+    briefingYesterday:'हिजोको बिक्री',briefingProfit:'हिजोको नाफा',
+    briefingRemind:'WhatsApp मा सम्झाउनुस्',briefingNoCollect:'सब ठीक — कुनै बाँकी छैन!',
+    briefingQuickAdd:'छिटो थप्नुस्',
+    bsCalendar:'नेपाली पात्रो',bsToday:'आज BS मा',
+    bsFestival:'आउँदो चाड',bsStockTip:'चाडका लागि चाँडै स्टक गर्नुस्!',bsDaysAway:'दिन पछि',
+    photoKhataTitle:'बिल स्क्यान गर्नुस्',photoKhataCamera:'फोटो खिच्नुस्',photoKhataUpload:'बिल अपलोड गर्नुस्',
+    photoKhataReading:'बिल पढ्दैछौं...',photoKhataAmount:'रकम',
+    photoKhataExpense:'खर्च',photoKhataUdhaar:'उधार',photoKhataStock:'स्टक',
+    photoKhataRaw:'निकालिएको टेक्स्ट हेर्नुस्',photoKhataSave:'एन्ट्री सेभ गर्नुस्',
+    photoKhataNoAmt:'रकम भेटिएन — आफैं भर्नुस्',
+    supCalTitle:'सप्लायर पात्रो',supCalDueDate:'भुक्तानी मिति',
+    supCalOverdue:'म्याद गुज्रिसकेको',supCalThisWeek:'यस हप्ता देय',supCalUpcoming:'आउँदो',
+    supCalMarkPaid:'तिरेको छ',supCalSetDue:'मिति तोक्नुस्',
+    supCalDaysLeft:'दिन बाँकी',supCalDaysOver:'दिन ढिलो',
+    supCalEmpty:'कुनै सप्लायर बाँकी छैन',supCalNotifTitle:'भुक्तानी समय नजिक',
+    remindersTitle:'स्मार्ट रिमाइन्डर',remindersSendToday:'आज पठाउनुस्',remindersUpcoming:'आउँदो',
+    remindersNoData:'पर्याप्त डेटा छैन',remindersConsist:'नियमितता',
+    remindersSendNow:'अहिले WhatsApp गर्नुस्',remindersSendEarly:'चाँडै पठाउनुस्',
+    remindersPreview:'सन्देश हेर्नुस्',remindersTypicalDay:'सामान्यतः दिनमा तिर्छन्',
+    remindersHowTitle:'यो कसरी काम गर्छ',
+    remindersHowDesc:'हामी विगतका भुक्तानी मितिहरू विश्लेषण गरी २ दिन अगाडि सम्झाउँछौं।',
+    remindersNeedMore:'भुक्तानी ढाँचाका लागि चाहिन्छ'
   }
 };
 function t(k){ return (LANG[S.language]||LANG.en)[k]||LANG.en[k]||k; }
 
 const PAY={IN:['Cash','UPI','PhonePe','GPay','Paytm','Card'],NP:['Cash','eSewa','Khalti','IME Pay','Fonepay','Card']};
 const CATS=['Shop','Rent','Staff','Electric','Travel','Food','Other'];
+
+// ===== BIKRAM SAMBAT CALENDAR =====
+// Anchor: BS 2065 Baishakh 1 = AD April 14, 2008
+const _BS_ANCHOR_AD=new Date(2008,3,14);
+// Month lengths per BS year (2065–2090)
+const BS_YEAR_DATA=[
+  [2065,[31,32,31,32,31,30,30,30,29,30,30,30]],
+  [2066,[31,31,31,32,31,31,29,30,30,29,29,31]],
+  [2067,[30,32,31,32,31,30,30,30,29,30,29,31]],
+  [2068,[31,31,32,31,31,31,30,29,30,29,30,30]],
+  [2069,[31,31,32,31,32,30,30,29,30,29,30,30]],
+  [2070,[31,31,32,32,31,30,30,29,30,29,30,30]],
+  [2071,[31,31,32,31,31,31,30,29,30,29,30,30]],
+  [2072,[31,32,31,32,31,30,30,30,29,29,30,31]],
+  [2073,[30,32,31,32,31,30,30,30,29,30,29,31]],
+  [2074,[31,31,32,31,31,31,30,29,30,29,30,30]],
+  [2075,[31,31,32,32,31,30,30,29,30,29,30,30]],
+  [2076,[31,32,31,32,31,30,30,30,29,29,30,31]],
+  [2077,[30,32,31,32,31,30,30,30,29,30,29,31]],
+  [2078,[31,31,32,31,31,31,30,29,30,29,30,30]],
+  [2079,[31,31,32,32,31,30,30,29,30,29,30,30]],
+  [2080,[31,32,31,32,31,30,30,30,29,29,30,31]],
+  [2081,[31,31,32,31,31,31,30,29,30,29,30,30]],
+  [2082,[31,31,32,32,31,30,30,29,30,29,30,30]],
+  [2083,[31,32,31,32,31,30,30,30,29,29,30,31]],
+  [2084,[31,31,31,32,31,31,29,30,30,29,29,31]],
+  [2085,[31,31,32,31,31,31,30,29,30,29,30,30]],
+  [2086,[31,32,31,32,31,30,30,30,29,29,30,30]],
+  [2087,[31,32,31,32,31,30,30,30,29,30,29,31]],
+  [2088,[30,32,31,32,31,30,30,30,29,30,29,31]],
+  [2089,[31,31,32,31,31,30,30,29,30,29,30,31]],
+  [2090,[31,31,32,31,31,31,30,29,30,29,30,30]],
+];
+const _BS_MONTHS_EN=['Baishakh','Jestha','Ashadh','Shrawan','Bhadra','Ashwin','Kartik','Mangsir','Poush','Magh','Falgun','Chaitra'];
+const _BS_MONTHS_NP=['बैशाख','जेठ','असार','श्रावण','भाद्र','असोज','कार्तिक','मंसिर','पुष','माघ','फाल्गुन','चैत्र'];
+const BS_FESTIVALS=[
+  {m:1, d:1, name:{en:'Nepali New Year',   hi:'नेपाली नव वर्ष',  np:'नयाँ वर्ष'}},
+  {m:2, d:15,name:{en:'Buddha Jayanti',    hi:'बुद्ध जयंती',     np:'बुद्ध जयन्ती'}},
+  {m:6, d:15,name:{en:'Teej',              hi:'तीज',             np:'तीज'}},
+  {m:7, d:1, name:{en:'Dashain begins',    hi:'दशैं शुरू',       np:'दशैं सुरु'}},
+  {m:7, d:15,name:{en:'Dashain Tika',      hi:'दशैं टीका',       np:'दशैं टीका'}},
+  {m:8, d:1, name:{en:'Tihar begins',      hi:'दिवाली',          np:'तिहार सुरु'}},
+  {m:9, d:1, name:{en:'Chhath Puja',       hi:'छठ पूजा',         np:'छठ पूजा'}},
+  {m:10,d:1, name:{en:'Maghe Sankranti',   hi:'मकर संक्रांति',   np:'माघे संक्रान्ति'}},
+  {m:11,d:7, name:{en:'Maha Shivaratri',   hi:'महाशिवरात्रि',    np:'महाशिवरात्रि'}},
+  {m:12,d:30,name:{en:'Nepali New Year Eve',hi:'नव वर्ष की पूर्व संध्या',np:'नयाँ वर्षको साँझ'}},
+];
+
+function toNepaliNumerals(n){
+  const nd='०१२३४५६७८९';
+  return String(n).replace(/[0-9]/g,d=>nd[+d]);
+}
+function adToBS(date){
+  if(!date||isNaN(date.getTime())) return null;
+  const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());
+  let rem=Math.round((d-_BS_ANCHOR_AD)/86400000);
+  if(rem<0) return null;
+  let yi=0;
+  while(yi<BS_YEAR_DATA.length){
+    const yLen=BS_YEAR_DATA[yi][1].reduce((a,b)=>a+b,0);
+    if(rem<yLen) break;
+    rem-=yLen; yi++;
+  }
+  if(yi>=BS_YEAR_DATA.length) return null;
+  const months=BS_YEAR_DATA[yi][1];
+  let mi=0;
+  while(mi<12){if(rem<months[mi]) break; rem-=months[mi]; mi++;}
+  if(mi>=12) return null;
+  return{y:BS_YEAR_DATA[yi][0],m:mi+1,d:rem+1};
+}
+function bsToAD(y,m,d){
+  const firstIdx=BS_YEAR_DATA.findIndex(r=>r[0]===y);
+  if(firstIdx<0) return null;
+  let total=0;
+  for(let i=0;i<firstIdx;i++) total+=BS_YEAR_DATA[i][1].reduce((a,b)=>a+b,0);
+  const months=BS_YEAR_DATA[firstIdx][1];
+  for(let mi=0;mi<m-1;mi++) total+=months[mi];
+  total+=d-1;
+  return new Date(_BS_ANCHOR_AD.getTime()+total*86400000);
+}
+function bsDateStr(date){
+  const bs=adToBS(date);
+  if(!bs) return '';
+  return toNepaliNumerals(bs.y)+' '+_BS_MONTHS_NP[bs.m-1]+' '+toNepaliNumerals(bs.d);
+}
+function bsDateStrLatin(date){
+  const bs=adToBS(date);
+  if(!bs) return '';
+  return bs.y+' '+_BS_MONTHS_EN[bs.m-1]+' '+bs.d;
+}
+function getUpcomingFestivals(n=3){
+  const today=new Date();
+  const bs=adToBS(today);
+  if(!bs) return [];
+  const lang=S.language||'en';
+  const results=[];
+  for(let yearOff=0;yearOff<=1;yearOff++){
+    const checkY=bs.y+yearOff;
+    for(const f of BS_FESTIVALS){
+      const ad=bsToAD(checkY,f.m,f.d);
+      if(!ad) continue;
+      const daysAway=Math.round((ad-today)/86400000);
+      if(daysAway>=0){
+        results.push({
+          festival:f.name[lang]||f.name.en,
+          daysAway,
+          bsDate:_BS_MONTHS_EN[f.m-1]+' '+f.d+', '+checkY,
+          _fEntry:f
+        });
+      }
+    }
+  }
+  results.sort((a,b)=>a.daysAway-b.daysAway);
+  const seen=new Set();
+  return results.filter(r=>{if(seen.has(r.festival))return false;seen.add(r.festival);return true;}).slice(0,n);
+}
+function _festivalStockTip(fEntry){
+  // Returns true if sales in same BS month last year were >20% above 30-day average
+  try{
+    const today=new Date();
+    const bs=adToBS(today);
+    if(!bs||!fEntry) return false;
+    const lastY=bs.y-1;
+    const monthStartAD=bsToAD(lastY,fEntry.m,1);
+    const yRow=BS_YEAR_DATA.find(r=>r[0]===lastY);
+    if(!monthStartAD||!yRow) return false;
+    const mDays=yRow[1][fEntry.m-1];
+    const mEnd=new Date(monthStartAD.getTime()+(mDays-1)*86400000);
+    const mS=monthStartAD.toISOString().slice(0,10);
+    const mE=mEnd.toISOString().slice(0,10);
+    const mSales=(sales||[]).filter(s=>s.date>=mS&&s.date<=mE).reduce((a,s)=>a+s.amt,0);
+    const mAvg=mSales/mDays;
+    const t30=new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
+    const tStr=today.toISOString().slice(0,10);
+    const avg30=(sales||[]).filter(s=>s.date>=t30&&s.date<=tStr).reduce((a,s)=>a+s.amt,0)/30;
+    return avg30>0&&mAvg>avg30*1.2;
+  }catch(e){return false;}
+}
 
 // ===== HELPERS =====
 function cur(){ return S.country==='NP'?'रू':'₹'; }
@@ -1515,7 +2210,7 @@ async function loadAll(){
   if(!currentUser){cacheRead();return;}
   try{
     const uid=currentUser.id;
-    const[brr,sr,er,ur,str,spr,setr,khr,dlr,dle,cbr,ctr,sfr,sfer,gbr,rtr,epr,epyr,lnr,lnpr]=await Promise.all([
+    const[brr,sr,er,ur,str,spr,setr,khr,dlr,dle,cbr,ctr,sfr,sfer,gbr,rtr,epr,epyr,lnr,lnpr,scr]=await Promise.all([
       sb.from('pm_branches').select('*').eq('user_id',uid).order('created_at',{ascending:true}),
       sb.from('pm_sales').select('*').eq('user_id',uid).order('ts',{ascending:false}),
       sb.from('pm_expenses').select('*').eq('user_id',uid).order('ts',{ascending:false}),
@@ -1535,7 +2230,8 @@ async function loadAll(){
       sb.from('pm_emi_plans').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
       sb.from('pm_emi_payments').select('*').eq('user_id',uid).order('due_date',{ascending:true}),
       sb.from('pm_loans').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
-      sb.from('pm_loan_payments').select('*').eq('user_id',uid).order('due_date',{ascending:true})
+      sb.from('pm_loan_payments').select('*').eq('user_id',uid).order('due_date',{ascending:true}),
+      sb.from('sahi_chhap').select('udhaar_id,tx_signature,hash,anchored_at').eq('user_id',uid)
     ]);
     if(brr.data){
       branches=brr.data.map(r=>({id:r.id,name:r.name,location:r.location||'',isDefault:!!r.is_default}));
@@ -1564,6 +2260,7 @@ async function loadAll(){
     if(epyr.data) emiPayments=epyr.data.map(r=>({id:r.id,planId:r.plan_id,dueDate:r.due_date,amt:r.amt,paid:!!r.paid,paidDate:r.paid_date||''}));
     if(lnr.data) loans=lnr.data.map(r=>({id:r.id,lender:r.lender,loanAmt:r.loan_amt,interestRate:r.interest_rate||0,tenure:r.tenure,emiAmt:r.emi_amt,startDate:r.start_date,note:r.note||'',createdAt:r.created_at}));
     if(lnpr.data) loanPayments=lnpr.data.map(r=>({id:r.id,loanId:r.loan_id,dueDate:r.due_date,emiAmt:r.emi_amt,principal:r.principal||0,interest:r.interest||0,paid:!!r.paid,paidDate:r.paid_date||''}));
+    if(scr&&scr.data){sahiChhapMap={};scr.data.forEach(r=>{sahiChhapMap[r.udhaar_id]={txSig:r.tx_signature,hash:r.hash,anchoredAt:r.anchored_at};});}
     cacheWrite();
   }catch(e){console.error('DB load failed, using cache',e);cacheRead();}
 }
@@ -1671,6 +2368,7 @@ async function afterLogin(){
   await loadAll();
   updateTopbar();updateNavLabels();renderToday();
   updateUdhaarBadge();
+  _updateSupplierBadge();
   initVoice();
 
   // Guest mode post-login setup
@@ -1683,6 +2381,7 @@ async function afterLogin(){
   setTimeout(initReminderCheck,2000);
   setTimeout(_wqFlush,3000);       // Retry any queued offline writes
   setTimeout(_checkBackupReminder,5000); // Weekly backup reminder
+  if(!isGuestMode) setTimeout(initMorningBriefing,3000);
   initVisibilityLock();
   await initPin();
 }
@@ -2116,12 +2815,16 @@ function renderUdhaar(){
     <div class="udhaar-total-bar"><span>${t('total')}: ${active.length}</span><span>${fmt(totalU)}</span></div>
     <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--color-border-tertiary)">
       <div style="display:flex;gap:8px">
-        <input class="input-md" id="u-name" placeholder="${t('name')}">
+        <input class="input-md" id="u-name" placeholder="${t('name')}" oninput="checkSupplierDueRow()">
         <input class="input-md" id="u-phone" inputmode="tel" placeholder="${t('phone')}" style="max-width:110px">
       </div>
       <div style="display:flex;gap:8px">
         <input class="input-md" id="u-amt" inputmode="numeric" placeholder="${t('amount')}">
         <input class="input-md" id="u-due" type="date" style="max-width:140px" title="Due date (when they will pay)">
+      </div>
+      <div id="sup-due-row" class="sup-due-row" style="display:none">
+        <label id="sup-due-label">${t('supCalDueDate')}</label>
+        <input type="date" id="sup-due-input" class="sup-due-input">
       </div>
       <button class="btn-block" onclick="addUdhaar()">${t('add')}</button>
     </div>
@@ -2139,10 +2842,12 @@ function renderUdhaar(){
           <div class="list-item-left">
             <div class="list-item-title">${esc(u.name)}${dueBadge}</div>
             <div class="list-item-meta" style="color:${dueColor}">${fmtDate(u.date)}${u.phone?' · '+u.phone:''}${u.dueDate?' · Pay by '+fmtDate(u.dueDate):''}</div>
+            ${u.date?`<div class="bs-date">${bsDateStr(new Date(u.date))}</div>`:''}
           </div>
           <div style="font-size:17px;font-weight:800;color:var(--color-danger);white-space:nowrap;margin-right:6px">${fmt(u.amt)}</div>
           <div class="udhaar-actions">
             ${u.phone?`<button class="udhaar-action-btn wa" onclick="sendWA('${esc(u.name)}','${u.phone}',${u.amt},'${u.dueDate||''}')">${waIcon}</button>`:''}
+            ${sahiChhapMap[u.id]?`<button class="sc-verified-badge" onclick="openSahiDone('${u.id}')">✅</button>`:`<button class="sc-get-btn" onclick="startSahiChhap('${u.id}')">🔏</button>`}
             <button class="udhaar-action-btn paid" onclick="markPaid('${u.id}')"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
           </div>
         </div>`;
@@ -2153,17 +2858,23 @@ async function addUdhaar(){
   const name=document.getElementById('u-name').value.trim();
   const phone=document.getElementById('u-phone').value.trim();
   const amt=Math.round(parseFloat(document.getElementById('u-amt').value));
-  const dueDate=document.getElementById('u-due').value||'';
+  // Prefer supplier due date row if visible, else standard due input
+  const supRow=document.getElementById('sup-due-row');
+  const supDue=supRow&&supRow.style.display!=='none'?document.getElementById('sup-due-input')?.value:'';
+  const dueDate=supDue||document.getElementById('u-due').value||'';
   if(!name||!amt||amt<=0||isNaN(amt)) return;
   const u={id:uid(),name,phone,amt,date:todayStr(),ts:Date.now(),paid:false,dueDate,country:S.country};
   udhaars.push(u);
   await dbAdd('pm_udhaar',{id:u.id,user_id:currentUser?.id,name:u.name,phone:u.phone,amt:u.amt,date:u.date,ts:u.ts,paid:u.paid,due_date:dueDate,country:u.country});
+  _updateSupplierBadge();
   renderUdhaar();
+  if(!isGuestMode && currentUser) showSahiPrompt(u.id, name);
 }
 async function markPaid(id){
   const u=udhaars.find(u=>u.id===id);if(u) u.paid=true;
   await dbUpdate('pm_udhaar',id,{paid:true});
   updateUdhaarBadge();
+  _updateSupplierBadge();
   renderUdhaar();
 }
 function sendWA(name,phone,amt,dueDate){
@@ -2504,10 +3215,10 @@ async function delStock(id){
 // =============== MORE MENU ===============
 function renderMore(){
   const el=document.getElementById('page-more');
-  const pages={menu:renderMoreMenu,expense:renderExpense,supplier:renderSupplier,bill:renderBill,pl:renderPL,export:renderExport,settings:renderSettingsPage,kharidi:renderKharidi,kharidiDetail:renderKharidiDetail,dealer:renderDealerBook,dealerDetail:renderDealerDetail,dashboard:renderDashboard,cashbook:renderCashBook,customers:renderCustomers,customerDetail:renderCustomerDetail,staffBook:renderStaffBook,staffDetail:renderStaffDetail,branches:renderBranchesPage,emi:renderEmiPage,emiDetail:renderEmiDetail,loan:renderLoanPage,loanDetail:renderLoanDetail};
+  const pages={menu:renderMoreMenu,expense:renderExpense,supplier:renderSupplier,bill:renderBill,pl:renderPL,export:renderExport,settings:renderSettingsPage,kharidi:renderKharidi,kharidiDetail:renderKharidiDetail,dealer:renderDealerBook,dealerDetail:renderDealerDetail,dashboard:renderDashboard,cashbook:renderCashBook,customers:renderCustomers,customerDetail:renderCustomerDetail,staffBook:renderStaffBook,staffDetail:renderStaffDetail,branches:renderBranchesPage,emi:renderEmiPage,emiDetail:renderEmiDetail,loan:renderLoanPage,loanDetail:renderLoanDetail,score:renderScorePage,morning:renderMorningPage,'supplier-cal':renderSupplierCalPage,reminders:renderRemindersPage};
   (pages[moreSubPage]||renderMoreMenu)(el);
 }
-function goMore(page){if(moreSubPage==='dashboard') destroyCharts();if(page==='cashbook'&&moreSubPage!=='cashbook') cashbookViewDate=new Date();if(page==='customers'){custSearch='';custTab='all';}if(page==='staffBook'&&moreSubPage!=='staffBook'&&moreSubPage!=='staffDetail') staffViewDate=new Date();if(page==='menu'){currentEmiPlanId='';currentLoanId='';}moreSubPage=page;document.getElementById('scroll-area').scrollTop=0;renderMore();}
+function goMore(page){if(moreSubPage==='dashboard') destroyCharts();if(page==='cashbook'&&moreSubPage!=='cashbook') cashbookViewDate=new Date();if(page==='customers'){custSearch='';custTab='all';}if(page==='staffBook'&&moreSubPage!=='staffBook'&&moreSubPage!=='staffDetail') staffViewDate=new Date();if(page==='menu'){currentEmiPlanId='';currentLoanId='';_scoreCache=null;}moreSubPage=page;document.getElementById('scroll-area').scrollTop=0;renderMore();}
 function backBtn(){return `<div class="back-btn" onclick="goMore('menu')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>${t('back')}</div>`;}
 
 // =============== DASHBOARD ===============
@@ -2681,6 +3392,10 @@ function renderMoreMenu(el){
     {id:'supplier',icon:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',color:'#8B5CF6',label:'Suppliers',desc:'Your wholesale contacts'},
     {id:'bill',icon:'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2',color:'#0EA5E9',label:'Digital Bill',desc:'Make & share customer bills'},
     {id:'staffBook',icon:'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 12l2 2 4-4',color:'#D97706',label:t('staffBook'),desc:'Attendance, salary & advances'},
+    {id:'score',icon:'M12 2l2.4 7.4H22l-6.3 4.6 2.4 7.4L12 17.6l-6.1 3.8 2.4-7.4L2 9.4h7.6z',color:'#7C3AED',label:t('scoreTitle'),desc:'Financial health score & bank loan certificate'},
+    {id:'morning',icon:'M12 2a10 10 0 0 1 10 10H2A10 10 0 0 1 12 2zM2 12h20M12 2v4M4.93 4.93l2.83 2.83M19.07 4.93l-2.83 2.83',color:'#F59E0B',label:t('briefingTitle'),desc:'Daily top debtors, yesterday\'s profit & quick actions'},
+    {id:'supplier-cal',icon:'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',color:'#E53935',label:t('supCalTitle'),desc:'Track when supplier payments are due',badgeId:'sup-cal-badge'},
+    {id:'reminders',icon:'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0',color:'#1E88E5',label:t('remindersTitle'),desc:'Auto-scheduled WhatsApp reminders from payment history'},
     {id:'pl',icon:'M18 20V10M12 20V4M6 20v-6',color:'var(--color-success)',label:'P&L Report',desc:'Monthly profit & loss summary'},
     {id:'export',icon:'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',color:'var(--color-warning)',label:'Export & Audit',desc:'Download Excel & audit report'},
     {id:'settings',icon:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',color:'var(--color-text-secondary)',label:t('settings'),desc:''}
@@ -2695,7 +3410,8 @@ function renderMoreMenu(el){
   const renderItem=i=>`
     <div class="more-menu-item" onclick="${i.locked?`showUnlockModal('${i.id}')`:`goMore('${i.id}')`}">
       <div class="more-icon" style="background:${i.color}"><svg viewBox="0 0 24 24"><path d="${i.icon}"/></svg></div>
-      <div><div class="more-menu-title">${i.label}</div>${i.desc?`<div class="more-menu-desc">${i.desc}</div>`:''}</div>
+      <div style="flex:1;min-width:0"><div class="more-menu-title">${i.label}</div>${i.desc?`<div class="more-menu-desc">${i.desc}</div>`:''}</div>
+      ${i.badgeId?`<span class="sup-cal-badge" id="${i.badgeId}" style="display:none">0</span>`:''}
       ${i.locked?'<div class="more-lock">PRO</div>':''}
     </div>`;
   el.innerHTML=
@@ -2882,6 +3598,7 @@ function renderCustomerDetail(el){
         <div class="list-item-left">
           <div class="list-item-amt" style="color:var(--color-success)">${fmt(s.amt)}</div>
           <div class="list-item-meta">${fmtDate(s.date)} · ${fmtTime(s.ts)}${s.payMode?' · '+s.payMode:''}${s.cost>0?' · Cost: '+fmt(s.cost):''}${s.note?' · '+s.note:''}</div>
+          ${s.date?`<div class="bs-date">${bsDateStr(new Date(s.date))}</div>`:''}
         </div>
         ${s.cost>0?`<div style="text-align:center;flex-shrink:0"><div style="font-size:13px;font-weight:700;color:${s.amt-s.cost>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(s.amt-s.cost)}</div><div style="font-size:10px;color:var(--color-text-secondary)">profit</div></div>`:''}
       </div>`).join('')}
@@ -4294,6 +5011,7 @@ function renderKharidiDetail(el){
       entries.map(e=>`<div class="list-item">
         <div class="list-item-left">
           <div class="list-item-meta">${fmtDate(e.date)} · ${fmtTime(e.ts)}</div>
+          ${e.date?`<div class="bs-date">${bsDateStr(new Date(e.date))}</div>`:''}
           ${e.note?`<div class="list-item-meta">${esc(e.note)}</div>`:''}
         </div>
         <div style="text-align:right">
@@ -4392,6 +5110,7 @@ function renderDealerDetail(el){
       entries.map(e=>`<div class="list-item">
         <div class="list-item-left">
           <div class="list-item-meta">${fmtDate(e.date)} · ${fmtTime(e.ts)}</div>
+          ${e.date?`<div class="bs-date">${bsDateStr(new Date(e.date))}</div>`:''}
           ${e.note?`<div class="list-item-meta">${esc(e.note)}</div>`:''}
         </div>
         <div style="text-align:right">
@@ -4458,6 +5177,8 @@ function updateTopbar(){
   document.getElementById('topbar-title').textContent=S.shopName||'Pasal Manager';
   document.getElementById('topbar-sub').textContent=S.country==='NP'?'Nepal':'India';
   document.getElementById('topbar-date').textContent=fmtDate(todayStr());
+  const bsChip=document.getElementById('bs-today-chip');
+  if(bsChip){const bsStr=bsDateStrLatin(new Date());if(bsStr){bsChip.textContent=bsStr;bsChip.style.display='';}else{bsChip.style.display='none';}}
   const chip=document.getElementById('branch-chip');
   const chipName=document.getElementById('branch-chip-name');
   if(chip&&chipName){
@@ -5053,172 +5774,526 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 
-// ===== VOICE ENGINE =====
+// ===== VOICE ENGINE — NEPALI/HINDI/ENGLISH =====
 const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
 let voiceRec=null, voiceParsed=null;
+let _voiceLang='ne-NP';      // active language for SpeechRecognition
+let _voiceAmbigAmt=null;     // stored amount when intent is unclear
+let _voiceLastTranscript=''; // last heard text (for ambiguity resolution)
 
-function voiceLang(){
-  if(S.language==='hi') return 'hi-IN';
-  if(S.language==='np') return 'ne-NP';
-  return 'en-IN';
-}
+// ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 function initVoice(){
   if(!SpeechRec){document.getElementById('mic-fab').style.display='none';return;}
   document.getElementById('mic-fab').style.display='flex';
+  // Sync language from app setting
+  if(S.language==='hi') _voiceLang='hi-IN';
+  else if(S.language==='np') _voiceLang='ne-NP';
+  else _voiceLang='en-IN';
+}
+
+function setVoiceLang(lang){
+  _voiceLang=lang;
+  _updateVoiceLangChips();
+  // Restart listener with new language
+  if(voiceRec){try{voiceRec.stop();}catch(e){}}
+  const prompts={'ne-NP':t('voiceListening'),'hi-IN':t('voiceListening'),'en-IN':'Speak…'};
+  document.getElementById('voice-transcript').textContent=prompts[lang]||'Speak…';
+  setTimeout(startListening,300);
+}
+
+function _updateVoiceLangChips(){
+  const map={'ne-NP':'ne','hi-IN':'hi','en-IN':'en'};
+  ['ne','hi','en'].forEach(k=>{
+    const el=document.getElementById('vlc-'+k);
+    if(el) el.classList.toggle('active', map[_voiceLang]===k);
+  });
+}
+
+function _showVoicePhase(phase){
+  ['listen','confirm','ambig','success'].forEach(p=>{
+    const el=document.getElementById('vp-'+p);
+    if(el) el.style.display=(p===phase?'block':'none');
+  });
+  const cancel=document.getElementById('voice-cancel-btn');
+  if(cancel) cancel.style.display=(phase==='success'?'none':'block');
 }
 
 function openVoice(){
-  if(!SpeechRec){alert('Voice not supported on this browser. Use Chrome.');return;}
-  voiceParsed=null;
+  if(!SpeechRec){
+    alert('Voice needs Chrome browser. Please open in Chrome.');
+    return;
+  }
+  voiceParsed=null; _voiceAmbigAmt=null; _voiceLastTranscript='';
   document.getElementById('voice-modal').classList.add('open');
-  document.getElementById('voice-transcript').textContent='Listening…';
-  document.getElementById('voice-hint').style.display='block';
-  document.getElementById('voice-result').classList.remove('show');
-  document.getElementById('voice-confirm-btn').style.display='none';
-  document.getElementById('voice-ring').classList.add('active');
-  document.getElementById('mic-fab').classList.add('listening');
+  _showVoicePhase('listen');
+  _updateVoiceLangChips();
+  document.getElementById('voice-transcript').textContent=t('voiceListening');
+  // Reset examples toggle
+  const exBox=document.getElementById('voice-examples-box');
+  if(exBox) exBox.style.display='none';
+  const exLbl=document.getElementById('voice-ex-lbl');
+  if(exLbl) exLbl.textContent=t('voiceExamples');
   startListening();
 }
 
 function closeVoice(){
   if(voiceRec){try{voiceRec.stop();}catch(e){}}
+  voiceRec=null;
   document.getElementById('voice-modal').classList.remove('open');
+  document.getElementById('voice-ring').classList.remove('listening');
   document.getElementById('mic-fab').classList.remove('listening');
-  document.getElementById('voice-ring').classList.remove('active');
+}
+
+function voiceRetry(){
+  voiceParsed=null; _voiceAmbigAmt=null;
+  _showVoicePhase('listen');
+  document.getElementById('voice-transcript').textContent=t('voiceListening');
+  startListening();
+}
+
+function toggleVoiceExamples(){
+  const box=document.getElementById('voice-examples-box');
+  const lbl=document.getElementById('voice-ex-lbl');
+  if(!box) return;
+  const visible=box.style.display!=='none';
+  box.style.display=visible?'none':'block';
+  if(lbl) lbl.textContent=visible?t('voiceExamples'):t('voiceClose');
 }
 
 function startListening(){
-  voiceRec=new SpeechRec();
-  voiceRec.lang=voiceLang();
-  voiceRec.interimResults=true;
-  voiceRec.maxAlternatives=3;
+  if(!SpeechRec) return;
+  const ring=document.getElementById('voice-ring');
+  const fab=document.getElementById('mic-fab');
+  if(ring) ring.classList.add('listening');
+  if(fab) fab.classList.add('listening');
 
-  voiceRec.onresult=e=>{
-    let interim='', final='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal) final+=e.results[i][0].transcript;
-      else interim+=e.results[i][0].transcript;
-    }
-    document.getElementById('voice-transcript').textContent=final||interim||'Listening…';
-    if(final){
-      const parsed=parseVoiceCommand(final.trim().toLowerCase());
-      if(parsed){
-        voiceParsed=parsed;
-        document.getElementById('voice-action-text').textContent=parsed.description;
-        document.getElementById('voice-result').classList.add('show');
-        document.getElementById('voice-confirm-btn').style.display='block';
-        document.getElementById('voice-hint').style.display='none';
-      } else {
-        document.getElementById('voice-transcript').textContent='❓ '+final;
-        document.getElementById('voice-hint').textContent='Could not understand. Try again.';
-        setTimeout(()=>openVoice(),1200);
+  try{
+    voiceRec=new SpeechRec();
+    voiceRec.lang=_voiceLang;
+    voiceRec.continuous=false;
+    voiceRec.interimResults=true;
+    voiceRec.maxAlternatives=3;
+
+    voiceRec.onresult=e=>{
+      let interim='',final='';
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        if(e.results[i].isFinal) final+=e.results[i][0].transcript;
+        else interim+=e.results[i][0].transcript;
       }
-      document.getElementById('voice-ring').classList.remove('active');
-      document.getElementById('mic-fab').classList.remove('listening');
-    }
-  };
-  voiceRec.onerror=e=>{
-    document.getElementById('voice-ring').classList.remove('active');
-    document.getElementById('mic-fab').classList.remove('listening');
-    if(e.error==='not-allowed'||e.error==='permission-denied'){
-      document.getElementById('voice-transcript').textContent='⚠ Microphone blocked';
-      document.getElementById('voice-hint').innerHTML='To fix:<br>1. Click the 🔒 lock in address bar<br>2. Set Microphone → Allow<br>3. Refresh the page<br><br>Or open app via <b>http://localhost:8080</b><br>Run in Terminal: <code>python3 -m http.server 8080</code>';
-      document.getElementById('voice-hint').style.display='block';
-    } else if(e.error==='no-speech'){
-      document.getElementById('voice-transcript').textContent='No speech detected — try again';
-      setTimeout(()=>openVoice(),1000);
-    } else {
-      document.getElementById('voice-transcript').textContent='Mic error: '+e.error;
-    }
-  };
-  voiceRec.start();
+      const live=final||interim;
+      if(live){
+        document.getElementById('voice-transcript').textContent=live;
+        _voiceLastTranscript=live;
+      }
+      if(final){
+        if(ring) ring.classList.remove('listening');
+        if(fab) fab.classList.remove('listening');
+        _processVoiceResult(final.trim());
+      }
+    };
+
+    voiceRec.onerror=e=>{
+      if(ring) ring.classList.remove('listening');
+      if(fab) fab.classList.remove('listening');
+      if(e.error==='not-allowed'||e.error==='permission-denied'){
+        document.getElementById('voice-transcript').textContent=t('voiceMicBlocked');
+      } else if(e.error==='no-speech'){
+        document.getElementById('voice-transcript').textContent=t('voiceNoSpeech');
+        setTimeout(voiceRetry,1500);
+      } else {
+        document.getElementById('voice-transcript').textContent='Error: '+e.error+' — feri try garnuhos';
+      }
+    };
+
+    voiceRec.onend=()=>{
+      if(ring) ring.classList.remove('listening');
+      if(fab) fab.classList.remove('listening');
+    };
+
+    voiceRec.start();
+  }catch(err){
+    if(ring) ring.classList.remove('listening');
+    document.getElementById('voice-transcript').textContent='Feri koshis garnuhos...';
+    setTimeout(startListening,1000);
+  }
 }
 
-function wordsToNum(s){
-  const map={'zero':0,'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12,'thirteen':13,'fourteen':14,'fifteen':15,'sixteen':16,'seventeen':17,'eighteen':18,'nineteen':19,'twenty':20,'thirty':30,'forty':40,'fifty':50,'sixty':60,'seventy':70,'eighty':80,'ninety':90,'hundred':100,'thousand':1000,'lakh':100000,'sou':100,'hazar':1000,'ek':1,'do':2,'teen':3,'char':4,'paanch':5,'chhe':6,'saat':7,'aath':8,'nau':9,'das':10,'bis':20,'tees':30,'pachaas':50,'sau':100};
-  let num=null;
-  const m=s.match(/\b(\d[\d,]*)\b/);
-  if(m) num=parseInt(m[1].replace(/,/g,''));
-  else{
-    let total=0,cur=0;
-    s.split(/\s+/).forEach(w=>{const v=map[w];if(v!==undefined){if(v>=100){cur=cur?cur*v:v;if(v>=1000){total+=cur;cur=0;}}else cur+=v;}});
-    if(cur||total) num=total+cur;
+function _processVoiceResult(transcript){
+  const parsed=parseVoiceInput(transcript, _voiceLang);
+
+  if(parsed && parsed.intent==='unclear'){
+    _voiceAmbigAmt=parsed.amount;
+    const cur_sym=S.country==='NP'?'रू':'₹';
+    document.getElementById('vp-ambig-heard').textContent=`"${transcript}"`;
+    document.getElementById('vp-ambig-title').textContent=`${cur_sym}${parsed.amount} — ${t('voiceWhatFor')}`;
+    document.getElementById('vab-sale').textContent=t('voiceSale');
+    document.getElementById('vab-udhaar').textContent=t('voiceUdhaarAdd');
+    document.getElementById('vab-expense').textContent=t('voiceExpense');
+    _showVoicePhase('ambig');
+    return;
   }
-  return num;
+
+  if(parsed && parsed.intent){
+    voiceParsed={...parsed, transcript};
+    _buildConfirmCard(parsed, transcript);
+    _showVoicePhase('confirm');
+    // Update confirm button text
+    const cb=document.getElementById('voice-confirm-btn');
+    if(cb) cb.textContent=t('voiceThikCha');
+    return;
+  }
+
+  // Parse failed — show error and retry
+  document.getElementById('voice-transcript').textContent=`"${transcript}" — ${t('voiceUnknown')}`;
+  setTimeout(voiceRetry,2200);
 }
 
-function parseVoiceCommand(text){
-  const c=S.country==='NP'?'रू':'₹';
-  // Normalize: replace Hindi/Nepali number words loosely
-  const t=text.replace(/rupees?|rupaye|rupaiya|रुपए|रुपये/gi,'').trim();
+function _buildConfirmCard(parsed, transcript){
+  const cur_sym=S.country==='NP'?'रू':'₹';
+  document.getElementById('vp-heard').textContent=`🎙 ${t('voiceHeard')} "${transcript}"`;
 
-  // SALE keywords
-  const saleKW=/\b(sale|sales|sell|bech|becha|bikri|बिक्री|बेचा|bikra|sold)\b/i;
-  // EXPENSE keywords
-  const expKW=/\b(expense|kharcha|kharcha|kharach|खर्च|खर्चा|kharch)\b/i;
-  // UDHAAR keywords
-  const udhaarKW=/\b(udhaar|udhar|उधार|उधारी|credit)\b/i;
+  const intentLabel={
+    'udhaar-add':t('voiceUdhaarAdd'),
+    'udhaar-paid':t('voiceUdhaarPaid'),
+    'sale':t('voiceSale'),
+    'expense':t('voiceExpense'),
+    'stock':t('voiceStock')
+  };
 
-  // PAYMENT MODE
-  let payMode=selectedPay;
-  if(/\b(upi|gpay|phonepe|paytm|online)\b/i.test(t)) payMode='UPI';
-  else if(/\b(cash|nakad|नकद)\b/i.test(t)) payMode='Cash';
-  else if(/\b(credit|उधार|cheque|check)\b/i.test(t)) payMode='Credit';
+  let rows='';
+  if(parsed.name)
+    rows+=`<div class="vcr"><span class="vcr-label">👤</span><div class="vcr-body"><div class="vcr-key">Name</div><div class="vcr-val">${esc(parsed.name)}</div></div></div>`;
 
-  // EXPENSE CATEGORY
-  let expCat=selectedExpCat||'Shop';
-  if(/\b(rent|kiraya|किराया)\b/i.test(t)) expCat='Rent';
-  else if(/\b(staff|employee|mazdoor)\b/i.test(t)) expCat='Staff';
-  else if(/\b(electric|bijli|light|बिजली)\b/i.test(t)) expCat='Electric';
-  else if(/\b(travel|petrol|transport)\b/i.test(t)) expCat='Travel';
-  else if(/\b(food|khana|chai|खाना)\b/i.test(t)) expCat='Food';
+  rows+=`<div class="vcr"><span class="vcr-label">📋</span><div class="vcr-body"><div class="vcr-key">Action</div><div class="vcr-val">${intentLabel[parsed.intent]||parsed.intent}</div></div></div>`;
 
-  const amt=wordsToNum(t);
+  if(parsed.amount)
+    rows+=`<div class="vcr"><span class="vcr-label">💰</span><div class="vcr-body"><div class="vcr-key">Amount</div><div class="vcr-val big">${cur_sym}${fmt(parsed.amount).replace(/रू|₹/,'')}</div></div></div>`;
 
-  if(saleKW.test(t)&&amt){
-    return{type:'sale',amt,payMode,description:`Add Sale: ${c}${amt} (${payMode})`};
-  }
-  if(expKW.test(t)&&amt){
-    return{type:'expense',amt,category:expCat,description:`Add Expense: ${c}${amt} (${expCat})`};
-  }
-  if(udhaarKW.test(t)&&amt){
-    // Extract name: word(s) between udhaar keyword and the number
-    let name='';
-    const nm=t.replace(udhaarKW,'').replace(/\d[\d,]*/,'').replace(/\b(rupees?|rupaiya|give|ke|ka|ki|liya)\b/gi,'').trim();
-    name=nm.split(/\s+/).filter(w=>w.length>1).slice(0,2).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ')||'Customer';
-    return{type:'udhaar',amt,name,description:`Add Udhaar: ${name} — ${c}${amt}`};
-  }
-  // Amount only — default to sale
-  if(amt&&!expKW.test(t)&&!udhaarKW.test(t)){
-    return{type:'sale',amt,payMode,description:`Add Sale: ${c}${amt} (${payMode})`};
-  }
-  return null;
+  if(parsed.note)
+    rows+=`<div class="vcr"><span class="vcr-label">📝</span><div class="vcr-body"><div class="vcr-key">Note</div><div class="vcr-val">${esc(parsed.note)}</div></div></div>`;
+
+  if(parsed.qty && parsed.item)
+    rows+=`<div class="vcr"><span class="vcr-label">📦</span><div class="vcr-body"><div class="vcr-key">Stock</div><div class="vcr-val">${esc(parsed.qty+' × '+parsed.item)}</div></div></div>`;
+
+  document.getElementById('vp-card').innerHTML=rows;
+}
+
+function voiceResolve(intent){
+  if(!_voiceAmbigAmt) return;
+  voiceParsed={intent, amount:_voiceAmbigAmt, transcript:_voiceLastTranscript};
+  _buildConfirmCard(voiceParsed, _voiceLastTranscript);
+  _showVoicePhase('confirm');
 }
 
 async function voiceConfirm(){
   if(!voiceParsed) return;
-  closeVoice();
   const p=voiceParsed;
-  if(p.type==='sale'){
-    const sale={id:uid(),date:todayStr(),ts:Date.now(),amt:p.amt,cost:0,note:'(voice)',payMode:p.payMode,country:S.country};
-    sales.push(sale);
+  const cur_sym=S.country==='NP'?'रू':'₹';
+
+  if(p.intent==='sale'){
+    const sale={id:uid(),date:todayStr(),ts:Date.now(),amt:p.amount,cost:0,note:p.note||'(voice)',payMode:p.payMode||selectedPay,country:S.country};
+    sales.push(sale); _rawSales.unshift(sale);
     await dbAdd('pm_sales',{id:sale.id,user_id:currentUser?.id,date:sale.date,ts:sale.ts,amt:sale.amt,cost:0,note:sale.note,pay_mode:sale.payMode,country:sale.country});
     if(currentTab==='today') renderToday();
-  } else if(p.type==='expense'){
-    const exp={id:uid(),date:todayStr(),ts:Date.now(),amt:p.amt,note:'(voice)',category:p.category,country:S.country};
-    expenses.push(exp);
+    _voiceSuccess(`✓ ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} ko bikri add bhayo!`, p.note||'');
+
+  } else if(p.intent==='expense'){
+    const exp={id:uid(),date:todayStr(),ts:Date.now(),amt:p.amount,note:p.note||'(voice)',category:p.category||selectedExpCat||'Shop',country:S.country};
+    expenses.push(exp); _rawExpenses.unshift(exp);
     await dbAdd('pm_expenses',{id:exp.id,user_id:currentUser?.id,date:exp.date,ts:exp.ts,amt:exp.amt,note:exp.note,category:exp.category,country:exp.country});
     if(currentTab==='today') renderToday();
-  } else if(p.type==='udhaar'){
-    const u={id:uid(),name:p.name,phone:'',amt:p.amt,date:todayStr(),ts:Date.now(),paid:false,dueDate:'',country:S.country};
+    _voiceSuccess(`✓ ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} kharcha add bhayo!`, p.note||'');
+
+  } else if(p.intent==='udhaar-add'){
+    const uname=p.name||'Customer';
+    const u={id:uid(),name:uname,phone:'',amt:p.amount,date:todayStr(),ts:Date.now(),paid:false,dueDate:'',country:S.country};
     udhaars.push(u);
     await dbAdd('pm_udhaar',{id:u.id,user_id:currentUser?.id,name:u.name,phone:'',amt:u.amt,date:u.date,ts:u.ts,paid:false,due_date:'',country:u.country});
     updateUdhaarBadge();
     if(currentTab==='udhaar') renderUdhaar();
+    _voiceSuccess(`✓ ${uname} ko ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} udhaar add bhayo!`, '');
+
+  } else if(p.intent==='udhaar-paid'){
+    const nameToFind=(p.name||'').toLowerCase();
+    const match=nameToFind
+      ? udhaars.find(u=>!u.paid && u.name.toLowerCase().includes(nameToFind))
+      : null;
+    if(match){
+      match.paid=true;
+      await dbUpdate('pm_udhaar',match.id,{paid:true});
+      updateUdhaarBadge();
+      if(currentTab==='udhaar') renderUdhaar();
+      _voiceSuccess(`✓ ${match.name} ko udhaar tiryo!`, '');
+    } else {
+      document.getElementById('voice-transcript').textContent=t('voiceNotFound')+`: "${p.name}"`;
+      _showVoicePhase('listen');
+      return;
+    }
+
+  } else if(p.intent==='stock'){
+    // Try to find existing stock item and update qty
+    const existing=stock.find(s=>s.name.toLowerCase().includes((p.item||'').toLowerCase()));
+    if(existing){
+      existing.qty+=(p.qty||1);
+      await dbUpdate('pm_stock',existing.id,{qty:existing.qty});
+      if(currentTab==='stock') renderStock();
+      _voiceSuccess(`✓ ${existing.name} — qty updated to ${existing.qty}`, '');
+    } else {
+      // Create new stock item with qty, no price (will need manual fill)
+      const newItem={id:uid(),name:p.item||'Item',size:'',qty:p.qty||1,buy:0,sell:0,country:S.country,barcode:''};
+      stock.push(newItem);
+      await dbAdd('pm_stock',{id:newItem.id,user_id:currentUser?.id,name:newItem.name,size:'',qty:newItem.qty,buy:0,sell:0,country:newItem.country,barcode:''});
+      if(currentTab==='stock') renderStock();
+      _voiceSuccess(`✓ ${newItem.name} (${newItem.qty}) stock ma thapiyeo!`, 'Price fill garnuhos');
+    }
   }
-  showSaved();
+
+  if(navigator.vibrate) navigator.vibrate([80,40,120]);
+  cacheWrite();
   voiceParsed=null;
+}
+
+function _voiceSuccess(text, sub){
+  _showVoicePhase('success');
+  document.getElementById('vp-success-text').textContent=text;
+  document.getElementById('vp-success-sub').textContent=sub;
+  setTimeout(closeVoice, 1900);
+}
+
+// ─── Number Parser ────────────────────────────────────────────────────────────
+// Handles Nepali, Hindi, English number words and digit strings
+// "tin saya pachas" → 350, "ek hajaar pach saya" → 1500
+
+function wordsToNumber(text){
+  if(!text) return null;
+  text=text.toLowerCase().trim();
+
+  // Direct digit first (handles "500", "1,500", "10000")
+  const dMatch=text.match(/\b(\d[\d,]*)\b/);
+  if(dMatch) return parseInt(dMatch[1].replace(/,/g,''));
+
+  // Word value tables
+  const ONES={
+    // Nepali ones & teens
+    'ek':1,'dui':2,'tin':3,'char':4,'pach':5,'chha':6,'saat':7,'aath':8,'nau':9,'das':10,
+    'eghaara':11,'baara':12,'tera':13,'chaudha':14,'pandhra':15,'sohra':16,'satra':17,'athaara':18,'unnaais':19,
+    // Nepali tens
+    'bis':20,'tis':30,'chalis':40,'pachas':50,'saath':60,'sattar':70,'assi':80,'nabbe':90,
+    // Hindi ones
+    'do':2,'teen':3,'paanch':5,'chhe':6,
+    // Hindi tens
+    'bees':20,'tees':30,'chaalees':40,'chalees':40,'pachaas':50,
+    // English
+    'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,
+    'eleven':11,'twelve':12,'thirteen':13,'fourteen':14,'fifteen':15,
+    'sixteen':16,'seventeen':17,'eighteen':18,'nineteen':19,
+    'twenty':20,'thirty':30,'forty':40,'fifty':50,'sixty':60,'seventy':70,'eighty':80,'ninety':90,
+  };
+  const MULTS={
+    // hundred
+    'saya':100,'sau':100,'sou':100,'hundred':100,'sae':100,
+    // thousand
+    'hajaar':1000,'hazar':1000,'hazaar':1000,'hajar':1000,'thousand':1000,
+    // lakh
+    'lakh':100000,'lac':100000,'lakha':100000,
+  };
+
+  const words=text.split(/[\s,]+/);
+  let total=0, cur=0;
+
+  for(const word of words){
+    const digit=parseInt(word);
+    if(!isNaN(digit) && word!==''){
+      cur+=digit;
+    } else if(ONES[word]!==undefined){
+      cur+=ONES[word];
+    } else if(MULTS[word]!==undefined){
+      const m=MULTS[word];
+      if(cur===0) cur=1;        // "hajaar" alone → 1000
+      if(m>=1000){
+        total+=cur*m; cur=0;   // ek hajaar → total 1000, reset cur
+      } else {
+        cur=cur*m;             // tin saya → cur 300 (don't reset, more may follow)
+      }
+    }
+    // Unknown words are ignored — names/keywords pass through
+  }
+
+  total+=cur;
+  return total>0 ? total : null;
+}
+
+// Backward-compat alias for any external callers
+function wordsToNum(s){ return wordsToNumber(s); }
+
+// ─── Intent Parser ────────────────────────────────────────────────────────────
+// Returns: {intent, name?, amount?, note?, category?, qty?, item?, payMode?}
+// intent values: 'sale' | 'expense' | 'udhaar-add' | 'udhaar-paid' | 'stock' | 'unclear'
+
+// Words that should never be extracted as a person's name
+const _VSTOP=new Set(['aaj','aaja','aile','yo','yeha','mero','tapai','usko',
+  'lai','ko','le','ma','ra','cha','chha','bata','gayo','aayo','tiryo',
+  'diye','diyo','bhayo','becha','bechyo','udhaar','udhar','kharcha','bikri',
+  'stock','maal','paisa','rupee','rupaya','rupaiya','rupiya',
+  'hajaar','saya','hazar','hazaar','das','tin','pach','ek','do']);
+
+function _extractName(text){
+  const low=text.toLowerCase().trim();
+
+  // Pattern A: "[Name] lai" — most common in Nepali
+  // "Ramesh lai pach saya udhaar diye"
+  let m=low.match(/^([\w]+(?:\s[\w]+)?)\s+lai\b/);
+  if(m){const raw=m[1].trim(); if(!_VSTOP.has(raw)) return _capName(raw);}
+
+  // Pattern B: "[Name] ko udhaar" (Nepali / Hindi)
+  // "Sita ko teen hajaar udhaar cha" / "Ramesh ko udhaar tiryo"
+  m=low.match(/^([\w]+)\s+ko\s+(?:udhaar|udhar)/);
+  if(m){const raw=m[1].trim(); if(!_VSTOP.has(raw)) return _capName(raw);}
+
+  // Pattern C: "[Name] ka udhaar" (Hindi)
+  m=low.match(/^([\w]+)\s+ka\s+(?:udhaar|udhar)/);
+  if(m){const raw=m[1].trim(); if(!_VSTOP.has(raw)) return _capName(raw);}
+
+  // Pattern D: fuzzy match against loaded customers & udhaar names
+  for(const cust of customers){
+    if(cust.name && low.includes(cust.name.toLowerCase())) return cust.name;
+  }
+  for(const u of udhaars){
+    if(!u.paid && u.name && low.includes(u.name.toLowerCase())) return u.name;
+  }
+
+  // Pattern E: first word before common particles, as last resort
+  m=low.match(/^([\w]{3,})\s+(?:ko|ka|ki|lai|ne|le)\b/);
+  if(m){const raw=m[1].trim(); if(!_VSTOP.has(raw)) return _capName(raw);}
+
+  return null;
+}
+
+function _capName(s){
+  return s.trim().split(/\s+/)
+    .map(w=>w?w[0].toUpperCase()+w.slice(1):'')
+    .join(' ');
+}
+
+function _isSupplier(name){
+  if(!name) return false;
+  const low=name.toLowerCase();
+  return suppliers.some(s=>s.name&&(s.name.toLowerCase()===low||low.includes(s.name.toLowerCase())||s.name.toLowerCase().includes(low)));
+}
+
+function _stripNoise(text){
+  return text
+    .replace(/\b(rupees?|rupaiya|rupaya|rupiya|rupaiyaa)\b/gi,'')
+    .replace(/\b(aaj|aaja|aile|bhayo|gayo|tiryo|bata|ma|ra|cha|chha)\b/gi,'')
+    .replace(/\s+/g,' ').trim();
+}
+
+function parseVoiceInput(transcript, lang){
+  const text=transcript.toLowerCase().trim();
+  const clean=_stripNoise(text);
+
+  // ── keyword sets ──────────────────────────────────────────────────────────
+  const udhaarKW=/\b(udhaar|udhar|उधार|baki|credit|diye|diyo|dinu)\b/i;
+  const paidKW  =/\b(tiryo|tiriyo|tiryeki|clear|bujhiyo|paid|chukta|chuktiyo)\b/i;
+  const saleKW  =/\b(bikri|bikrima|bechyo|becha|sale|sell|sold|income|बिक्री)\b/i;
+  const expKW   =/\b(kharcha|kharch|kharach|खर्च|expense|payment|bill)\b/i;
+  const stockKW =/\b(stock|maal|aayo|kharida|purchase|kilo|kg|kilogram|piece|dozen|litre|liter)\b/i;
+
+  const amount=wordsToNumber(clean);
+  const name  =_extractName(text);
+
+  // ── 1. UDHAAR PAID — must have both a paid-word AND udhaar-word ────────────
+  // "Ramesh ko udhaar tiryo"
+  if(paidKW.test(text) && udhaarKW.test(text)){
+    const pName=name || text.split(/\s+/)[0];
+    if(pName && !_VSTOP.has(pName.toLowerCase())){
+      return{intent:'udhaar-paid', name:_capName(pName)};
+    }
+  }
+
+  // ── 2. STOCK — check before sale since "aayo" appears in both ─────────────
+  // "pach kilo chini aayo" / "ek darjan sabun kharida"
+  if(stockKW.test(text)){
+    const qty=amount||1;
+    // Item = remainder after removing numbers, units, and action words
+    let item=text
+      .replace(/\b(pach|tin|ek|dui|char|chha|saat|aath|nau|das|\d+)\b/gi,'')
+      .replace(stockKW,'')
+      .replace(_stripNoise,'')
+      .replace(/\b(ma|ko|ko|ra|cha|aayo|kharida|stock|maal)\b/gi,'')
+      .replace(/\s+/g,' ').trim();
+    if(!item||item.length<2) item='Item';
+    return{intent:'stock', qty, item:_capName(item)};
+  }
+
+  // ── 3. UDHAAR ADD — keyword "udhaar/udhar/diye" present + amount ──────────
+  // "Ramesh lai pach saya udhaar diye" / "Sita ko teen hajaar udhaar cha"
+  if(udhaarKW.test(text) && amount){
+    // If name matches a known supplier → treat as expense payment
+    if(name && _isSupplier(name)){
+      return{intent:'expense', amount, note:name, category:'Shop'};
+    }
+    return{intent:'udhaar-add', name:name||'Customer', amount};
+  }
+
+  // ── 4. SALE ───────────────────────────────────────────────────────────────
+  // "aaj tin hajaar ko bikri bhayo" / "Ramesh lai mobile bechyo tin hajaar ma"
+  if(saleKW.test(text) && amount){
+    let note=null;
+    // If a name is present in sale context, fold it into note
+    if(name){
+      const beforeName=text.split(name.toLowerCase())[0]||'';
+      if(!saleKW.test(beforeName)) note=name; // name comes before the sale keyword
+    }
+    return{intent:'sale', amount, note, payMode:selectedPay};
+  }
+
+  // ── 5. EXPENSE ────────────────────────────────────────────────────────────
+  // "bijuli bill tiryo teen saya" / "ek hajaar pach saya kharcha bhayo"
+  if(expKW.test(text) && amount){
+    let category='Shop';
+    if(/\b(bijuli|bijly|bijlee|electric|light|बिजुली)\b/i.test(text)) category='Electric';
+    else if(/\b(rent|bhada|kiraya|किराया)\b/i.test(text)) category='Rent';
+    else if(/\b(staff|karmachari|mazdoor)\b/i.test(text)) category='Staff';
+    else if(/\b(travel|transport|petrol)\b/i.test(text)) category='Travel';
+    else if(/\b(food|khana|chai|खाना)\b/i.test(text)) category='Food';
+
+    // Build note from non-numeric, non-keyword remainder
+    let note=clean
+      .replace(expKW,'')
+      .replace(/\b(ek|dui|tin|char|pach|chha|saat|aath|nau|das|bis|tis|chalis|pachas|saya|hajaar|hazaar|lakh|do|teen|paanch|one|two|three|four|five|six|seven|eight|nine|ten|hundred|thousand|\d+)\b/gi,'')
+      .replace(/\s+/g,' ').trim();
+    if(note.length<2) note=null;
+    return{intent:'expense', amount, category, note};
+  }
+
+  // ── 6. "tiryo" alone + amount + no udhaar keyword → expense payment ────────
+  // "bijuli bill tiryo teen saya"  (tiryo without "udhaar" → expense)
+  if(paidKW.test(text) && amount){
+    // Extract what was paid
+    let note=clean
+      .replace(paidKW,'')
+      .replace(/\b(\d+|ek|dui|tin|char|pach|chha|saat|aath|nau|das|bis|tis|saya|hajaar|\w+(?:saya|hajaar))\b/gi,'')
+      .replace(/\s+/g,' ').trim();
+    if(note.length<2) note=null;
+    return{intent:'expense', amount, category:'Shop', note};
+  }
+
+  // ── 7. "diye" alone + name + amount, no udhaar keyword → disambiguate ─────
+  // Could be giving to supplier (expense) or customer (udhaar)
+  if(/\b(diye|diyo)\b/i.test(text) && amount && name){
+    if(_isSupplier(name)) return{intent:'expense', amount, note:name, category:'Shop'};
+    // Unknown name — ask user
+    return{intent:'unclear', amount};
+  }
+
+  // ── 8. AMOUNT ONLY — ask for clarification ─────────────────────────────────
+  if(amount){
+    return{intent:'unclear', amount};
+  }
+
+  return null; // Could not parse
 }
 
 // ===== PIN LOCK =====
@@ -5437,7 +6512,1213 @@ function initVisibilityLock(){
 }
 
 // ===== INIT =====
+// ===== BUSINESS HEALTH SCORE =====
+let _scoreCache = null;
+
+function calcBusinessScore() {
+  // ─── Component 1: Udhaar Recovery Rate (max 30) ───
+  const paidU = udhaars.filter(u => u.paid).length;
+  const totalU = udhaars.length;
+  const uRate = totalU > 0 ? paidU / totalU : 0;
+  const s1 = Math.round(uRate * 30);
+
+  // ─── Component 2: Sales Consistency last 30 days (max 25) ───
+  const now = new Date();
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const activeDateSet = new Set(sales.filter(s => s.date >= cutoffStr).map(s => s.date));
+  const activeDays = activeDateSet.size;
+  const s2 = Math.round((activeDays / 30) * 25);
+
+  // ─── Component 3: Payment Discipline (max 25) ───
+  const paidLoans = loanPayments.filter(p => p.paid);
+  const onTime = paidLoans.filter(p => p.paidDate && p.dueDate && p.paidDate <= p.dueDate).length;
+  const loanRate = paidLoans.length > 0 ? onTime / paidLoans.length : null;
+  const supplierAct = kharidiEntries.length > 0 ? Math.min(kharidiEntries.length / 10, 1) : 0;
+  const s3 = loanRate !== null
+    ? Math.round((loanRate * 0.6 + supplierAct * 0.4) * 25)
+    : Math.round(supplierAct * 15);
+
+  // ─── Component 4: App Usage Consistency (max 20) ───
+  const allRecs = [...sales, ...expenses, ...udhaars, ...stock];
+  const totalRecords = allRecs.length;
+  const volScore = Math.min(totalRecords / 100, 1) * 10;
+  let firstTs = Date.now();
+  allRecs.forEach(r => {
+    const ts = r.ts || (r.date ? new Date(r.date + 'T00:00:00').getTime() : Date.now());
+    if (ts > 0 && ts < firstTs) firstTs = ts;
+  });
+  const ageDays = Math.max(0, (Date.now() - firstTs) / 86400000);
+  const ageScore = Math.min(ageDays / 60, 1) * 10;
+  const s4 = Math.round(volScore + ageScore);
+
+  const total = s1 + s2 + s3 + s4;
+
+  // ─── Grade ───
+  let grade, gradeColor, gradeEmoji;
+  if (total >= 80) { grade = 'Excellent'; gradeColor = '#16A34A'; gradeEmoji = '🏆'; }
+  else if (total >= 60) { grade = 'Good'; gradeColor = '#2563EB'; gradeEmoji = '✅'; }
+  else if (total >= 40) { grade = 'Fair'; gradeColor = '#D97706'; gradeEmoji = '⚡'; }
+  else { grade = 'Building'; gradeColor = '#6B7280'; gradeEmoji = '📈'; }
+
+  // ─── Per-component insight text ───
+  const insightTexts = [
+    uRate >= 0.9 ? 'Excellent — borrowers trust you back'
+      : uRate >= 0.7 ? `${Math.round(uRate*100)}% of customers paid back`
+      : uRate >= 0.5 ? 'Recovering — follow up with pending customers'
+      : totalU === 0 ? 'No udhaar entries yet'
+      : 'Collect pending udhaar to improve score',
+    activeDays >= 25 ? 'Shop runs daily — excellent consistency'
+      : activeDays >= 18 ? `Active ${activeDays} of last 30 days`
+      : activeDays >= 10 ? `Active ${activeDays} days — try to record daily`
+      : `Only ${activeDays} active days — use app daily`,
+    s3 >= 20 ? 'Strong payment discipline'
+      : s3 >= 13 ? `${kharidiEntries.length} supplier orders${loanRate !== null ? `, ${paidLoans.length} EMIs paid` : ''}`
+      : 'Record supplier purchases to build this score',
+    s4 >= 18 ? 'Excellent digital bookkeeping habits'
+      : s4 >= 12 ? `${totalRecords} records · ${Math.round(ageDays)} days of data`
+      : `${totalRecords} records so far — keep recording daily`
+  ];
+
+  // ─── Improvement tips ───
+  const improvements = [];
+  const unpaidU = udhaars.filter(u => !u.paid);
+  if (unpaidU.length > 0) {
+    const amt = unpaidU.reduce((a, u) => a + u.amt, 0);
+    improvements.push(`Collect ${cur()}${fmt(amt).replace(cur(),'')} from ${unpaidU.length} pending customer${unpaidU.length > 1 ? 's' : ''}`);
+  }
+  if (activeDays < 25) improvements.push('Record sales every day for a higher activity score');
+  if (kharidiEntries.length < 10) improvements.push('Log your supplier purchases in Purchase Book');
+  if (ageDays < 60) improvements.push('Keep using the app — score improves with time');
+  if (totalRecords < 100) improvements.push('Add more daily records: sales, expenses, stock');
+
+  return {
+    total, s1, s2, s3, s4,
+    grade, gradeColor, gradeEmoji, insightTexts, improvements,
+    meta: {
+      totalSales: sales.reduce((a, s) => a + s.amt, 0),
+      txCount: sales.length + expenses.length,
+      udhaarRate: totalU > 0 ? Math.round(uRate * 100) : 0,
+      uPaid: paidU, uTotal: totalU,
+      ageDays: Math.round(ageDays),
+      activeDays, totalRecords,
+      kharidiCount: kharidiEntries.length,
+      loanOnTime: onTime, loanTotal: paidLoans.length
+    }
+  };
+}
+
+function _scoreBarColor(pct) {
+  return pct >= 0.8 ? '#16A34A' : pct >= 0.6 ? '#2563EB' : pct >= 0.4 ? '#D97706' : '#9CA3AF';
+}
+
+function renderScorePage(el) {
+  _scoreCache = calcBusinessScore();
+  const sc = _scoreCache;
+
+  if (sc.meta.totalRecords < 5) {
+    el.innerHTML = backBtn() + `
+      <div class="score-low-data">
+        <div style="font-size:44px;margin-bottom:14px">📊</div>
+        <div style="font-size:17px;font-weight:700;color:#374151;margin-bottom:8px">Not enough data yet</div>
+        <div style="font-size:14px;line-height:1.6;color:#6B7280">${t('scoreLowData')}</div>
+        <div style="margin-top:20px;background:#EDE9FE;border-radius:12px;padding:14px;text-align:left;font-size:13px;color:#4C1D95;line-height:1.6">
+          <b>Quick start:</b><br>
+          Record today's sales → go to Today tab<br>
+          Add an udhaar entry → Udhaar tab<br>
+          Add a stock item → Stock tab
+        </div>
+      </div>`;
+    return;
+  }
+
+  const gradeLabel = t('score' + sc.grade); // e.g. t('scoreExcellent')
+  const compCard = (label, score, max, insight) => {
+    const pct = max > 0 ? score / max : 0;
+    return `<div class="score-card">
+      <div class="score-card-top">
+        <span class="score-card-label">${label}</span>
+        <span class="score-card-pts">${score}/${max}</span>
+      </div>
+      <div class="score-bar">
+        <div class="score-bar-fill" data-w="${Math.round(pct*100)}" style="background:${_scoreBarColor(pct)}"></div>
+      </div>
+      <div class="score-insight">${insight}</div>
+    </div>`;
+  };
+
+  el.innerHTML = backBtn() + `
+  <div class="score-hero">
+    <div style="font-size:40px;margin-bottom:6px">${sc.gradeEmoji}</div>
+    <div><span class="score-number" id="score-num">0</span><span class="score-denom"> / 100</span></div>
+    <div class="score-master-bar">
+      <div class="score-master-bar-fill" data-w="${sc.total}" style="background:${sc.gradeColor}"></div>
+    </div>
+    <div><span class="score-grade-pill" style="background:${sc.gradeColor}18;color:${sc.gradeColor}">${gradeLabel}</span></div>
+    <div class="score-sub">${t('scoreSubtitle')}</div>
+  </div>
+
+  <div class="score-section-title">${t('scoreBreakdown')}</div>
+  ${compCard(t('scoreComp1'), sc.s1, 30, sc.insightTexts[0])}
+  ${compCard(t('scoreComp2'), sc.s2, 25, sc.insightTexts[1])}
+  ${compCard(t('scoreComp3'), sc.s3, 25, sc.insightTexts[2])}
+  ${compCard(t('scoreComp4'), sc.s4, 20, sc.insightTexts[3])}
+
+  ${sc.improvements.length > 0 ? `
+  <div class="score-section-title">${t('scoreImprove')}</div>
+  <div style="margin:0 12px 12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:12px 14px">
+    ${sc.improvements.map(imp => `<div class="score-improve-item"><div class="score-improve-dot"></div><div>${imp}</div></div>`).join('')}
+  </div>` : ''}
+
+  <div style="padding:4px 12px 8px">
+    <button class="score-cert-btn" onclick="triggerCertDownload()">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="11" x2="12" y2="17"/><polyline points="9 14 12 17 15 14"/></svg>
+      ${t('scoreCertBtn')}
+    </button>
+    <button class="score-wa-btn" onclick="scoreShareWA()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+      ${t('scoreShareBtn')}
+    </button>
+  </div>
+
+  <div style="margin:0 12px 24px;background:var(--color-background-secondary);border-radius:12px;padding:12px 14px">
+    <div style="font-size:10px;font-weight:700;color:var(--color-text-secondary);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:8px">DATA USED IN SCORE</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 0">
+      <div style="font-size:12px;color:#666">Total Records</div><div style="font-size:12px;font-weight:700;text-align:right">${sc.meta.totalRecords}</div>
+      <div style="font-size:12px;color:#666">Days Using App</div><div style="font-size:12px;font-weight:700;text-align:right">${sc.meta.ageDays}</div>
+      <div style="font-size:12px;color:#666">Sales Recorded</div><div style="font-size:12px;font-weight:700;text-align:right">${fmt(sc.meta.totalSales)}</div>
+      <div style="font-size:12px;color:#666">Udhaar Recovery</div><div style="font-size:12px;font-weight:700;text-align:right">${sc.meta.udhaarRate}%</div>
+      <div style="font-size:12px;color:#666">Active Days (30d)</div><div style="font-size:12px;font-weight:700;text-align:right">${sc.meta.activeDays}/30</div>
+    </div>
+  </div>`;
+
+  // Animate after paint
+  setTimeout(() => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.score-bar-fill').forEach(b => {
+        b.style.width = b.dataset.w + '%';
+      });
+      const mfill = document.querySelector('.score-master-bar-fill');
+      if (mfill) mfill.style.width = mfill.dataset.w + '%';
+    });
+    const numEl = document.getElementById('score-num');
+    if (!numEl) return;
+    let cur2 = 0; const tgt = sc.total;
+    const step = Math.max(1, Math.ceil(tgt / 40));
+    const tmr = setInterval(() => {
+      cur2 = Math.min(cur2 + step, tgt);
+      numEl.textContent = cur2;
+      if (cur2 >= tgt) clearInterval(tmr);
+    }, 28);
+  }, 80);
+}
+
+function generateCertificateCanvas(sc) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 900; canvas.height = 1260;
+  const ctx = canvas.getContext('2d');
+
+  const rr = (x, y, w, h, r) => {
+    ctx.beginPath();
+    if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); }
+    else { ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); }
+    ctx.closePath();
+  };
+
+  // White background
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, 900, 1260);
+
+  // ── Purple gradient header ──
+  const hg = ctx.createLinearGradient(0, 0, 900, 0);
+  hg.addColorStop(0, '#3B0764'); hg.addColorStop(1, '#7C3AED');
+  ctx.fillStyle = hg; ctx.fillRect(0, 0, 900, 190);
+
+  // Subtle pattern circles in header
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.beginPath(); ctx.arc(820, -20, 100, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(750, 200, 80, 0, Math.PI*2); ctx.fill();
+
+  // Logo circle
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath(); ctx.arc(78, 78, 42, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 46px Arial,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('P', 78, 79); ctx.textBaseline = 'alphabetic';
+
+  // App name + subtitle
+  ctx.textAlign = 'left'; ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 26px Arial,sans-serif';
+  ctx.fillText('Pasal Manager', 140, 62);
+  ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = '15px Arial,sans-serif';
+  ctx.fillText('व्यवसाय स्वास्थ्य प्रमाणपत्र', 140, 84);
+  ctx.fillText('Business Health Certificate', 140, 104);
+
+  // Certified badge (right)
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  rr(680, 34, 178, 36, 6); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1;
+  rr(680, 34, 178, 36, 6); ctx.stroke();
+  ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 11px Arial,sans-serif';
+  ctx.textAlign = 'center'; ctx.fillText('CERTIFIED DOCUMENT', 769, 57); ctx.textAlign = 'left';
+
+  let y = 218;
+
+  // ── Shop info ──
+  ctx.fillStyle = '#111827'; ctx.font = 'bold 30px Arial,sans-serif';
+  const shopName = (S.shopName || 'My Shop').toUpperCase();
+  ctx.fillText(shopName, 60, y); y += 32;
+
+  ctx.fillStyle = '#4B5563'; ctx.font = '15px Arial,sans-serif';
+  const dateStr = new Date().toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'});
+  ctx.fillText('Certificate Date: ' + dateStr, 60, y); y += 20;
+  const _bsStr=bsDateStrLatin(new Date());
+  if(_bsStr){ctx.fillStyle='#9c7c38';ctx.font='13px Arial,sans-serif';ctx.fillText('नेपाली मिति: '+_bsStr,60,y);y+=18;}
+  ctx.fillStyle = '#9CA3AF'; ctx.font = '13px Arial,sans-serif';
+  ctx.fillText('Valid for 30 days  ·  For reference & loan application use', 60, y); y += 28;
+
+  // Divider
+  ctx.strokeStyle = '#E5E7EB'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(840, y); ctx.stroke(); y += 26;
+
+  // ── Overall score ──
+  ctx.fillStyle = '#6B7280'; ctx.font = 'bold 11px Arial,sans-serif';
+  ctx.fillText('OVERALL SCORE', 60, y); y += 28;
+
+  // Big score number
+  ctx.fillStyle = '#4C1D95'; ctx.font = 'bold 72px Arial,sans-serif';
+  const scoreW = ctx.measureText(String(sc.total)).width;
+  ctx.fillText(sc.total, 60, y + 52);
+  ctx.fillStyle = '#A78BFA'; ctx.font = 'bold 30px Arial,sans-serif';
+  ctx.fillText('/ 100', 60 + scoreW + 8, y + 52);
+
+  // Grade badge
+  ctx.fillStyle = sc.gradeColor;
+  rr(610, y + 12, 190, 52, 10); ctx.fill();
+  ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 22px Arial,sans-serif';
+  ctx.textAlign = 'center'; ctx.fillText(sc.grade.toUpperCase(), 705, y + 44); ctx.textAlign = 'left';
+  y += 72;
+
+  // Overall bar
+  ctx.fillStyle = '#F3F4F6'; rr(60, y, 780, 16, 8); ctx.fill();
+  ctx.fillStyle = sc.gradeColor;
+  rr(60, y, Math.round((sc.total / 100) * 780), 16, 8); ctx.fill();
+  y += 36;
+
+  // Divider
+  ctx.strokeStyle = '#E5E7EB'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(840, y); ctx.stroke(); y += 24;
+
+  // ── Score breakdown ──
+  ctx.fillStyle = '#6B7280'; ctx.font = 'bold 11px Arial,sans-serif';
+  ctx.fillText('SCORE BREAKDOWN', 60, y); y += 28;
+
+  const comps = [
+    {label:'Credit Recovery', score:sc.s1, max:30},
+    {label:'Business Activity', score:sc.s2, max:25},
+    {label:'Payment Discipline', score:sc.s3, max:25},
+    {label:'Record Keeping', score:sc.s4, max:20}
+  ];
+  for (const c of comps) {
+    const pct = c.max > 0 ? c.score / c.max : 0;
+    const bc = _scoreBarColor(pct);
+    ctx.fillStyle = '#1F2937'; ctx.font = '600 15px Arial,sans-serif';
+    ctx.fillText(c.label, 60, y);
+    ctx.fillStyle = '#6D28D9'; ctx.font = 'bold 15px Arial,sans-serif';
+    ctx.textAlign = 'right'; ctx.fillText(`${c.score}/${c.max}`, 840, y); ctx.textAlign = 'left';
+    y += 10;
+    ctx.fillStyle = '#F3F4F6'; rr(60, y, 620, 10, 5); ctx.fill();
+    ctx.fillStyle = bc; rr(60, y, Math.round(pct * 620), 10, 5); ctx.fill();
+    y += 26;
+  }
+  y += 6;
+
+  // Divider
+  ctx.strokeStyle = '#E5E7EB'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(840, y); ctx.stroke(); y += 24;
+
+  // ── Data summary ──
+  ctx.fillStyle = '#6B7280'; ctx.font = 'bold 11px Arial,sans-serif';
+  ctx.fillText('DATA SUMMARY', 60, y); y += 28;
+
+  const rows = [
+    ['Total Sales Recorded:', fmt(sc.meta.totalSales)],
+    ['Total Transactions:', String(sc.meta.txCount)],
+    ['Udhaar Recovery Rate:', `${sc.meta.udhaarRate}% (${sc.meta.uPaid}/${sc.meta.uTotal} customers)`],
+    ['Days of Recorded Data:', `${sc.meta.ageDays} days`],
+    ['Active Days (last 30):', `${sc.meta.activeDays} days`]
+  ];
+  for (const [lbl, val] of rows) {
+    ctx.fillStyle = '#374151'; ctx.font = '14px Arial,sans-serif'; ctx.fillText(lbl, 60, y);
+    ctx.fillStyle = '#111827'; ctx.font = 'bold 14px Arial,sans-serif';
+    ctx.textAlign = 'right'; ctx.fillText(val, 840, y); ctx.textAlign = 'left';
+    y += 26;
+  }
+  y += 10;
+
+  // Divider
+  ctx.strokeStyle = '#E5E7EB'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(840, y); ctx.stroke(); y += 24;
+
+  // ── Verification ──
+  ctx.fillStyle = '#6B7280'; ctx.font = 'bold 11px Arial,sans-serif';
+  ctx.fillText('VERIFICATION', 60, y); y += 26;
+
+  const rid = 'PM-' + new Date().getFullYear() + '-' + uid().toUpperCase().slice(0, 8);
+  ctx.fillStyle = '#374151'; ctx.font = '14px Arial,sans-serif';
+  ctx.fillText('Record ID: ' + rid, 60, y); y += 22;
+  ctx.fillText('Verified by: Pasal Manager App', 60, y); y += 22;
+  ctx.fillText('Data Source: In-app transaction records (self-reported)', 60, y); y += 10;
+
+  // QR placeholder box
+  ctx.strokeStyle = '#D1D5DB'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(700, y - 52, 84, 84);
+  // simple QR-like grid
+  ctx.fillStyle = '#374151'; ctx.font = '9px Arial,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Scan to verify', 742, y + 22); ctx.fillText('pasalmanager.app', 742, y + 34);
+  ctx.textAlign = 'left'; y += 40;
+
+  // ── Gray footer ──
+  ctx.fillStyle = '#F9FAFB'; ctx.fillRect(0, 1200, 900, 60);
+  ctx.strokeStyle = '#E5E7EB'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, 1200); ctx.lineTo(900, 1200); ctx.stroke();
+  ctx.fillStyle = '#9CA3AF'; ctx.font = '12px Arial,sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('This certificate is based on self-reported shop data recorded in Pasal Manager.', 450, 1222);
+  ctx.fillText('For reference & loan use only. Verify at: pasalmanager.vercel.app', 450, 1240);
+
+  return canvas;
+}
+
+function downloadCertificate(canvas) {
+  const link = document.createElement('a');
+  link.download = 'pasal-score-' + todayStr() + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function triggerCertDownload() {
+  if (!_scoreCache) return;
+  _showToast('Generating certificate…');
+  setTimeout(() => {
+    try {
+      const canvas = generateCertificateCanvas(_scoreCache);
+      downloadCertificate(canvas);
+    } catch (e) { console.error('Cert gen failed', e); _showToast('Certificate generation failed'); }
+  }, 80);
+}
+
+function scoreShareWA() {
+  if (!_scoreCache) return;
+  const sc = _scoreCache;
+  const grade = t('score' + sc.grade);
+  const url = 'pasalmanager.vercel.app';
+  let msg;
+  if (S.language === 'hi')
+    msg = `नमस्ते 🙏 मेरी दुकान का Business Health Score: ${sc.total}/100 (${grade})\nPasal Manager app में ${sc.meta.ageDays} दिनों का पूरा हिसाब है।\nCertificate: ${url}`;
+  else if (S.language === 'np')
+    msg = `नमस्ते 🙏 मेरो पसलको Business Health Score: ${sc.total}/100 (${grade})\nPasal Manager app मा ${sc.meta.ageDays} दिनदेखि सबै हिसाब राखेको छु।\nCertificate download गर्न: ${url}`;
+  else
+    msg = `My shop's Business Health Score: ${sc.total}/100 (${grade}) ${sc.gradeEmoji}\n${sc.meta.ageDays} days of verified transaction records on Pasal Manager.\n${url}`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// ===== SAHI-CHHAP =====
+let _sahiPromptUdhaarId=null, _sahiPromptTimer=null;
+function showSahiPrompt(udhaarId, customerName){
+  _sahiPromptUdhaarId=udhaarId;
+  const titleEl=document.getElementById('sahi-prompt-title');
+  const descEl=document.getElementById('sahi-prompt-desc');
+  const addBtn=document.getElementById('sahi-prompt-add-btn');
+  if(titleEl) titleEl.textContent=t('sahiPromptTitle');
+  if(descEl) descEl.textContent=(t('sahiPromptDesc')||'').replace('{name}',customerName);
+  if(addBtn) addBtn.textContent=t('sahiPromptAdd');
+  document.getElementById('sahi-prompt-overlay').classList.add('show');
+  if(_sahiPromptTimer) clearTimeout(_sahiPromptTimer);
+  _sahiPromptTimer=setTimeout(dismissSahiPrompt, 8000);
+}
+function dismissSahiPrompt(){
+  if(_sahiPromptTimer){clearTimeout(_sahiPromptTimer);_sahiPromptTimer=null;}
+  document.getElementById('sahi-prompt-overlay').classList.remove('show');
+  _sahiPromptUdhaarId=null;
+}
+function confirmSahiPrompt(){
+  const id=_sahiPromptUdhaarId;
+  dismissSahiPrompt();
+  if(id) startSahiChhap(id);
+}
+function closeSahiModal(){
+  document.getElementById('sahi-modal').classList.remove('show');
+  _currentSahiUdhaarId=null; _currentSahiTxSig=null;
+}
+function _showSahiPhase(phase){
+  ['sp-loading','sp-done','sp-verify'].forEach(id=>{
+    document.getElementById(id).style.display=(id===phase)?'block':'none';
+  });
+}
+async function _getSolanaKeypair(){
+  try{
+    const stored=localStorage.getItem('sc_keypair');
+    if(stored){const sec=Uint8Array.from(JSON.parse(stored));return solanaWeb3.Keypair.fromSecretKey(sec);}
+    const kp=solanaWeb3.Keypair.generate();
+    localStorage.setItem('sc_keypair',JSON.stringify(Array.from(kp.secretKey)));
+    return kp;
+  }catch(e){return solanaWeb3.Keypair.generate();}
+}
+async function _sha256hex(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function anchorSahiChhap(udhaarId){
+  if(typeof solanaWeb3==='undefined') throw new Error('Solana library not loaded');
+  const u=udhaars.find(x=>x.id===udhaarId);
+  if(!u) throw new Error('Udhaar not found');
+  const hashInput=[S.shopName||'',u.name||'',String(u.amt||0),u.date||'',(currentUser?.id||'guest')].join('|');
+  const hash=await _sha256hex(hashInput);
+  const connection=new solanaWeb3.Connection('https://api.devnet.solana.com','confirmed');
+  const kp=await _getSolanaKeypair();
+  // Airdrop SOL if balance low
+  try{
+    const bal=await connection.getBalance(kp.publicKey);
+    if(bal<5000000){
+      const airSig=await connection.requestAirdrop(kp.publicKey,2_000_000_000);
+      await connection.confirmTransaction(airSig,'confirmed');
+    }
+  }catch(e){/* devnet faucet may rate-limit — continue */}
+  // Build memo instruction
+  const MEMO_ID=new solanaWeb3.PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
+  const memoIx=new solanaWeb3.TransactionInstruction({
+    keys:[{pubkey:kp.publicKey,isSigner:true,isWritable:false}],
+    programId:MEMO_ID,
+    data:new TextEncoder().encode(hash)
+  });
+  const tx=new solanaWeb3.Transaction();
+  tx.feePayer=kp.publicKey;
+  const {blockhash}=await connection.getLatestBlockhash();
+  tx.recentBlockhash=blockhash;
+  tx.add(memoIx);
+  tx.sign(kp);
+  const txSig=await connection.sendRawTransaction(tx.serialize(),{skipPreflight:false});
+  await connection.confirmTransaction(txSig,'confirmed');
+  return {hash,txSig};
+}
+async function startSahiChhap(udhaarId){
+  if(!navigator.onLine){_showToast(t('needInternet'));return;}
+  if(isGuestMode){_showToast('Create a free account to use Sahi-Chhap');return;}
+  if(!currentUser){_showToast('Login required for Sahi-Chhap');return;}
+  _currentSahiUdhaarId=udhaarId;
+  _currentSahiTxSig=null;
+  document.getElementById('sahi-modal').classList.add('show');
+  _showSahiPhase('sp-loading');
+  document.getElementById('sp-loading-txt').textContent=t('anchoring');
+  try{
+    const{hash,txSig}=await anchorSahiChhap(udhaarId);
+    _currentSahiTxSig=txSig;
+    const u=udhaars.find(x=>x.id===udhaarId);
+    const now=new Date().toISOString();
+    try{
+      await sb.from('sahi_chhap').insert({
+        udhaar_id:udhaarId,tx_signature:txSig,hash,anchored_at:now,
+        user_id:currentUser.id,shop_name:S.shopName||'',
+        customer_name:u?.name||'',amount:u?.amt||0,entry_date:u?.date||''
+      });
+    }catch(e){console.error('Sahi-Chhap DB save failed',e);}
+    sahiChhapMap[udhaarId]={txSig,hash,anchoredAt:now};
+    await showSahiQR(txSig,udhaarId);
+    renderUdhaar();
+  }catch(e){
+    console.error('Sahi-Chhap anchor failed',e);
+    _showToast('Anchor failed — check internet & try again');
+    closeSahiModal();
+  }
+}
+async function showSahiQR(txSig,udhaarId){
+  _showSahiPhase('sp-done');
+  const u=udhaars.find(x=>x.id===udhaarId)||{name:'',amt:0};
+  const verifyUrl=location.origin+location.pathname+'?verify='+encodeURIComponent(txSig);
+  const explorerUrl='https://explorer.solana.com/tx/'+txSig+'?cluster=devnet';
+  // QR code
+  const canvas=document.getElementById('sahi-qr-canvas');
+  try{await QRCode.toCanvas(canvas,verifyUrl,{width:180,margin:1,color:{dark:'#1A1A1A',light:'#FFFFFF'}});}
+  catch(e){console.error('QR gen failed',e);}
+  // Update UI fields
+  document.getElementById('sp-anchored-txt').textContent=t('anchored');
+  document.getElementById('sp-anchored-sub').textContent=esc(u.name)+' · '+fmt(u.amt);
+  const txLink=document.getElementById('sahi-tx-link');
+  txLink.href=explorerUrl;
+  txLink.textContent=txSig.slice(0,16)+'…'+txSig.slice(-6)+' ↗';
+  const waBtn=document.getElementById('sahi-wa-btn');
+  waBtn.dataset.url=verifyUrl;
+  waBtn.dataset.name=u.name;
+  waBtn.dataset.amt=String(u.amt);
+  document.getElementById('sahi-modal').dataset.explorerUrl=explorerUrl;
+}
+function openSahiDone(udhaarId){
+  const sc=sahiChhapMap[udhaarId];
+  if(!sc) return;
+  _currentSahiUdhaarId=udhaarId;
+  _currentSahiTxSig=sc.txSig;
+  document.getElementById('sahi-modal').classList.add('show');
+  showSahiQR(sc.txSig,udhaarId);
+}
+function sahiShareWA(){
+  const btn=document.getElementById('sahi-wa-btn');
+  const url=btn.dataset.url, name=btn.dataset.name, amt=parseInt(btn.dataset.amt||'0');
+  const shop=S.shopName||'Pasal Manager';
+  let msg;
+  if(S.language==='hi') msg=`${name} जी, आपके ${fmt(amt)} के उधार का Digital Sahi-Chhap:\n${url}\n— ${shop}`;
+  else if(S.language==='np') msg=`${name} जी, तपाईंको ${fmt(amt)} उधारोको प्रमाण:\n${url}\n— ${shop}`;
+  else msg=`${name}, Digital Sahi-Chhap proof for ${fmt(amt)} udhaar:\n${url}\n— ${shop}`;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+function sahiOpenExplorer(){
+  const url=document.getElementById('sahi-modal').dataset.explorerUrl;
+  if(url) window.open(url,'_blank');
+}
+async function verifySahiChhap(txSig){
+  try{
+    const{data}=await sb.from('sahi_chhap')
+      .select('shop_name,customer_name,amount,entry_date,hash,anchored_at')
+      .eq('tx_signature',txSig)
+      .maybeSingle();
+    if(!data) return{valid:false,reason:'not_found'};
+    // Confirm tx exists on-chain
+    if(typeof solanaWeb3!=='undefined'){
+      try{
+        const conn=new solanaWeb3.Connection('https://api.devnet.solana.com','confirmed');
+        const txInfo=await conn.getTransaction(txSig,{commitment:'confirmed'});
+        if(!txInfo) return{valid:false,reason:'not_on_chain'};
+      }catch(e){/* network issue — trust Supabase record */}
+    }
+    return{valid:true,shopName:data.shop_name,customerName:data.customer_name,
+      amount:data.amount,entryDate:data.entry_date,anchoredAt:data.anchored_at,txSig};
+  }catch(e){console.error('Verify error',e);return{valid:false,reason:'error'};}
+}
+async function showVerifyMode(txSig){
+  document.getElementById('auth-page').style.display='none';
+  document.getElementById('app').style.display='none';
+  const vp=document.getElementById('verify-page');
+  vp.classList.add('show');
+  document.getElementById('verify-spinner').style.display='block';
+  document.getElementById('verify-result').style.display='none';
+  const result=await verifySahiChhap(txSig);
+  document.getElementById('verify-spinner').style.display='none';
+  document.getElementById('verify-result').style.display='block';
+  const card=document.getElementById('verify-result-card');
+  if(result.valid){
+    card.className='verify-card verify-result-valid';
+    document.getElementById('verify-icon').textContent='✅';
+    document.getElementById('verify-title').textContent=t('proofValid');
+    document.getElementById('verify-title').style.color='#16A34A';
+    const details=document.getElementById('verify-details');
+    details.style.display='block';
+    document.getElementById('verify-rows').innerHTML=`
+      <div class="verify-row"><span class="verify-row-label">Shop</span><span class="verify-row-val">${esc(result.shopName||'—')}</span></div>
+      <div class="verify-row"><span class="verify-row-label">Customer</span><span class="verify-row-val">${esc(result.customerName||'—')}</span></div>
+      <div class="verify-row"><span class="verify-row-label">Amount</span><span class="verify-row-val">${'₹'+Math.round(result.amount||0).toLocaleString('en-IN')}</span></div>
+      <div class="verify-row"><span class="verify-row-label">Date</span><span class="verify-row-val">${fmtDate(result.entryDate||'')}</span></div>
+      <div class="verify-row"><span class="verify-row-label">Anchored</span><span class="verify-row-val">${result.anchoredAt?new Date(result.anchoredAt).toLocaleDateString('en-IN'):''}</span></div>
+    `;
+    const el=document.getElementById('verify-explorer-link');
+    el.href='https://explorer.solana.com/tx/'+txSig+'?cluster=devnet';
+    el.textContent=t('viewRecord');
+    el.style.display='block';
+  }else{
+    card.className='verify-card verify-result-invalid';
+    document.getElementById('verify-icon').textContent='❌';
+    document.getElementById('verify-title').textContent=t('proofInvalid');
+    document.getElementById('verify-title').style.color='#DC2626';
+    document.getElementById('verify-details').style.display='none';
+    document.getElementById('verify-explorer-link').style.display='none';
+  }
+}
+
+// ===== MORNING BRIEFING =====
+function _getTopDebtors(n){
+  return [...udhaars]
+    .filter(u=>!u.paid&&u.amount>0)
+    .sort((a,b)=>b.amount-a.amount)
+    .slice(0,n);
+}
+function _getSupplierDues(){
+  return (kharidiEntries||[])
+    .filter(k=>!k.paid&&k.amount>0)
+    .reduce((sum,k)=>sum+k.amount,0);
+}
+function _getYesterdaySummary(){
+  const yest=new Date();yest.setDate(yest.getDate()-1);
+  const yd=yest.toISOString().slice(0,10);
+  const ySales=(sales||[]).filter(s=>s.date===yd).reduce((a,s)=>a+s.amount,0);
+  const yExp=(expenses||[]).filter(e=>e.date===yd).reduce((a,e)=>a+e.amount,0);
+  return{sales:ySales,profit:ySales-yExp};
+}
+function _buildBriefingText(){
+  const top=_getTopDebtors(3);
+  const sDues=_getSupplierDues();
+  const{sales:ySales,profit:yProfit}=_getYesterdaySummary();
+  const shopN=S.shopName||'';
+  let msg=`🌅 *Good morning${shopN?' — '+shopN:''}!*\n\n`;
+  if(top.length){
+    msg+=`💰 *Top Collections Today:*\n`;
+    top.forEach(u=>{msg+=`  • ${u.name}: ${cur()}${fmt(u.amount)}\n`;});
+    msg+='\n';
+  }
+  if(sDues>0) msg+=`📦 *Supplier Dues:* ${cur()}${fmt(sDues)}\n\n`;
+  msg+=`📊 *Yesterday:* Sales ${cur()}${fmt(ySales)} | Profit ${cur()}${fmt(yProfit)}\n`;
+  msg+=`\n_Pasal Manager_`;
+  return msg;
+}
+function _sendMorningBriefing(){
+  const top=_getTopDebtors(3);
+  const{sales:ySales,profit:yProfit}=_getYesterdaySummary();
+  const sDues=_getSupplierDues();
+  let body='';
+  if(top.length) body+=`Collect from: ${top.map(u=>u.name).join(', ')}. `;
+  if(sDues>0) body+=`Supplier dues: ${cur()}${fmt(sDues)}. `;
+  body+=`Yesterday: ${cur()}${fmt(ySales)} sales, ${cur()}${fmt(yProfit)} profit.`;
+  try{
+    new Notification('🌅 Good Morning — Pasal Manager',{body:body.trim()||'Have a great day!',icon:'/icons/icon-192.png'});
+  }catch(e){}
+  localStorage.setItem('pm_briefing_date',new Date().toISOString().slice(0,10));
+}
+function _scheduleBriefingCheck(){
+  setInterval(()=>{
+    if(Notification.permission!=='granted') return;
+    const now=new Date();
+    const today=now.toISOString().slice(0,10);
+    if(now.getHours()===7&&now.getMinutes()<=2){
+      if(localStorage.getItem('pm_briefing_date')!==today) _sendMorningBriefing();
+    }
+    if(now.getHours()===8&&now.getMinutes()<=2){
+      if(localStorage.getItem('pm_sup_notif_date')!==today) _checkSupplierNotifications();
+    }
+    if(now.getHours()===9&&now.getMinutes()<=2){
+      if(localStorage.getItem('pm_smart_wa_date')!==today) _checkSmartReminders();
+    }
+  },60000);
+}
+function showBriefingPermCard(){
+  const card=document.getElementById('briefing-perm-card');
+  if(!card) return;
+  document.getElementById('bpc-title').textContent=t('briefingPermTitle');
+  document.getElementById('bpc-desc').textContent=t('briefingPermDesc');
+  document.getElementById('bpc-allow-btn').textContent=t('briefingPermBtn');
+  card.classList.add('show');
+}
+function dismissBriefingPerm(snooze){
+  const card=document.getElementById('briefing-perm-card');
+  if(card) card.classList.remove('show');
+  if(!snooze) localStorage.setItem('pm_briefing_perm_skip','1');
+}
+async function requestBriefingPermission(){
+  dismissBriefingPerm(true);
+  const perm=await Notification.requestPermission();
+  if(perm==='granted'){
+    _scheduleBriefingCheck();
+    _showToast('🌅 Morning briefing enabled!');
+  } else {
+    localStorage.setItem('pm_briefing_denied','1');
+  }
+}
+function initMorningBriefing(){
+  if(isGuestMode) return;
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='granted'){_scheduleBriefingCheck();return;}
+  if(Notification.permission==='denied') return;
+  if(localStorage.getItem('pm_briefing_perm_skip')) return;
+  if(localStorage.getItem('pm_briefing_denied')) return;
+  showBriefingPermCard();
+}
+function briefingRemindWA(name,amt){
+  const msg=encodeURIComponent(`Hi ${name}, you have an outstanding balance of ${cur()}${fmt(amt)} at our shop. Please clear when convenient. Thank you!`);
+  window.open(`https://wa.me/?text=${msg}`,'_blank');
+}
+function renderMorningPage(el){
+  const top=_getTopDebtors(5);
+  const sDues=_getSupplierDues();
+  const{sales:ySales,profit:yProfit}=_getYesterdaySummary();
+  // Festival banner
+  const upFests=getUpcomingFestivals(1);
+  let festBanner='';
+  if(upFests.length&&upFests[0].daysAway<=14){
+    const fv=upFests[0];
+    const showTip=_festivalStockTip(fv._fEntry);
+    festBanner=`<div class="festival-banner">
+      <div class="festival-banner-title">🎉 ${esc(fv.festival)}<span class="festival-days-badge">${fv.daysAway===0?'Today':fv.daysAway+' '+t('bsDaysAway')}</span></div>
+      <div class="festival-banner-sub">${fv.bsDate}${showTip?'<br>📦 '+t('bsStockTip'):''}</div>
+    </div>`;
+  }
+  el.innerHTML=backBtn()+`
+    <div style="padding:0 16px 24px">
+      <h2 style="font-size:20px;font-weight:800;margin:0 0 4px">${t('briefingTitle')}</h2>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 20px">Today's shop at a glance</p>
+      ${festBanner}
+      <div class="morning-section">
+        <div class="morning-section-title">${t('briefingYesterday')}</div>
+        <div class="morning-summary-grid">
+          <div class="morning-summary-card">
+            <div class="morning-summary-label">${t('salesL')}</div>
+            <div class="morning-summary-val">${cur()}${fmt(ySales)}</div>
+          </div>
+          <div class="morning-summary-card">
+            <div class="morning-summary-label">${t('briefingProfit')}</div>
+            <div class="morning-summary-val" style="color:${yProfit>=0?'var(--color-success)':'var(--color-danger)'}">${cur()}${fmt(yProfit)}</div>
+          </div>
+        </div>
+      </div>
+      ${sDues>0?`<div class="morning-section">
+        <div class="morning-section-title">${t('briefingSupplier')}</div>
+        <div class="morning-debtor-card">
+          <div><div class="morning-debtor-name">Total Supplier Dues</div></div>
+          <div class="morning-debtor-amt">${cur()}${fmt(sDues)}</div>
+        </div>
+      </div>`:''}
+      <div class="morning-section">
+        <div class="morning-section-title">${t('briefingCollect')}</div>
+        ${top.length?top.map(u=>{const patt=analyzePaymentPattern(u.name);return `
+          <div class="morning-debtor-card">
+            <div>
+              <div class="morning-debtor-name">${esc(u.name)}</div>
+              <div style="font-size:12px;color:var(--color-text-secondary)">${u.date||''}</div>
+              ${patt.hasPattern?`<span class="pattern-chip">Pays ~${patt.typicalDay}th</span>`:''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="morning-debtor-amt">${cur()}${fmt(u.amount)}</div>
+              <button class="morning-remind-btn" onclick="briefingRemindWA('${esc(u.name)}',${u.amount})">${t('briefingRemind')}</button>
+            </div>
+          </div>`;}).join(''):`<div style="text-align:center;padding:20px;color:var(--color-text-secondary);font-size:14px">${t('briefingNoCollect')}</div>`}
+      </div>
+      <div class="morning-section">
+        <div class="morning-section-title">${t('briefingQuickAdd')}</div>
+        <div class="morning-quick-grid">
+          <div class="morning-quick-btn" onclick="goTab('today');setTimeout(()=>{const el=document.getElementById('sale-amount');if(el)el.focus();},150)">
+            <div class="morning-quick-icon">💰</div>
+            <div class="morning-quick-label">Add Sale</div>
+          </div>
+          <div class="morning-quick-btn" onclick="goTab('udhaar');setTimeout(()=>{const el=document.getElementById('udhaar-name');if(el)el.focus();},150)">
+            <div class="morning-quick-icon">📋</div>
+            <div class="morning-quick-label">Add Udhaar</div>
+          </div>
+        </div>
+      </div>
+      ${Notification.permission!=='granted'?`<div style="margin-top:8px">
+        <button onclick="requestBriefingPermission()" style="width:100%;padding:14px;background:linear-gradient(135deg,#6D28D9,#8B5CF6);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer">${t('briefingPermBtn')}</button>
+      </div>`:''}
+    </div>`;
+}
+
+// ===== SMART REMINDERS =====
+function _medianDay(days){
+  if(!days.length) return null;
+  const sorted=[...days].sort((a,b)=>a-b);
+  const mid=Math.floor(sorted.length/2);
+  return sorted.length%2===0?Math.round((sorted[mid-1]+sorted[mid])/2):sorted[mid];
+}
+function _nextReminderDate(typicalDay){
+  const remindDay=Math.max(1,Math.min(typicalDay-2,26));
+  const today=new Date();today.setHours(0,0,0,0);
+  const candidate=new Date(today.getFullYear(),today.getMonth(),remindDay);
+  if(candidate<today) candidate.setMonth(candidate.getMonth()+1);
+  return candidate;
+}
+function analyzePaymentPattern(customerName){
+  const paid=udhaars.filter(u=>u.name===customerName&&u.paid&&u.paidDate);
+  if(paid.length<2) return{hasPattern:false,sampleSize:paid.length};
+  const days=paid.map(u=>new Date(u.paidDate).getDate());
+  const median=_medianDay(days);
+  const typical=Math.min(median,28);
+  const consistency=days.filter(d=>Math.abs(d-typical)<=5).length/days.length;
+  if(consistency<0.5) return{hasPattern:false,sampleSize:paid.length,consistencyLow:true};
+  const nextReminder=_nextReminderDate(typical);
+  const today=new Date();today.setHours(0,0,0,0);
+  const daysUntilReminder=Math.round((nextReminder-today)/86400000);
+  return{hasPattern:true,typicalDay:typical,consistency,sampleSize:paid.length,nextReminderDate:nextReminder,daysUntilReminder};
+}
+function getSmartReminders(){
+  const nameMap={};
+  udhaars.filter(u=>!u.paid).forEach(u=>{
+    if(!nameMap[u.name]) nameMap[u.name]={name:u.name,udhaars:[],totalOwed:0};
+    nameMap[u.name].udhaars.push(u);
+    nameMap[u.name].totalOwed+=u.amt;
+  });
+  return Object.values(nameMap)
+    .map(c=>{const patt=analyzePaymentPattern(c.name);return{...c,...patt};})
+    .filter(c=>c.hasPattern)
+    .sort((a,b)=>a.nextReminderDate-b.nextReminderDate);
+}
+function sendSmartWA(name,amount){
+  const shop=S.shopName||'Pasal Manager';
+  let msg;
+  if(S.language==='hi'){
+    msg=`Namaste ${name} ji 🙏\nAap ka ${cur()}${fmt(amount).replace(cur(),'')} baaki hai.\nFonepay/eSewa se aasani se bhar sakte hain.\n— ${shop}`;
+  } else if(S.language==='np'){
+    msg=`Namaste ${name} ji 🙏\nTapai ko ${cur()}${fmt(amount).replace(cur(),'')} baki cha.\nSajilai Fonepay/eSewa bata tirna sakincha.\n— ${shop}`;
+  } else {
+    msg=`Namaste ${name} ji 🙏\nYou have ${cur()}${fmt(amount).replace(cur(),'')} pending.\nEasily pay via Fonepay/eSewa.\n— ${shop}`;
+  }
+  const opened=window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
+  if(!opened){
+    try{navigator.clipboard.writeText(msg).then(()=>_showToast('📋 Message copied to clipboard'));}
+    catch(e){_showToast('Open WhatsApp to send the message');}
+  }
+}
+function previewWAMessage(name,amount){
+  const shop=S.shopName||'Pasal Manager';
+  const msg=`Namaste ${name} ji 🙏\nYou have ${cur()}${fmt(amount).replace(cur(),'')} pending.\nEasily pay via Fonepay/eSewa.\n— ${shop}`;
+  _showToast('👁 '+msg.replace(/\n/g,' · ').slice(0,100));
+}
+function _checkSmartReminders(){
+  if(isGuestMode) return;
+  const today=new Date().toISOString().slice(0,10);
+  getSmartReminders().forEach(r=>{
+    if(r.daysUntilReminder!==0) return;
+    const key=`pm_wa_sent_${today}_${r.name}`;
+    if(localStorage.getItem(key)) return;
+    if(Notification.permission==='granted'){
+      try{
+        new Notification('🔔 Reminder — '+r.name,{
+          body:`${cur()}${fmt(r.totalOwed).replace(cur(),'')} pending. Usually pays on ${r.typicalDay}th.`,
+          icon:'/icons/icon-192.png'
+        });
+      }catch(e){}
+    }
+    localStorage.setItem(key,'1');
+  });
+  localStorage.setItem('pm_smart_wa_date',today);
+}
+function renderRemindersPage(el){
+  const reminders=getSmartReminders();
+  const sendToday=reminders.filter(r=>r.daysUntilReminder<=0);
+  const upcoming=reminders.filter(r=>r.daysUntilReminder>0);
+  const allOpenNames=[...new Set(udhaars.filter(u=>!u.paid).map(u=>u.name))];
+  const noData=allOpenNames
+    .filter(name=>!reminders.find(r=>r.name===name))
+    .map(name=>{
+      const patt=analyzePaymentPattern(name);
+      const owed=udhaars.filter(u=>!u.paid&&u.name===name).reduce((a,u)=>a+u.amt,0);
+      return{name,owed,sampleSize:patt.sampleSize||0,consistencyLow:!!patt.consistencyLow};
+    });
+  const consistencyBar=c=>`<div class="reminder-consistency-bar"><div class="reminder-consistency-fill" style="width:${Math.round(c*100)}%"></div></div>`;
+  const reminderCard=(r,type)=>`<div class="reminder-card ${type}">
+      <div class="reminder-card-name">${esc(r.name)}</div>
+      <div class="reminder-card-meta">${fmt(r.totalOwed)} owed · ${t('remindersTypicalDay')} ${r.typicalDay}${type==='upcoming'?` · Reminder in ${r.daysUntilReminder} day${r.daysUntilReminder===1?'':'s'}`:' · Due today'}</div>
+      <div style="font-size:11px;color:#888;margin-bottom:4px">${t('remindersConsist')}: ${Math.round(r.consistency*100)}%</div>
+      ${consistencyBar(r.consistency)}
+      <div class="reminder-actions">
+        <button class="reminder-wa-btn" onclick="sendSmartWA('${esc(r.name)}',${r.totalOwed})">${type==='send-today'?t('remindersSendNow'):t('remindersSendEarly')}</button>
+        <button class="reminder-preview-btn" onclick="previewWAMessage('${esc(r.name)}',${r.totalOwed})">${t('remindersPreview')}</button>
+      </div>
+    </div>`;
+  const section=(title,items,type)=>items.length?`<div class="reminder-section-title">${title}</div>${items.map(r=>reminderCard(r,type)).join('')}`:'';
+  const noDataSection=noData.length?`<div class="reminder-section-title">${t('remindersNoData')}</div>
+    ${noData.map(c=>`<div class="reminder-card no-data">
+      <div class="reminder-card-name">${esc(c.name)}</div>
+      <div class="reminder-card-meta">${c.consistencyLow?'Payment dates vary too much':c.sampleSize+' payment recorded · 2 '+t('remindersNeedMore')}</div>
+    </div>`).join('')}`:'';
+  el.innerHTML=backBtn()+`
+    <div style="padding:0 16px 24px">
+      <h2 style="font-size:20px;font-weight:800;margin:0 0 4px">${t('remindersTitle')}</h2>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 16px">Powered by payment history analysis</p>
+      ${reminders.length===0&&noData.length===0?`<div class="empty-state">No open udhaars found.</div>`:''}
+      ${section(t('remindersSendToday'),sendToday,'send-today')}
+      ${section(t('remindersUpcoming'),upcoming,'upcoming')}
+      ${noDataSection}
+      <details class="reminder-how-details">
+        <summary>${t('remindersHowTitle')}</summary>
+        <p style="margin:8px 0 0">${t('remindersHowDesc')}</p>
+      </details>
+    </div>`;
+}
+
+// ===== SUPPLIER CALENDAR =====
+function getSupplierDues(){
+  const today=new Date();today.setHours(0,0,0,0);
+  return udhaars
+    .filter(u=>!u.paid&&_isSupplier(u.name))
+    .map(u=>{
+      let effectiveDue;
+      if(u.dueDate){effectiveDue=new Date(u.dueDate);effectiveDue.setHours(0,0,0,0);}
+      else{effectiveDue=new Date(u.date||todayStr());effectiveDue.setHours(0,0,0,0);effectiveDue.setDate(effectiveDue.getDate()+30);}
+      const daysLeft=Math.round((effectiveDue-today)/86400000);
+      return{...u,effectiveDue,daysLeft};
+    })
+    .sort((a,b)=>a.effectiveDue-b.effectiveDue);
+}
+function _supplierDueClass(daysLeft){
+  if(daysLeft<0) return 'due-overdue';
+  if(daysLeft<=3) return 'due-urgent';
+  if(daysLeft<=7) return 'due-soon';
+  return 'due-ok';
+}
+function _updateSupplierBadge(){
+  const badge=document.getElementById('sup-cal-badge');
+  if(!badge) return;
+  const urgent=getSupplierDues().filter(u=>u.daysLeft<=7).length;
+  if(urgent>0){badge.textContent=urgent;badge.style.display='';}
+  else badge.style.display='none';
+}
+function _checkSupplierNotifications(){
+  const dues=getSupplierDues().filter(u=>u.daysLeft>=0&&u.daysLeft<=3);
+  if(!dues.length) return;
+  const names=dues.map(u=>u.name).join(', ');
+  try{
+    new Notification(t('supCalNotifTitle'),{
+      body:`Payment due in ≤3 days: ${names}`,
+      icon:'/icons/icon-192.png'
+    });
+  }catch(e){}
+  localStorage.setItem('pm_sup_notif_date',new Date().toISOString().slice(0,10));
+}
+function checkSupplierDueRow(){
+  const name=(document.getElementById('u-name')?.value||'').trim();
+  const row=document.getElementById('sup-due-row');
+  const label=document.getElementById('sup-due-label');
+  if(!row) return;
+  if(name&&_isSupplier(name)){
+    row.style.display='';
+    if(label) label.textContent=t('supCalDueDate');
+    // Auto-fill 30 days if empty
+    const inp=document.getElementById('sup-due-input');
+    if(inp&&!inp.value){const d=new Date();d.setDate(d.getDate()+30);inp.value=d.toISOString().slice(0,10);}
+  } else {
+    row.style.display='none';
+  }
+}
+async function markSupplierPaid(id){
+  await markPaid(id);
+  _updateSupplierBadge();
+  if(moreSubPage==='supplier-cal') goMore('supplier-cal');
+}
+function supplierPayWA(name,amt,dueStr){
+  const shop=S.shopName||'Pasal Manager';
+  const dueLabel=dueStr?fmtDate(dueStr):'soon';
+  const msg=encodeURIComponent(`Namaste ${name} ji 🙏\n${cur()}${fmt(amt).replace(cur(),'')} payment is due by ${dueLabel}.\nKindly arrange payment at the earliest.\n— ${shop}`);
+  window.open(`https://wa.me/?text=${msg}`,'_blank');
+}
+function showDueDatePicker(udhaarId){
+  const wrap=document.getElementById('sup-due-edit-'+udhaarId);
+  if(wrap) wrap.style.display=wrap.style.display==='none'?'':'none';
+}
+async function saveDueDate(udhaarId,inputId){
+  const dateStr=document.getElementById(inputId)?.value;
+  if(!dateStr) return;
+  const u=udhaars.find(x=>x.id===udhaarId);
+  if(!u) return;
+  u.dueDate=dateStr;
+  await dbUpdate('pm_udhaar',udhaarId,{due_date:dateStr});
+  cacheWrite();
+  _updateSupplierBadge();
+  goMore('supplier-cal');
+}
+function renderSupplierCalPage(el){
+  const dues=getSupplierDues();
+  const overdue=dues.filter(u=>u.daysLeft<0);
+  const thisWeek=dues.filter(u=>u.daysLeft>=0&&u.daysLeft<=7);
+  const upcoming=dues.filter(u=>u.daysLeft>7);
+  const card=(u)=>{
+    const cls=_supplierDueClass(u.daysLeft);
+    const dueBsStr=bsDateStrLatin(u.effectiveDue);
+    let metaText='';
+    if(u.daysLeft<0){
+      metaText=`<span class="due-overdue-text">${Math.abs(u.daysLeft)} ${t('supCalDaysOver')}</span>`;
+    } else if(u.daysLeft===0){
+      metaText=`<span class="due-urgent-text">Due today</span>`;
+    } else {
+      const cls2=u.daysLeft<=3?'due-urgent-text':'';
+      metaText=`<span class="${cls2}">${u.daysLeft} ${t('supCalDaysLeft')}</span>`;
+    }
+    if(dueBsStr) metaText+=` &nbsp;·&nbsp; ${dueBsStr}`;
+    const inputId=`sdei-${u.id}`;
+    return `<div class="sup-card ${cls}">
+      <div class="sup-card-name">${esc(u.name)}</div>
+      <div class="sup-card-meta">${fmt(u.amt)} &nbsp;·&nbsp; ${metaText}</div>
+      <div class="sup-card-actions">
+        <button class="sup-paid-btn" onclick="markSupplierPaid('${u.id}')">${t('supCalMarkPaid')}</button>
+        ${u.phone?`<button class="sup-wa-btn" onclick="supplierPayWA('${esc(u.name)}',${u.amt},'${u.dueDate||''}')">WhatsApp</button>`:''}
+        ${!u.dueDate?`<button class="sup-setdue-btn" onclick="showDueDatePicker('${u.id}')">${t('supCalSetDue')}</button>`:''}
+      </div>
+      ${!u.dueDate?`<div class="sup-due-inline" id="sup-due-edit-${u.id}" style="display:none">
+        <input type="date" id="${inputId}" style="flex:1;padding:7px 10px;border-radius:8px;border:1.5px solid #e8e0ff;font-size:14px">
+        <button class="sup-due-save" onclick="saveDueDate('${u.id}','${inputId}')">Save</button>
+      </div>`:''}
+    </div>`;
+  };
+  const section=(title,items)=>items.length?`<div class="sup-section-title">${title}</div>${items.map(card).join('')}`:'';
+  el.innerHTML=backBtn()+`
+    <div style="padding:0 16px 24px">
+      <h2 style="font-size:20px;font-weight:800;margin:0 0 4px">${t('supCalTitle')}</h2>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 16px">📅 ${dues.length} supplier dues tracked</p>
+      ${dues.length===0?`<div class="empty-state">${t('supCalEmpty')}</div>`:''}
+      ${section(t('supCalOverdue'),overdue)}
+      ${section(t('supCalThisWeek'),thisWeek)}
+      ${section(t('supCalUpcoming'),upcoming)}
+      <div style="margin-top:16px">
+        <button onclick="goMore('supplier')" style="width:100%;padding:12px;background:var(--color-background-secondary);border:1.5px solid var(--color-border);border-radius:12px;font-size:14px;font-weight:600;color:var(--color-accent);cursor:pointer">+ Add Supplier</button>
+      </div>
+    </div>`;
+}
+
+// ===== PHOTO KHATA =====
+function _toAsciiNumerals(s){
+  const np='०१२३४५६७८९';
+  return s.replace(/[०-९]/g,c=>{const i=np.indexOf(c);return i>=0?String(i):c;});
+}
+function extractAmountFromOCR(text){
+  if(!text) return{amount:null,confidence:'low',raw:''};
+  const norm=_toAsciiNumerals(text);
+  const lines=norm.split('\n');
+  // Helper: extract biggest number from a string
+  const nums=s=>[...s.matchAll(/[\d,]+(?:\.\d+)?/g)]
+    .map(m=>parseFloat(m[0].replace(/,/g,'')))
+    .filter(n=>n>=5);
+  // Priority 1 & 2: lines containing Total/Amount/कुल/जम्मा/Rakam/राशि/रकम
+  const totalKeywords=/total|amount|grand|rakam|kul|कुल|जम्मा|राशि|रकम|subtotal|net/i;
+  const totalLines=lines.filter(l=>totalKeywords.test(l));
+  if(totalLines.length){
+    // Pick last matching line (grand total is usually last)
+    for(let i=totalLines.length-1;i>=0;i--){
+      const ns=nums(totalLines[i]);
+      if(ns.length){return{amount:Math.max(...ns),confidence:'high',raw:text};}
+    }
+  }
+  // Priority 3: currency symbol lines  ₹ Rs रु
+  const currLines=lines.filter(l=>/[₹रु]|Rs\.?/i.test(l));
+  if(currLines.length){
+    const all=currLines.flatMap(nums);
+    if(all.length) return{amount:Math.max(...all),confidence:'medium',raw:text};
+  }
+  // Priority 4: largest number in entire text
+  const allNums=lines.flatMap(nums);
+  if(allNums.length) return{amount:Math.max(...allNums),confidence:'low',raw:text};
+  return{amount:null,confidence:'low',raw:text};
+}
+function openPhotoKhata(){
+  _pkSelectedType='expense';
+  _pkImageDataURL=null;
+  // Reset phases
+  document.getElementById('pk-pick').style.display='flex';
+  document.getElementById('pk-progress').style.display='none';
+  document.getElementById('pk-confirm').style.display='none';
+  document.getElementById('pk-progress-fill').style.width='0%';
+  document.getElementById('pk-amount-input').value='';
+  document.getElementById('pk-raw-text').textContent='';
+  // Reset type buttons
+  document.querySelectorAll('.pk-type-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.pk-type-btn[data-type="expense"]').classList.add('active');
+  // Set i18n labels
+  document.getElementById('pk-title').textContent=t('photoKhataTitle');
+  document.getElementById('pk-lbl-camera').textContent=t('photoKhataCamera');
+  document.getElementById('pk-lbl-upload').textContent=t('photoKhataUpload');
+  document.getElementById('pk-lbl-reading').textContent=t('photoKhataReading');
+  document.getElementById('pk-lbl-amount').textContent=t('photoKhataAmount');
+  document.getElementById('pk-lbl-raw').textContent=t('photoKhataRaw');
+  document.getElementById('pk-btn-expense').textContent=t('photoKhataExpense');
+  document.getElementById('pk-btn-udhaar').textContent=t('photoKhataUdhaar');
+  document.getElementById('pk-btn-stock').textContent=t('photoKhataStock');
+  document.getElementById('pk-btn-save').textContent=t('photoKhataSave');
+  document.getElementById('pk-btn-cancel').textContent=t('cancel');
+  const sheet=document.getElementById('photo-khata-sheet');
+  sheet.style.display='block';
+  // Reset file inputs so same file can be re-selected
+  document.getElementById('pk-input-camera').value='';
+  document.getElementById('pk-input-file').value='';
+}
+function closePhotoKhata(){
+  document.getElementById('photo-khata-sheet').style.display='none';
+  _pkImageDataURL=null;
+}
+function photoKhataCapture(source){
+  const id=source==='camera'?'pk-input-camera':'pk-input-file';
+  document.getElementById(id).click();
+}
+function pkSelectType(btn,type){
+  document.querySelectorAll('.pk-type-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  _pkSelectedType=type;
+}
+function _handlePhotoFile(file){
+  if(!file||!file.type.startsWith('image/')) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _pkImageDataURL=e.target.result;
+    // Show progress phase with preview
+    document.getElementById('pk-pick').style.display='none';
+    document.getElementById('pk-confirm').style.display='none';
+    document.getElementById('pk-progress').style.display='block';
+    document.getElementById('pk-preview').src=_pkImageDataURL;
+    document.getElementById('pk-progress-fill').style.width='0%';
+    _runOCR(_pkImageDataURL);
+  };
+  reader.readAsDataURL(file);
+}
+async function _runOCR(imageData){
+  const fill=document.getElementById('pk-progress-fill');
+  try{
+    const worker=await Tesseract.createWorker(['eng','nep'],1,{
+      logger:m=>{if(fill&&typeof m.progress==='number') fill.style.width=(m.progress*100)+'%';}
+    });
+    const{data:{text}}=await worker.recognize(imageData);
+    await worker.terminate();
+    if(fill) fill.style.width='100%';
+    _onOCRDone(text);
+  }catch(err){
+    // Fallback: show confirm with empty amount and error hint
+    _onOCRDone('');
+    _showToast('OCR failed — enter amount manually');
+  }
+}
+function _onOCRDone(text){
+  const result=extractAmountFromOCR(text);
+  document.getElementById('pk-progress').style.display='none';
+  document.getElementById('pk-confirm').style.display='block';
+  if(_pkImageDataURL) document.getElementById('pk-preview2').src=_pkImageDataURL;
+  document.getElementById('pk-raw-text').textContent=text||'(no text detected)';
+  if(result.amount){
+    document.getElementById('pk-amount-input').value=result.amount;
+  } else {
+    document.getElementById('pk-amount-input').placeholder=t('photoKhataNoAmt');
+    _showToast(t('photoKhataNoAmt'));
+  }
+}
+async function photoKhataConfirm(){
+  const amt=Math.round(parseFloat(document.getElementById('pk-amount-input').value));
+  if(!amt||amt<=0||isNaN(amt)){
+    document.getElementById('pk-amount-input').focus(); return;
+  }
+  if(_pkSelectedType==='expense'){
+    // Pre-fill expense form and save directly
+    const exp={id:uid(),date:todayStr(),ts:Date.now(),amt,note:'Photo Khata',category:selectedExpCat,country:S.country};
+    expenses.push(exp);
+    if(!isGuestMode&&currentUser){
+      await dbAdd('pm_expenses',{id:exp.id,user_id:currentUser.id,date:exp.date,ts:exp.ts,amt:exp.amt,note:exp.note,category:exp.category,country:exp.country});
+    }
+    cacheWrite();
+    closePhotoKhata();
+    _showToast('✅ Expense saved — '+cur()+fmt(amt).replace(cur(),''));
+    if(currentTab==='more'&&moreSubPage==='expense') goMore('expense');
+    else switchTab('today');
+  } else if(_pkSelectedType==='udhaar'){
+    closePhotoKhata();
+    switchTab('udhaar');
+    setTimeout(()=>{
+      const el=document.getElementById('u-amt');
+      if(el){el.value=amt;el.focus();}
+    },200);
+    _showToast('Amount pre-filled — add name to save');
+  } else if(_pkSelectedType==='stock'){
+    closePhotoKhata();
+    switchTab('stock');
+    setTimeout(()=>{
+      const el=document.getElementById('st-buy');
+      if(el){el.value=amt;el.focus();}
+    },200);
+    _showToast('Buy price pre-filled — add item name to save');
+  }
+}
+
 async function init(){
+  // Intercept verify-mode URLs before normal app boot
+  const _vp=new URLSearchParams(location.search);
+  if(_vp.has('verify')){showVerifyMode(_vp.get('verify'));return;}
   renderAuthForm('login');
   const{data:{session}}=await sb.auth.getSession();
   if(session){
