@@ -1361,19 +1361,19 @@ body {
 .sup-due-row{margin-top:10px;}
 .sup-due-row label{font-size:13px;color:#888;display:block;margin-bottom:4px;}
 .sup-due-input{width:100%;padding:10px;border-radius:8px;border:1.5px solid #e8e0ff;font-size:15px;box-sizing:border-box;}
-.sup-section-title{font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;}
-.sup-card{background:var(--color-card);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.07);border-left:4px solid #e0e0e0;}
-.sup-card.due-overdue{border-left-color:#e53935;background:#fff8f8;}
-.sup-card.due-urgent{border-left-color:#f9a825;background:#fffdf0;}
-.sup-card.due-soon{border-left-color:#fb8c00;background:#fff9f0;}
-.sup-card.due-ok{border-left-color:#43a047;}
-.sup-card-name{font-weight:700;font-size:15px;margin-bottom:2px;}
-.sup-card-meta{font-size:13px;color:#666;margin-bottom:10px;}
-.due-overdue-text{color:#e53935;font-weight:600;}
-.due-urgent-text{color:#f9a825;font-weight:600;}
+.sup-section-title{font-size:11px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.7px;margin:20px 0 8px;display:flex;align-items:center;gap:6px;}
+.sup-card{background:var(--color-background-primary);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);border:1px solid var(--color-border-tertiary);border-left:4px solid var(--color-border-secondary);}
+.sup-card.due-overdue{border-left-color:#E11D48;background:#FFF1F2;}
+.sup-card.due-urgent{border-left-color:#F59E0B;background:#FFFBEB;}
+.sup-card.due-soon{border-left-color:#F97316;background:#FFF7ED;}
+.sup-card.due-ok{border-left-color:#059669;background:var(--color-background-primary);}
+.sup-card-name{font-weight:700;font-size:15px;margin-bottom:3px;color:var(--color-text-primary);}
+.sup-card-meta{font-size:13px;color:var(--color-text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.due-overdue-text{color:#E11D48;font-weight:700;}
+.due-urgent-text{color:#D97706;font-weight:700;}
 .sup-card-actions{display:flex;gap:8px;flex-wrap:wrap;}
-.sup-paid-btn{flex:1;padding:8px;background:#e8f5e9;color:#2e7d32;border:1.5px solid #a5d6a7;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
-.sup-wa-btn{flex:1;padding:8px;background:#e8f5e9;color:#1b5e20;border:1.5px solid #25d366;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+.sup-paid-btn{flex:1;padding:9px 12px;background:#F0FDF4;color:#059669;border:1.5px solid #6EE7B7;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;}
+.sup-wa-btn{flex:1;padding:9px 12px;background:#F0FFF4;color:#15803D;border:1.5px solid #86EFAC;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;}
 .sup-setdue-btn{flex:1;padding:8px;background:#f3f0ff;color:#6c47ff;border:1.5px solid #d1c4ff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
 .sup-due-inline{display:flex;gap:6px;margin-top:8px;align-items:center;}
 .sup-due-inline input{flex:1;padding:7px 10px;border-radius:8px;border:1.5px solid #e8e0ff;font-size:14px;}
@@ -8288,47 +8288,107 @@ function renderSupplierCalPage(el){
   const overdue=dues.filter(u=>u.daysLeft<0);
   const thisWeek=dues.filter(u=>u.daysLeft>=0&&u.daysLeft<=7);
   const upcoming=dues.filter(u=>u.daysLeft>7);
+
+  const statusChip=(u)=>{
+    if(u.daysLeft<0) return `<span style="background:#FFF1F2;color:#E11D48;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap">${Math.abs(u.daysLeft)}d ${t('supCalDaysOver')}</span>`;
+    if(u.daysLeft===0) return `<span style="background:#FFFBEB;color:#D97706;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">Due today</span>`;
+    if(u.daysLeft<=3) return `<span style="background:#FFFBEB;color:#D97706;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">${u.daysLeft}d left</span>`;
+    return `<span style="background:#F0FDF4;color:#059669;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">${u.daysLeft}d left</span>`;
+  };
+
   const card=(u)=>{
     const cls=_supplierDueClass(u.daysLeft);
     const dueBsStr=bsDateStrLatin(u.effectiveDue);
-    let metaText='';
-    if(u.daysLeft<0){
-      metaText=`<span class="due-overdue-text">${Math.abs(u.daysLeft)} ${t('supCalDaysOver')}</span>`;
-    } else if(u.daysLeft===0){
-      metaText=`<span class="due-urgent-text">Due today</span>`;
-    } else {
-      const cls2=u.daysLeft<=3?'due-urgent-text':'';
-      metaText=`<span class="${cls2}">${u.daysLeft} ${t('supCalDaysLeft')}</span>`;
-    }
-    if(dueBsStr) metaText+=` &nbsp;·&nbsp; ${dueBsStr}`;
     const inputId=`sdei-${u.id}`;
+    const initials=u.name.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    const avatarColors={'due-overdue':'#E11D48','due-urgent':'#D97706','due-soon':'#F97316','due-ok':'#059669'};
+    const avatarBg=avatarColors[cls]||'#6366F1';
     return `<div class="sup-card ${cls}">
-      <div class="sup-card-name">${esc(u.name)}</div>
-      <div class="sup-card-meta">${fmt(u.amt)} &nbsp;·&nbsp; ${metaText}</div>
-      <div class="sup-card-actions">
-        <button class="sup-paid-btn" onclick="markSupplierPaid('${u.id}')">${t('supCalMarkPaid')}</button>
-        ${u.phone?`<button class="sup-wa-btn" onclick="supplierPayWA('${esc(u.name)}',${u.amt},'${u.dueDate||''}')">WhatsApp</button>`:''}
-        ${!u.dueDate?`<button class="sup-setdue-btn" onclick="showDueDatePicker('${u.id}')">${t('supCalSetDue')}</button>`:''}
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="width:42px;height:42px;border-radius:12px;background:${avatarBg}22;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:800;color:${avatarBg}">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div class="sup-card-name">${esc(u.name)}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:15px;font-weight:800;color:var(--color-text-primary)">${fmt(u.amt)}</span>
+            <span style="opacity:0.35">·</span>
+            ${licon('calendar',12,'color:var(--color-text-secondary)')}
+            <span style="font-size:12px;color:var(--color-text-secondary)">${fmtDate(u.effectiveDue.toISOString().slice(0,10))}${dueBsStr?' · '+dueBsStr:''}</span>
+          </div>
+        </div>
+        ${statusChip(u)}
       </div>
-      ${!u.dueDate?`<div class="sup-due-inline" id="sup-due-edit-${u.id}" style="display:none">
-        <input type="date" id="${inputId}" style="flex:1;padding:7px 10px;border-radius:8px;border:1.5px solid #e8e0ff;font-size:14px">
+      <div class="sup-card-actions">
+        <button class="sup-paid-btn" onclick="markSupplierPaid('${u.id}')">
+          ${licon('check-circle',14,'color:#059669')} ${t('supCalMarkPaid')}
+        </button>
+        ${u.phone?`<button class="sup-wa-btn" onclick="supplierPayWA('${esc(u.name)}',${u.amt},'${u.dueDate||''}')">
+          ${licon('message-circle',14,'color:#15803D')} WhatsApp
+        </button>`:''}
+        ${!u.dueDate?`<button onclick="showDueDatePicker('${u.id}')" style="padding:9px 12px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:1px solid var(--color-border-tertiary);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+          ${licon('calendar-plus',13,'color:var(--color-text-secondary)')} ${t('supCalSetDue')}
+        </button>`:''}
+      </div>
+      ${!u.dueDate?`<div class="sup-due-inline" id="sup-due-edit-${u.id}" style="display:none;margin-top:8px">
+        <input type="date" id="${inputId}" style="flex:1;padding:8px 10px;border-radius:9px;border:1.5px solid var(--color-border-secondary);font-size:14px;background:var(--color-background-secondary);color:var(--color-text-primary)">
         <button class="sup-due-save" onclick="saveDueDate('${u.id}','${inputId}')">Save</button>
       </div>`:''}
     </div>`;
   };
-  const section=(title,items)=>items.length?`<div class="sup-section-title">${title}</div>${items.map(card).join('')}`:'';
+
+  const sectionIcon={[t('supCalOverdue')]:'alert-circle',[t('supCalThisWeek')]:'clock',[t('supCalUpcoming')]:'calendar'};
+  const section=(title,items,icon)=>items.length?`
+    <div class="sup-section-title">${licon(icon||'circle',13,'color:var(--color-text-secondary)')} ${title}</div>
+    ${items.map(card).join('')}`:'';
+
   el.innerHTML=backBtn()+`
-    <div style="padding:0 16px 24px">
-      <h2 style="font-size:20px;font-weight:800;margin:0 0 4px">${t('supCalTitle')}</h2>
-      <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 16px">📅 ${dues.length} supplier dues tracked</p>
-      ${dues.length===0?`<div class="empty-state">${t('supCalEmpty')}</div>`:''}
-      ${section(t('supCalOverdue'),overdue)}
-      ${section(t('supCalThisWeek'),thisWeek)}
-      ${section(t('supCalUpcoming'),upcoming)}
-      <div style="margin-top:16px">
-        <button onclick="goMore('supplier')" style="width:100%;padding:12px;background:var(--color-background-secondary);border:1.5px solid var(--color-border);border-radius:12px;font-size:14px;font-weight:600;color:var(--color-accent);cursor:pointer">+ Add Supplier</button>
+    <div style="padding:14px 16px 32px">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <div style="width:38px;height:38px;border-radius:11px;background:#FEF2F2;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          ${licon('calendar-clock',20,'color:#E11D48')}
+        </div>
+        <div>
+          <div style="font-size:17px;font-weight:800;color:var(--color-text-primary);letter-spacing:-0.3px">${t('supCalTitle')}</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">${dues.length} supplier dues tracked</div>
+        </div>
       </div>
+
+      <!-- Summary chips -->
+      ${dues.length>0?`<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        ${overdue.length?`<div style="background:#FFF1F2;border:1px solid #FECDD3;border-radius:10px;padding:8px 12px;flex:1;min-width:80px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#E11D48">${overdue.length}</div>
+          <div style="font-size:11px;color:#E11D48;font-weight:600">${t('supCalOverdue')}</div>
+        </div>`:''}
+        ${thisWeek.length?`<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:8px 12px;flex:1;min-width:80px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#D97706">${thisWeek.length}</div>
+          <div style="font-size:11px;color:#D97706;font-weight:600">${t('supCalThisWeek')}</div>
+        </div>`:''}
+        ${upcoming.length?`<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:8px 12px;flex:1;min-width:80px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#059669">${upcoming.length}</div>
+          <div style="font-size:11px;color:#059669;font-weight:600">${t('supCalUpcoming')}</div>
+        </div>`:''}
+      </div>`:''}
+
+      <!-- Empty state -->
+      ${dues.length===0?`<div style="text-align:center;padding:48px 24px">
+        <div style="width:64px;height:64px;background:#F0FDF4;border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+          ${licon('check-circle-2',32,'color:#059669')}
+        </div>
+        <div style="font-size:17px;font-weight:700;color:var(--color-text-primary);margin-bottom:6px">All clear!</div>
+        <div style="font-size:13px;color:var(--color-text-secondary)">No supplier dues — you're on top of payments.</div>
+      </div>`:''}
+
+      ${section(t('supCalOverdue'),overdue,'alert-circle')}
+      ${section(t('supCalThisWeek'),thisWeek,'clock')}
+      ${section(t('supCalUpcoming'),upcoming,'calendar')}
+
+      <!-- Add supplier button -->
+      <button onclick="goMore('supplier')" style="width:100%;margin-top:16px;padding:13px;background:var(--color-background-primary);border:1.5px dashed var(--color-border-secondary);border-radius:13px;font-size:14px;font-weight:700;color:var(--pm-purple);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        ${licon('plus-circle',16,'color:var(--pm-purple)')} Add Supplier
+      </button>
     </div>`;
+  _renderIcons();
 }
 
 // ===== PHOTO KHATA =====
