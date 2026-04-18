@@ -5031,53 +5031,104 @@ function renderExport(el){
   const firstOfMonth=mk+'-01';
   const todayD=todayStr();
   el.innerHTML=backBtn()+`
-    <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-      <div style="font-size:17px;font-weight:700">${shop} — Export</div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
 
-      <!-- AUDIT REPORT — highlighted as primary -->
-      <div style="background:linear-gradient(135deg,#4C1D95,var(--pm-purple));border-radius:14px;padding:16px;color:#fff">
-        <div style="font-size:15px;font-weight:800;margin-bottom:4px">📋 Full Audit Report</div>
-        <div style="font-size:13px;opacity:0.85;margin-bottom:14px">Auto-generated Excel with all transactions — Sales, Expenses, Returns, Udhaar, Kharidi, Dealer, Staff Salary, EMI, Loans, Stock, P&L Summary. Perfect for accountant or tax filing.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-          <div>
-            <div style="font-size:11px;opacity:0.75;margin-bottom:4px">From Date</div>
-            <input type="date" id="audit-from" value="${firstOfMonth}" style="width:100%;padding:8px;border-radius:8px;border:none;font-size:14px;background:rgba(255,255,255,0.15);color:#fff;outline:none">
-          </div>
-          <div>
-            <div style="font-size:11px;opacity:0.75;margin-bottom:4px">To Date</div>
-            <input type="date" id="audit-to" value="${todayD}" style="width:100%;padding:8px;border-radius:8px;border:none;font-size:14px;background:rgba(255,255,255,0.15);color:#fff;outline:none">
-          </div>
+      <!-- Page title -->
+      <div style="display:flex;align-items:center;gap:10px;padding:2px 0 4px">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--pm-purple-light);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          ${licon('download',18,'color:var(--pm-purple)')}
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-          <button onclick="setAuditRange('thisMonth')" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:#fff;border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer">This Month</button>
-          <button onclick="setAuditRange('lastMonth')" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:#fff;border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer">Last Month</button>
-          <button onclick="setAuditRange('thisYear')" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:#fff;border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer">This Year</button>
-          <button onclick="setAuditRange('all')" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:#fff;border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer">All Time</button>
+        <div>
+          <div style="font-size:17px;font-weight:800;color:var(--color-text-primary);letter-spacing:-0.3px">${shop}</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">Export &amp; Reports</div>
         </div>
-        <button onclick="downloadAuditReport()" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer">⬇ Download Audit Report (.xlsx)</button>
       </div>
 
-      <div style="background:var(--color-accent-light);border-radius:12px;padding:14px 16px">
-        <div style="font-weight:700;margin-bottom:4px;color:var(--color-accent)">Excel Download (All Data)</div>
-        <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px">All-time data: Sales, Expenses, Udhaar, Stock, Kharidi, Dealer Book, P&L.</div>
-        <button class="btn-block" style="background:var(--color-accent)" onclick="downloadExcel('all')">Download Full Excel</button>
+      <!-- AUDIT REPORT -->
+      <div style="background:linear-gradient(145deg,#312E81,#4338CA);border-radius:18px;padding:18px;color:#fff">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:34px;height:34px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${licon('file-spreadsheet',18,'color:#fff')}
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:800;letter-spacing:-0.2px">Full Audit Report</div>
+            <div style="font-size:11px;opacity:0.7">Excel · All transactions</div>
+          </div>
+        </div>
+        <div style="font-size:12px;opacity:0.8;margin-bottom:14px;line-height:1.5">Sales, Expenses, Returns, Udhaar, Kharidi, Dealer, Staff Salary, EMI, Loans, Stock &amp; P&amp;L — perfect for your accountant.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div>
+            <div style="font-size:10px;font-weight:600;opacity:0.7;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px">From Date</div>
+            <input type="date" id="audit-from" value="${firstOfMonth}" style="width:100%;padding:9px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.25);font-size:13px;background:rgba(255,255,255,0.12);color:#fff;outline:none;cursor:pointer">
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:600;opacity:0.7;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px">To Date</div>
+            <input type="date" id="audit-to" value="${todayD}" style="width:100%;padding:9px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.25);font-size:13px;background:rgba(255,255,255,0.12);color:#fff;outline:none;cursor:pointer">
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+          ${['thisMonth','lastMonth','thisYear','all'].map((r,i)=>`<button onclick="setAuditRange('${r}')" style="background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);color:#fff;border-radius:20px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer">${['This Month','Last Month','This Year','All Time'][i]}</button>`).join('')}
+        </div>
+        <button onclick="downloadAuditReport()" style="width:100%;padding:13px;background:#fff;color:#4338CA;border:none;border-radius:11px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          ${licon('download',16,'color:#4338CA')} Download Audit Report (.xlsx)
+        </button>
       </div>
 
-      <div style="background:var(--color-background-secondary);border-radius:12px;padding:14px 16px">
-        <div style="font-weight:700;margin-bottom:4px">This Month Only</div>
-        <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px">${fmtMonth(mk)} — Sales & Expenses only</div>
+      <!-- ALL DATA EXCEL -->
+      <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:34px;height:34px;background:#EEF2FF;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${licon('table',18,'color:#4338CA')}
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--color-text-primary)">Excel Download (All Data)</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">Sales, Expenses, Udhaar, Stock, Kharidi, P&amp;L</div>
+          </div>
+        </div>
+        <button class="btn-block" style="background:var(--pm-purple);border-radius:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px" onclick="downloadExcel('all')">
+          ${licon('download',15,'color:#fff')} Download Full Excel
+        </button>
+      </div>
+
+      <!-- THIS MONTH -->
+      <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:34px;height:34px;background:#F0FDF4;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${licon('calendar',18,'color:#059669')}
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--color-text-primary)">This Month Only</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">${fmtMonth(mk)} — Sales &amp; Expenses</div>
+          </div>
+        </div>
         <div style="display:flex;gap:8px">
-          <button class="btn-block" onclick="downloadExcel('month')">Excel</button>
-          <button class="btn-block" style="background:#25D366" onclick="shareMonthWA()">WhatsApp</button>
+          <button class="btn-block" style="background:var(--pm-purple);border-radius:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px" onclick="downloadExcel('month')">
+            ${licon('file-down',15,'color:#fff')} Excel
+          </button>
+          <button class="btn-block" style="background:#25D366;border-radius:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px" onclick="shareMonthWA()">
+            ${licon('message-circle',15,'color:#fff')} WhatsApp
+          </button>
         </div>
       </div>
 
-      <div style="background:var(--color-success-light);border-radius:12px;padding:14px 16px;border:1px solid #BBF7D0">
-        <div style="font-weight:700;margin-bottom:4px;color:var(--color-success)">📊 ${t('dailyReport')}</div>
-        <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px">Today's full summary — sales, expenses, profit, payment breakdown, top sales & overdue udhaar.</div>
-        <button class="btn-block" style="background:#25D366" onclick="sendDailyWA()">📲 ${t('sendReport')}</button>
+      <!-- DAILY REPORT -->
+      <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:34px;height:34px;background:#F0FDF4;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${licon('bar-chart-2',18,'color:#059669')}
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--color-text-primary)">${t('dailyReport')}</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">Today's sales, profit, overdue udhaar via WhatsApp</div>
+          </div>
+        </div>
+        <button class="btn-block" style="background:#25D366;border-radius:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px" onclick="sendDailyWA()">
+          ${licon('send',15,'color:#fff')} ${t('sendReport')}
+        </button>
       </div>
+
     </div>`;
+  _renderIcons();
 }
 
 function setAuditRange(range){
