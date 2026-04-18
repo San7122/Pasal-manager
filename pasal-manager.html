@@ -4102,31 +4102,53 @@ function renderCustomers(el){
   }
 
   el.innerHTML=backBtn()+`
-    <!-- Search bar -->
-    <div style="padding:10px 16px;border-bottom:1px solid var(--color-border-tertiary);display:flex;gap:8px;align-items:center;background:var(--color-background-secondary)">
-      <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--color-text-secondary);fill:none;stroke-width:2;flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="input-sm" id="cust-search" placeholder="${t('searchCust')}" value="${esc(custSearch)}" oninput="custSearch=this.value;renderCustomers(document.getElementById('page-more'))" style="flex:1;border:none;background:transparent;font-size:15px;outline:none">
-      ${custSearch?`<button onclick="custSearch='';renderCustomers(document.getElementById('page-more'))" style="background:none;border:none;font-size:18px;color:var(--color-text-secondary);cursor:pointer;padding:0 4px">✕</button>`:''}
+    <!-- Page header -->
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--color-border-tertiary);background:var(--color-background-primary)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--pm-purple-light);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          ${licon('users',18,'color:var(--pm-purple)')}
+        </div>
+        <div>
+          <div style="font-size:16px;font-weight:800;color:var(--color-text-primary);letter-spacing:-0.3px">${t('customers')}</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">${customers.length} ${customers.length===1?'customer':'customers'} total</div>
+        </div>
+      </div>
+
+      <!-- Search bar -->
+      <div style="display:flex;align-items:center;gap:8px;background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);border-radius:12px;padding:9px 12px">
+        ${licon('search',16,'color:var(--color-text-secondary);flex-shrink:0')}
+        <input id="cust-search" placeholder="${t('searchCust')}" value="${esc(custSearch)}" oninput="custSearch=this.value;renderCustomers(document.getElementById('page-more'))" style="flex:1;border:none;background:transparent;font-size:14px;outline:none;color:var(--color-text-primary)">
+        ${custSearch?`<button onclick="custSearch='';renderCustomers(document.getElementById('page-more'))" style="background:none;border:none;color:var(--color-text-secondary);cursor:pointer;padding:0;display:flex">${licon('x',16,'color:var(--color-text-secondary)')}</button>`:''}
+      </div>
     </div>
 
     <!-- Add Customer form -->
-    <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--color-border-tertiary)">
-      <div style="font-size:12px;font-weight:700;color:var(--color-accent);text-transform:uppercase;letter-spacing:0.5px">＋ ${t('addCustomer')}</div>
-      <div style="display:flex;gap:8px">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--color-border-tertiary);background:var(--color-background-secondary)">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+        ${licon('user-plus',14,'color:var(--pm-purple)')}
+        <span style="font-size:12px;font-weight:700;color:var(--pm-purple);text-transform:uppercase;letter-spacing:0.6px">${t('addCustomer')}</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
         <input class="input-md" id="ct-name" placeholder="${t('name')}*" style="flex:2">
         <input class="input-md" id="ct-phone" inputmode="tel" placeholder="${t('phone')}" style="flex:1">
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
         <input class="input-md" id="ct-address" placeholder="${t('address')} (optional)" style="flex:2">
         <input class="input-md" id="ct-note" placeholder="${t('note')}" style="flex:1">
       </div>
-      <button class="btn-block" onclick="addCustomer()">${t('addCustomer')}</button>
+      <button class="btn-block" style="border-radius:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px" onclick="addCustomer()">
+        ${licon('user-plus',16,'color:#fff')} ${t('addCustomer')}
+      </button>
     </div>
 
     <!-- Tabs -->
-    <div class="sub-tabs">
-      <button class="sub-tab-btn${custTab==='all'?' active':''}" onclick="custTab='all';renderCustomers(document.getElementById('page-more'))">${t('allCustomers')} (${customers.length})</button>
-      <button class="sub-tab-btn${custTab==='top'?' active':''}" onclick="custTab='top';renderCustomers(document.getElementById('page-more'))">🏆 ${t('topCustomers')}</button>
+    <div class="sub-tabs" style="position:sticky;top:0;z-index:10;background:var(--color-background-primary)">
+      <button class="sub-tab-btn${custTab==='all'?' active':''}" onclick="custTab='all';renderCustomers(document.getElementById('page-more'))">
+        ${licon('list',14,'color:inherit')} ${t('allCustomers')} (${customers.length})
+      </button>
+      <button class="sub-tab-btn${custTab==='top'?' active':''}" onclick="custTab='top';renderCustomers(document.getElementById('page-more'))">
+        ${licon('trophy',14,'color:inherit')} ${t('topCustomers')}
+      </button>
     </div>
 
     ${filtered.length===0?_emptyState('user-plus',custSearch?'No results found.':t('noCust'),custSearch?'Try a different name or phone number':'Add customers to track their purchases','',''):
@@ -4138,19 +4160,28 @@ function renderCustomers(el){
         const days=daysSince(lastDate);
         const pendingUdhaar=udhaars.filter(u=>!u.paid&&u.name.toLowerCase()===c.name.toLowerCase()).reduce((a,u)=>a+u.amt,0);
         const initials=c.name.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
-        return `<div class="list-item" style="cursor:pointer;min-height:60px;gap:12px" onclick="currentCustomerId='${c.id}';goMore('customerDetail')">
-          <div style="width:42px;height:42px;border-radius:50%;background:var(--color-accent-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:800;color:var(--color-accent)">${initials}</div>
-          <div class="list-item-left">
-            <div class="list-item-title">${esc(c.name)}${pendingUdhaar>0?` <span style="background:#FEE2E2;color:#DC2626;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">Udhaar ${fmt(pendingUdhaar)}</span>`:''}</div>
-            <div class="list-item-meta">${c.phone||'—'}${visits>0?' · '+visits+' '+t('visits'):''}${days!==null?' · '+custLastVisitLabel(days):''}</div>
+        const avatarColors=['#6366F1','#8B5CF6','#EC4899','#0EA5E9','#10B981','#F59E0B'];
+        const avatarBg=avatarColors[c.name.charCodeAt(0)%avatarColors.length];
+        return `<div class="list-item" style="cursor:pointer;min-height:64px;gap:12px;border-bottom:1px solid var(--color-border-tertiary)" onclick="currentCustomerId='${c.id}';goMore('customerDetail')">
+          <div style="width:44px;height:44px;border-radius:14px;background:${avatarBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.5px">${initials}</div>
+          <div class="list-item-left" style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span class="list-item-title" style="font-weight:700">${esc(c.name)}</span>
+              ${pendingUdhaar>0?`<span style="background:#FEE2E2;color:#E11D48;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap">${fmt(pendingUdhaar)} due</span>`:''}
+            </div>
+            <div class="list-item-meta" style="display:flex;align-items:center;gap:4px;margin-top:2px">
+              ${c.phone?`${licon('phone',11,'color:var(--color-text-secondary)')} <span>${c.phone}</span>`:''}
+              ${visits>0?`<span style="opacity:0.4">·</span>${licon('shopping-bag',11,'color:var(--color-text-secondary)')} <span>${visits} ${t('visits')}</span>`:''}
+              ${days!==null?`<span style="opacity:0.4">·</span> <span>${custLastVisitLabel(days)}</span>`:''}
+            </div>
           </div>
-          <div style="text-align:right;flex-shrink:0">
-            ${totalAmt>0?`<div style="font-size:15px;font-weight:800;color:var(--color-success)">${fmt(totalAmt)}</div>`:''}
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            ${totalAmt>0?`<span style="font-size:15px;font-weight:800;color:var(--color-success)">${fmt(totalAmt)}</span>`:''}
+            ${licon('chevron-right',16,'color:var(--color-text-secondary)')}
           </div>
-          <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--color-text-secondary);fill:none;stroke-width:2;flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
         </div>`;
       }).join('')}
-  `;
+  `; _renderIcons();
 }
 
 function renderCustomerDetail(el){
@@ -4182,7 +4213,7 @@ function renderCustomerDetail(el){
           ${c.phone?`<div style="font-size:14px;opacity:0.88;margin-top:2px">${c.phone}</div>`:''}
           ${c.address?`<div style="font-size:12px;opacity:0.75;margin-top:1px">${esc(c.address)}</div>`:''}
         </div>
-        ${c.phone?`<button onclick="window.open('https://wa.me/${custWaNum(c.phone)}')" style="background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap;flex-shrink:0">💬 WhatsApp</button>`:''}
+        ${c.phone?`<button onclick="window.open('https://wa.me/${custWaNum(c.phone)}')" style="background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:6px">${licon('message-circle',15,'color:#fff')} WhatsApp</button>`:''}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
         <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:10px;text-align:center">
@@ -4202,7 +4233,7 @@ function renderCustomerDetail(el){
 
     ${pendingAmt>0?`
     <div style="background:#FEF2F2;border-bottom:2px solid #FCA5A5;padding:12px 16px;cursor:pointer" onclick="switchTab('udhaar')">
-      <div style="font-size:13px;font-weight:700;color:#DC2626">⚠ ${t('pendingUdhaar')}: ${fmt(pendingAmt)}</div>
+      <div style="font-size:13px;font-weight:700;color:#E11D48;display:flex;align-items:center;gap:6px">${licon('alert-triangle',14,'color:#E11D48')} ${t('pendingUdhaar')}: ${fmt(pendingAmt)}</div>
       <div style="font-size:12px;color:#B91C1C;margin-top:3px">${pendingUdhaar.map(u=>fmtDate(u.date)+(u.dueDate?' (due '+fmtDate(u.dueDate)+')':'')).join(' · ')} — tap to view</div>
     </div>`:''}
 
