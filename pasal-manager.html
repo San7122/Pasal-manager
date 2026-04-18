@@ -820,6 +820,13 @@ body {
   padding: 16px;
   border-bottom: 1px solid var(--color-border-tertiary);
 }
+.settings-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid var(--color-border-tertiary);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
 .settings-label {
   font-size: 13px; font-weight: 700;
   color: var(--color-text-secondary);
@@ -5533,86 +5540,164 @@ function copyText(text){try{navigator.clipboard.writeText(text);showSaved();}cat
 
 // =============== SETTINGS ===============
 function renderSettingsPage(el){
+  const sectionHead=(icon,title,color='var(--color-accent)')=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="width:34px;height:34px;border-radius:10px;background:${color}1a;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        ${licon(icon,18,`color:${color};`)}
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--color-text-primary);text-transform:uppercase;letter-spacing:0.5px">${title}</div>
+    </div>`;
+
   el.innerHTML=backBtn()+`
-    <div class="settings-section">
-      <div class="settings-label">${t('country')}</div>
+  <div style="padding:8px 12px 24px;display:flex;flex-direction:column;gap:12px">
+
+    <!-- Country -->
+    <div class="settings-card">
+      ${sectionHead('globe','Country')}
       <div class="settings-options">
-        <button class="settings-opt${S.country==='IN'?' selected':''}" onclick="setCo('IN')">India ₹</button>
-        <button class="settings-opt${S.country==='NP'?' selected':''}" onclick="setCo('NP')">Nepal रू</button>
+        <button class="settings-opt${S.country==='IN'?' selected':''}" onclick="setCo('IN')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px">
+          ${licon('indian-rupee',15)} India ₹
+        </button>
+        <button class="settings-opt${S.country==='NP'?' selected':''}" onclick="setCo('NP')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px">
+          ${licon('landmark',15)} Nepal रू
+        </button>
       </div>
     </div>
-    <div class="settings-section">
-      <div class="settings-label">${t('language')}</div>
+
+    <!-- Language -->
+    <div class="settings-card">
+      ${sectionHead('languages','Language','#0D9488')}
       <div class="settings-options">
-        <button class="settings-opt${S.language==='en'?' selected':''}" onclick="setLa('en')">English</button>
-        <button class="settings-opt${S.language==='hi'?' selected':''}" onclick="setLa('hi')">हिंदी</button>
-        <button class="settings-opt${S.language==='np'?' selected':''}" onclick="setLa('np')">नेपाली</button>
+        <button class="settings-opt${S.language==='en'?' selected':''}" onclick="setLa('en')" style="flex:1">English</button>
+        <button class="settings-opt${S.language==='hi'?' selected':''}" onclick="setLa('hi')" style="flex:1">हिंदी</button>
+        <button class="settings-opt${S.language==='np'?' selected':''}" onclick="setLa('np')" style="flex:1">नेपाली</button>
       </div>
     </div>
-    <div class="settings-section">
-      <div class="settings-label">${t('shopName')}</div>
+
+    <!-- Shop Name -->
+    <div class="settings-card">
+      ${sectionHead('store','Shop Name','#7C3AED')}
       <input class="settings-input" id="s-shop" value="${esc(S.shopName)}" placeholder="${t('shopName')}">
-      <div class="settings-info">${t('shopInfo')}</div>
+      <div class="settings-info" style="display:flex;align-items:center;gap:5px;margin-top:6px">${licon('info',12,'color:var(--color-text-secondary);')} ${t('shopInfo')}</div>
     </div>
-    ${S.country==='IN'?`<div class="settings-section">
-      <div class="settings-label">🧾 GST Settings</div>
+
+    ${S.country==='IN'?`
+    <!-- GST Settings -->
+    <div class="settings-card">
+      ${sectionHead('receipt','GST Settings','#059669')}
       <input class="settings-input" id="s-gstin" value="${esc(S.gstin)}" placeholder="${t('gstin')} (e.g. 27AABCU9603R1ZX)">
       <input class="settings-input" id="s-biz-addr" value="${esc(S.bizAddress)}" placeholder="${t('bizAddress')}" style="margin-top:8px">
       <input class="settings-input" id="s-biz-state" value="${esc(S.bizState)}" placeholder="${t('bizState')} (e.g. Maharashtra)" style="margin-top:8px">
-      <div class="settings-info">Used in GST Tax Invoices. Leave blank if not GST registered.</div>
+      <div class="settings-info" style="display:flex;align-items:center;gap:5px;margin-top:6px">${licon('info',12,'color:var(--color-text-secondary);')} Used in GST Tax Invoices. Leave blank if not GST registered.</div>
     </div>`:''}
-    <div class="settings-section">
-      <div class="settings-label">📊 ${t('dailyReport')}</div>
+
+    <!-- Daily Report -->
+    <div class="settings-card">
+      ${sectionHead('bar-chart-2','Daily Report','#F59E0B')}
       <input class="settings-input" id="s-own-phone" type="tel" value="${esc(S.ownPhone)}" placeholder="${t('ownPhone')}">
       <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-        <label style="font-size:13px;color:var(--color-text-secondary);flex-shrink:0">${t('reminderTime')}</label>
+        <label style="font-size:13px;color:var(--color-text-secondary);flex-shrink:0;display:flex;align-items:center;gap:5px">${licon('clock',13,'color:var(--color-text-secondary);')} ${t('reminderTime')}</label>
         <input type="time" class="settings-input" id="s-reminder" value="${S.reminderTime||'21:00'}" style="flex:1;margin:0">
       </div>
-      <button class="btn-block" style="margin-top:10px;background:var(--color-accent)" onclick="saveReminderSettings()">${t('setReminder')}</button>
-      <div class="settings-info">${t('reminderInfo')}</div>
+      <button class="btn-block" style="margin-top:12px;background:var(--color-accent);display:flex;align-items:center;justify-content:center;gap:8px" onclick="saveReminderSettings()">
+        ${licon('bell',16,'color:#fff;')} ${t('setReminder')}
+      </button>
+      <div class="settings-info" style="display:flex;align-items:center;gap:5px;margin-top:6px">${licon('info',12,'color:var(--color-text-secondary);')} ${t('reminderInfo')}</div>
     </div>
-    <div class="settings-section">
-      <div class="settings-label">🏪 ${t('branches')}</div>
-      <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:10px">${branches.length>0?`${branches.length} branch${branches.length>1?'es':''}: `+branches.map(b=>b.name).join(', '):t('noBranches')}</div>
-      <button class="btn-block" onclick="goMore('branches')">${t('branches')} & ${t('switchBranch')}</button>
+
+    <!-- Branches -->
+    <div class="settings-card">
+      ${sectionHead('building-2','Branches','#0891B2')}
+      <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        ${licon(branches.length>0?'check-circle':'circle',13,`color:${branches.length>0?'var(--color-success)':'var(--color-text-secondary)'};`)}
+        ${branches.length>0?`${branches.length} branch${branches.length>1?'es':''}: `+branches.map(b=>b.name).join(', '):t('noBranches')}
+      </div>
+      <button class="btn-block" style="display:flex;align-items:center;justify-content:center;gap:8px" onclick="goMore('branches')">
+        ${licon('git-branch',16)} ${t('branches')} & ${t('switchBranch')}
+      </button>
     </div>
-    <div class="settings-section">
-      <div class="settings-label">🔒 PIN Lock</div>
+
+    <!-- PIN Lock -->
+    <div class="settings-card">
+      ${sectionHead('lock','PIN Lock','#E11D48')}
       ${pinEnabled()
-        ?`<div style="font-size:13px;color:var(--color-success);font-weight:600;margin-bottom:10px">✓ PIN is enabled</div>
+        ?`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;background:#F0FDF4;border-radius:10px;border:1px solid #BBF7D0">
+             ${licon('shield-check',16,'color:#059669;')}
+             <span style="font-size:13px;color:#059669;font-weight:600">PIN is enabled</span>
+           </div>
            <div style="display:flex;gap:8px">
-             <button class="settings-opt" onclick="settingChangePin()">Change PIN</button>
-             <button class="settings-opt" style="border-color:var(--color-danger);color:var(--color-danger)" onclick="settingDisablePin()">Disable</button>
+             <button class="settings-opt" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px" onclick="settingChangePin()">
+               ${licon('key',14)} Change PIN
+             </button>
+             <button class="settings-opt" style="flex:1;border-color:var(--color-danger);color:var(--color-danger);display:flex;align-items:center;justify-content:center;gap:6px" onclick="settingDisablePin()">
+               ${licon('unlock',14)} Disable
+             </button>
            </div>`
-        :`<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:10px">Protect your app with a 4-digit PIN. Shows every time the app opens.</div>
-           <button class="btn-block" onclick="settingEnablePin()">Enable PIN Lock</button>`}
-      ${pinBioAvailable?`<div style="font-size:12px;color:var(--color-text-secondary);margin-top:8px">👁 Fingerprint / Face ID available as fallback</div>`:''}
+        :`<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.5">Protect your app with a 4-digit PIN. Shows every time the app opens.</div>
+           <button class="btn-block" style="display:flex;align-items:center;justify-content:center;gap:8px" onclick="settingEnablePin()">
+             ${licon('shield',16)} Enable PIN Lock
+           </button>`}
+      ${pinBioAvailable?`<div style="font-size:12px;color:var(--color-text-secondary);margin-top:10px;display:flex;align-items:center;gap:6px">
+        ${licon('scan-face',13,'color:var(--color-text-secondary);')} Fingerprint / Face ID available as fallback
+      </div>`:''}
     </div>
-    <div class="settings-section">
-      <div class="settings-label">${t('data')}</div>
-      <button class="settings-opt" style="border-color:var(--color-danger);color:var(--color-danger);flex:none;padding:12px 24px" onclick="document.getElementById('clr-cf').style.display='block'">${t('clearAll')}</button>
-      <div id="clr-cf" style="display:none;margin-top:10px">
-        <div style="font-size:14px;color:var(--color-danger);font-weight:700;margin-bottom:8px">${t('clearWarn')}</div>
+
+    <!-- Data -->
+    <div class="settings-card">
+      ${sectionHead('database','Data','#DC2626')}
+      <button onclick="document.getElementById('clr-cf').style.display='block'" style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#FFF1F2;border:1.5px solid #FECDD3;border-radius:10px;color:var(--color-danger);font-size:14px;font-weight:600;cursor:pointer;width:100%">
+        ${licon('trash-2',16,'color:var(--color-danger);')} ${t('clearAll')}
+      </button>
+      <div id="clr-cf" style="display:none;margin-top:12px;padding:14px;background:#FFF1F2;border-radius:10px;border:1px solid #FECDD3">
+        <div style="font-size:14px;color:var(--color-danger);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          ${licon('alert-triangle',16,'color:var(--color-danger);')} ${t('clearWarn')}
+        </div>
         <div class="confirm-row">
           <button class="btn-confirm yes" onclick="clearAll()">${t('yesDelete')}</button>
           <button class="btn-confirm no" onclick="document.getElementById('clr-cf').style.display='none'">${t('cancel')}</button>
         </div>
       </div>
     </div>
-    <div class="settings-section">
-      <div class="settings-label">Account</div>
+
+    <!-- Account -->
+    <div class="settings-card">
+      ${sectionHead('user-circle','Account','#6366F1')}
       ${isGuestMode ? `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <span style="background:#FEF3C7;color:#92400E;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px">👤 ${t('guestAccountLabel')}</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;background:#FEF3C7;border-radius:10px;border:1px solid #FDE68A">
+          ${licon('user',14,'color:#92400E;')}
+          <span style="font-size:13px;font-weight:700;color:#92400E">${t('guestAccountLabel')}</span>
         </div>
-        <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.5">${t('guestNudgeDesc')}</div>
-        <button class="settings-opt" style="border-color:var(--color-accent);color:var(--color-accent);flex:none;padding:12px 24px;font-weight:700" onclick="startConvertGuest()">${t('guestConvertBtn')}</button>
-        <button class="settings-opt" style="border-color:var(--color-danger);color:var(--color-danger);flex:none;padding:12px 24px;margin-top:8px" onclick="signOut()">${t('guestExitBtn')}</button>
+        <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:14px;line-height:1.6">${t('guestNudgeDesc')}</div>
+        <button class="btn-block" style="background:var(--color-accent);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px" onclick="startConvertGuest()">
+          ${licon('user-plus',16,'color:#fff;')} ${t('guestConvertBtn')}
+        </button>
+        <button onclick="signOut()" style="width:100%;padding:12px;background:none;border:1.5px solid #FECDD3;border-radius:10px;color:var(--color-danger);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          ${licon('log-out',16,'color:var(--color-danger);')} ${t('guestExitBtn')}
+        </button>
       ` : `
-        <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:10px">${currentUser?.email||''}</div>
-        <button class="settings-opt" style="border-color:var(--color-danger);color:var(--color-danger);flex:none;padding:12px 24px" onclick="signOut()">Sign Out</button>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--color-background-secondary);border-radius:10px;margin-bottom:14px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--pm-purple-light);display:flex;align-items:center;justify-content:center">
+            ${licon('user',18,'color:var(--pm-purple);')}
+          </div>
+          <div style="font-size:13px;color:var(--color-text-primary);font-weight:600">${currentUser?.email||''}</div>
+        </div>
+        <button onclick="signOut()" style="width:100%;padding:12px;background:none;border:1.5px solid #FECDD3;border-radius:10px;color:var(--color-danger);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          ${licon('log-out',16,'color:var(--color-danger);')} Sign Out
+        </button>
       `}
-    </div>`;
+    </div>
+
+    <!-- Version -->
+    <div style="text-align:center;padding:8px 0 16px;display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div style="font-size:12px;color:var(--color-text-secondary)">Pasal Manager v2.0</div>
+      <a href="https://varaai-final.vercel.app" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 14px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);border-radius:20px;text-decoration:none">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#a78bfa" stroke="#a78bfa" stroke-width="1" stroke-linejoin="round"/></svg>
+        <span style="font-size:11px;color:#c4b5fd;font-weight:600">Powered by</span>
+        <span style="font-size:12px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent">VaraAI</span>
+      </a>
+    </div>
+
+  </div>`;
   setTimeout(()=>{
     const inp=document.getElementById('s-shop');
     if(inp) inp.onblur=async function(){S.shopName=this.value.trim();await saveSettings();updateTopbar();};
