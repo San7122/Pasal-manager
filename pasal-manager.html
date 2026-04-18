@@ -7285,17 +7285,41 @@ function renderScorePage(el) {
 
   if (sc.meta.totalRecords < 5) {
     el.innerHTML = backBtn() + `
-      <div class="score-low-data">
-        <div style="font-size:44px;margin-bottom:14px">📊</div>
-        <div style="font-size:17px;font-weight:700;color:#374151;margin-bottom:8px">Not enough data yet</div>
-        <div style="font-size:14px;line-height:1.6;color:#6B7280">${t('scoreLowData')}</div>
-        <div style="margin-top:20px;background:#EDE9FE;border-radius:12px;padding:14px;text-align:left;font-size:13px;color:#4C1D95;line-height:1.6">
-          <b>Quick start:</b><br>
-          Record today's sales → go to Today tab<br>
-          Add an udhaar entry → Udhaar tab<br>
-          Add a stock item → Stock tab
+      <div style="padding:24px 16px 32px">
+        <!-- Hero card -->
+        <div style="background:linear-gradient(145deg,#4338CA,#6366F1);border-radius:20px;padding:28px 24px;text-align:center;color:#fff;margin-bottom:20px">
+          <div style="width:64px;height:64px;background:rgba(255,255,255,0.15);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+            ${licon('bar-chart-2',32,'color:#fff')}
+          </div>
+          <div style="font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:6px">Business Health Score</div>
+          <div style="font-size:13px;opacity:0.8;line-height:1.5">${t('scoreLowData')}</div>
+        </div>
+
+        <!-- Steps -->
+        <div style="font-size:11px;font-weight:700;color:var(--color-text-secondary);letter-spacing:0.7px;text-transform:uppercase;margin-bottom:10px">Complete these to unlock your score</div>
+        ${[
+          {icon:'trending-up', label:'Record today\'s sales', sub:'Go to the Today tab', tab:'today'},
+          {icon:'users',       label:'Add an udhaar entry',  sub:'Go to the Udhaar tab', tab:'udhaar'},
+          {icon:'package',     label:'Add a stock item',     sub:'Go to the Stock tab',  tab:'stock'},
+        ].map(s=>`
+        <div onclick="switchTab('${s.tab}')" style="display:flex;align-items:center;gap:14px;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer">
+          <div style="width:40px;height:40px;border-radius:12px;background:var(--pm-purple-light);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${licon(s.icon,20,'color:var(--pm-purple)')}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--color-text-primary)">${s.label}</div>
+            <div style="font-size:12px;color:var(--color-text-secondary);margin-top:1px">${s.sub}</div>
+          </div>
+          ${licon('chevron-right',16,'color:var(--color-text-secondary)')}
+        </div>`).join('')}
+
+        <!-- Progress indicator -->
+        <div style="margin-top:8px;background:var(--color-background-secondary);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+          ${licon('info',16,'color:var(--color-text-secondary);flex-shrink:0')}
+          <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.5">You have <b style="color:var(--color-text-primary)">${sc.meta.totalRecords}</b> of 5 required records. Score unlocks automatically once you reach 5.</div>
         </div>
       </div>`;
+    _renderIcons();
     return;
   }
 
