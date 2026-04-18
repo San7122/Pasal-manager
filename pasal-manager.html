@@ -36,10 +36,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-<!-- Core — needed immediately -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<!-- Core — must load synchronously (used during inline script init) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Deferred — safe to defer (used only after login) -->
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.441.0/dist/umd/lucide.min.js" defer></script>
-<!-- Deferred — needed after login -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" defer></script>
 <!-- Lazy-loaded on demand (see _lazyLoad helper below) -->
@@ -2917,7 +2917,13 @@ async function confirmGuest(){
   const localSettings=JSON.parse(localStorage.getItem('local_settings')||'null')||{};
   localSettings.shopName=shopName;
   localStorage.setItem('local_settings',JSON.stringify({...localSettings,...S}));
-  await afterLogin();
+  try{
+    await afterLogin();
+  }catch(e){
+    console.error('Guest start error:',e);
+    if(btn){btn.innerHTML=t('guestStartBtn');btn.disabled=false;}
+    alert('Something went wrong: '+e.message);
+  }
 }
 
 function _renderGuestBanner(){
