@@ -3211,9 +3211,14 @@ function renderToday(){
         <div class="today-stat-chip ${totalProfit>=0?'today-stat-green':'today-stat-red'}"><i data-lucide="trending-up" style="width:13px;height:13px"></i> Profit ${fmt(totalProfit)}</div>`:''}
         ${totalRetAmt>0?`<div class="today-stat-chip today-stat-red"><i data-lucide="rotate-ccw" style="width:13px;height:13px"></i> Returns ${fmt(totalRetAmt)}</div>`:''}
       </div>`:''}
-      <button onclick="sendDailyWA()" class="today-report-btn">
-        <i data-lucide="send" style="width:14px;height:14px"></i> ${t('sendReport')}
-      </button>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button onclick="sendDailyWA()" class="today-report-btn">
+          <i data-lucide="send" style="width:14px;height:14px"></i> ${t('sendReport')}
+        </button>
+        ${cnt>0?`<button onclick="printDaySummary()" class="today-report-btn" style="background:var(--color-background-secondary);color:var(--color-text-primary);border:1px solid var(--color-border)">
+          <i data-lucide="printer" style="width:14px;height:14px"></i> Print Summary
+        </button>`:''}
+      </div>
     </div>
     <div class="sub-tabs" style="border-top:1px solid var(--color-border-tertiary)">
       <button class="sub-tab-btn${todayTab==='sale'?' active':''}" onclick="todayTab='sale';renderToday()">${t('todaySales')}</button>
@@ -3265,7 +3270,7 @@ function renderToday(){
         const profit=i.cost>0?i.amt-i.cost:null;
         if(confirmId===i.id) return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${t('delete')}</div></div><div class="confirm-row"><button class="btn-confirm yes" onclick="delSale('${i.id}')">${t('yesDelete')}</button><button class="btn-confirm no" onclick="confirmId=null;renderToday()">${t('cancel')}</button></div></div>`;
         const cust=i.customerId?customers.find(c=>c.id===i.customerId):null;
-        return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.cost>0?' · Cost: '+fmt(i.cost):''}${i.note?' · '+i.note:''}${cust?` · <span style="color:var(--color-accent);font-weight:600">👤 ${esc(cust.name)}</span>`:''}</div></div>${profit!==null?`<div style="text-align:center;margin-right:4px"><div style="font-size:13px;font-weight:700;color:${profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(profit)}</div><div style="font-size:10px;color:var(--color-text-secondary)">profit</div></div>`:''}<button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderToday()">✕</button></div>`;
+        return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.cost>0?' · Cost: '+fmt(i.cost):''}${i.note?' · '+i.note:''}${cust?` · <span style="color:var(--color-accent);font-weight:600">👤 ${esc(cust.name)}</span>`:''}</div></div>${profit!==null?`<div style="text-align:center;margin-right:4px"><div style="font-size:13px;font-weight:700;color:${profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(profit)}</div><div style="font-size:10px;color:var(--color-text-secondary)">profit</div></div>`:''}<button class="btn-icon" title="Print receipt" style="background:#EFF6FF;color:#1D4ED8" onclick="printSaleReceipt('${i.id}')"><i data-lucide="printer" style="width:13px;height:13px"></i></button><button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderToday()">✕</button></div>`;
       }).join('')}`;
   _renderIcons();
   setTimeout(()=>{const el=document.getElementById('s-amt');if(el&&todayTab==='sale')el.focus();},50);
@@ -3293,6 +3298,80 @@ async function delSale(id){
   sales=sales.filter(s=>s.id!==id);confirmId=null;
   await dbDel('pm_sales',id);
   renderToday();
+}
+function printSaleReceipt(id){
+  const sale=sales.find(s=>s.id===id); if(!sale) return;
+  const cust=sale.customerId?customers.find(c=>c.id===sale.customerId):null;
+  const w=window.open('','_blank','width=400,height=600');
+  const d=new Date(sale.ts);
+  const dateStr=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const timeStr=d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Courier New',monospace;font-size:13px;width:300px;margin:0 auto;padding:16px;color:#000}
+    .shop{text-align:center;font-size:16px;font-weight:bold;margin-bottom:2px}
+    .tagline{text-align:center;font-size:11px;color:#555;margin-bottom:12px}
+    .divider{border-top:1px dashed #000;margin:8px 0}
+    .row{display:flex;justify-content:space-between;margin:4px 0}
+    .label{color:#555}
+    .amt{font-size:18px;font-weight:bold;text-align:center;margin:8px 0}
+    .footer{text-align:center;font-size:10px;color:#888;margin-top:12px}
+    .print-btn{display:block;margin:16px auto;padding:8px 24px;background:#6366F1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px}
+    @media print{.print-btn{display:none}}
+  </style></head><body>
+  <div class="shop">${esc(S.shopName)||'Shop Receipt'}</div>
+  <div class="tagline">Thank you for your purchase!</div>
+  <div class="divider"></div>
+  <div class="row"><span class="label">Date</span><span>${dateStr}</span></div>
+  <div class="row"><span class="label">Time</span><span>${timeStr}</span></div>
+  ${cust?`<div class="row"><span class="label">Customer</span><span>${esc(cust.name)}</span></div>`:''}
+  ${sale.note?`<div class="row"><span class="label">Item</span><span>${esc(sale.note)}</span></div>`:''}
+  ${sale.payMode?`<div class="row"><span class="label">Payment</span><span>${sale.payMode}</span></div>`:''}
+  <div class="divider"></div>
+  <div class="amt">${cur()} ${sale.amt.toLocaleString('en-IN')}</div>
+  <div class="divider"></div>
+  <div class="footer">Powered by Pasal Manager · varaai.org</div>
+  <button class="print-btn" onclick="window.print()">🖨 Print / Save PDF</button>
+  </body></html>`);
+  w.document.close();
+}
+function printDaySummary(){
+  const td=todayStr();
+  const ts=sales.filter(s=>s.date===td);
+  const tr=returns.filter(r=>r.date===td);
+  const total=ts.reduce((a,s)=>a+s.amt,0);
+  const totalRet=tr.reduce((a,r)=>a+r.amt,0);
+  const profit=ts.reduce((a,s)=>a+(s.cost>0?s.amt-s.cost:0),0);
+  const w=window.open('','_blank','width=500,height=700');
+  const dateStr=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Daily Summary</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Courier New',monospace;font-size:13px;width:340px;margin:0 auto;padding:16px}
+    h2{text-align:center;font-size:16px;margin-bottom:4px}
+    .date{text-align:center;font-size:12px;color:#555;margin-bottom:12px}
+    .divider{border-top:1px dashed #000;margin:8px 0}
+    .row{display:flex;justify-content:space-between;margin:4px 0;font-size:12px}
+    .total-row{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin:6px 0}
+    .footer{text-align:center;font-size:10px;color:#888;margin-top:12px}
+    .print-btn{display:block;margin:16px auto;padding:8px 24px;background:#6366F1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px}
+    @media print{.print-btn{display:none}}
+  </style></head><body>
+  <h2>${esc(S.shopName)||'Daily Summary'}</h2>
+  <div class="date">${dateStr}</div>
+  <div class="divider"></div>
+  ${ts.map(s=>`<div class="row"><span>${fmtTime(s.ts)} ${s.note?'· '+esc(s.note):''}</span><span>${cur()} ${s.amt.toLocaleString('en-IN')}</span></div>`).join('')}
+  ${tr.length>0?`<div class="divider"></div>${tr.map(r=>`<div class="row" style="color:#dc2626"><span>↩ Return</span><span>− ${cur()} ${r.amt.toLocaleString('en-IN')}</span></div>`).join('')}`:''}
+  <div class="divider"></div>
+  <div class="total-row"><span>Total Sales</span><span>${cur()} ${total.toLocaleString('en-IN')}</span></div>
+  ${totalRet>0?`<div class="total-row" style="color:#dc2626"><span>Total Returns</span><span>− ${cur()} ${totalRet.toLocaleString('en-IN')}</span></div>`:''}
+  ${profit>0?`<div class="total-row" style="color:#059669"><span>Profit</span><span>${cur()} ${profit.toLocaleString('en-IN')}</span></div>`:''}
+  <div class="total-row" style="font-size:16px;border-top:2px solid #000;padding-top:6px"><span>NET</span><span>${cur()} ${(total-totalRet).toLocaleString('en-IN')}</span></div>
+  <div class="footer">Pasal Manager · ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+  <button class="print-btn" onclick="window.print()">🖨 Print / Save PDF</button>
+  </body></html>`);
+  w.document.close();
 }
 async function addReturn(){
   const amt=Math.round(parseFloat(document.getElementById('r-amt').value));
