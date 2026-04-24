@@ -2621,6 +2621,59 @@ function cacheRead(){
   }catch(e){}
 }
 
+// ===== BACKUP & RESTORE =====
+function backupData(){
+  const data={
+    version:2, exportedAt:new Date().toISOString(), shopName:S.shopName,
+    sales,expenses,udhaars,stock,suppliers,cashbookEntries,customers,
+    staffList,staffEntries,gstBills,returns,branches,emiPlans,emiPayments,
+    loans,loanPayments,kharidiEntries,dealers,dealerEntries,settings:S
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`pasal-backup-${S.shopName||'shop'}-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  localStorage.setItem('pm_last_backup',Date.now().toString());
+}
+function restoreData(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!d.version||!d.exportedAt) throw new Error('Invalid backup file');
+      if(!confirm(`Restore backup from ${d.exportedAt.slice(0,10)} for "${d.shopName||'shop'}"?\n\nThis will REPLACE all current data.`)) return;
+      if(d.sales) sales=d.sales;
+      if(d.expenses) expenses=d.expenses;
+      if(d.udhaars) udhaars=d.udhaars;
+      if(d.stock) stock=d.stock;
+      if(d.suppliers) suppliers=d.suppliers;
+      if(d.cashbookEntries) cashbookEntries=d.cashbookEntries;
+      if(d.customers) customers=d.customers;
+      if(d.staffList) staffList=d.staffList;
+      if(d.staffEntries) staffEntries=d.staffEntries;
+      if(d.gstBills) gstBills=d.gstBills;
+      if(d.returns) returns=d.returns;
+      if(d.branches) branches=d.branches;
+      if(d.emiPlans) emiPlans=d.emiPlans;
+      if(d.emiPayments) emiPayments=d.emiPayments;
+      if(d.loans) loans=d.loans;
+      if(d.loanPayments) loanPayments=d.loanPayments;
+      if(d.kharidiEntries) kharidiEntries=d.kharidiEntries;
+      if(d.dealers) dealers=d.dealers;
+      if(d.dealerEntries) dealerEntries=d.dealerEntries;
+      if(d.settings) S={...S,...d.settings};
+      cacheWrite();
+      alert('Backup restored successfully!');
+      location.reload();
+    }catch(ex){ alert('Failed to restore: '+ex.message); }
+  };
+  reader.readAsText(file);
+}
+
 // ===== OFFLINE WRITE QUEUE =====
 // Queues failed Supabase writes and retries when back online
 const _WQ_KEY='pm_write_queue';
@@ -2658,7 +2711,7 @@ function _checkBackupReminder(){
   setTimeout(()=>{
     const el=document.createElement('div');
     el.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;z-index:9999;max-width:320px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.3)';
-    el.innerHTML=`💾 <strong>Weekly Backup Reminder</strong><br>Export your data to Excel to keep a safe copy.<br><span style="color:#A78BFA;cursor:pointer;font-weight:600" onclick="goMore('export');this.closest('div').remove()">Export Now</span> &nbsp;·&nbsp; <span style="color:#888;cursor:pointer" onclick="this.closest('div').remove()">Later</span>`;
+    el.innerHTML=`💾 <strong>Weekly Backup Reminder</strong><br>Download a backup to keep your data safe.<br><span style="color:#A78BFA;cursor:pointer;font-weight:600" onclick="backupData();this.closest('div').remove()">Download Backup</span> &nbsp;·&nbsp; <span style="color:#888;cursor:pointer" onclick="this.closest('div').remove()">Later</span>`;
     document.body.appendChild(el);
     setTimeout(()=>{if(el.parentNode) el.remove();},10000);
   },3000);
@@ -5639,6 +5692,26 @@ function renderSettingsPage(el){
            </button>`}
       ${pinBioAvailable?`<div style="font-size:12px;color:var(--color-text-secondary);margin-top:10px;display:flex;align-items:center;gap:6px">
         ${licon('scan-face',13,'color:var(--color-text-secondary);')} Fingerprint / Face ID available as fallback
+      </div>`:''}
+    </div>
+
+    <!-- Backup & Restore -->
+    <div class="settings-card">
+      ${sectionHead('hard-drive','Backup & Restore','#0891B2')}
+      <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.5;display:flex;align-items:flex-start;gap:6px">
+        ${licon('info',13,'color:var(--color-text-secondary);flex-shrink:0;margin-top:1px;')}
+        Download a backup file of all your data. Use it to restore if something goes wrong.
+      </div>
+      <button onclick="backupData()" style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#ECFDF5;border:1.5px solid #A7F3D0;border-radius:10px;color:#065F46;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-bottom:8px">
+        ${licon('download',16,'color:#065F46;')} Download Backup
+      </button>
+      <label style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;color:#1E40AF;font-size:14px;font-weight:600;cursor:pointer;width:100%;box-sizing:border-box">
+        ${licon('upload',16,'color:#1E40AF;')} Restore from Backup
+        <input type="file" accept=".json" onchange="restoreData(this)" style="display:none">
+      </label>
+      ${isGuestMode?`<div style="margin-top:10px;padding:10px 12px;background:#FEF3C7;border-radius:10px;border:1px solid #FDE68A;display:flex;align-items:flex-start;gap:8px">
+        ${licon('alert-triangle',14,'color:#92400E;flex-shrink:0;margin-top:1px;')}
+        <span style="font-size:12px;color:#92400E;line-height:1.5">Guest mode data is stored in your browser. Download a backup regularly to avoid losing data.</span>
       </div>`:''}
     </div>
 
