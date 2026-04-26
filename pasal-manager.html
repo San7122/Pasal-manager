@@ -2696,6 +2696,98 @@ function restoreData(input){
   reader.readAsText(file);
 }
 
+// ===== BULK CSV IMPORT =====
+function _parseCSV(text){
+  return text.trim().split(/\r?\n/).map(line=>{
+    // Handle quoted fields
+    const cols=[]; let cur='', inQ=false;
+    for(let i=0;i<line.length;i++){
+      const c=line[i];
+      if(c==='"'){inQ=!inQ;}
+      else if(c===','&&!inQ){cols.push(cur.trim());cur='';}
+      else cur+=c;
+    }
+    cols.push(cur.trim());
+    return cols;
+  }).filter(r=>r.some(c=>c));
+}
+
+function downloadSampleCSV(type){
+  let content,filename;
+  if(type==='stock'){
+    content='Name,Qty,Buy Price,Sell Price\nSugar 1kg,50,45,55\nRice 5kg,30,200,240\nMustard Oil 1L,20,150,180';
+    filename='sample-stock.csv';
+  } else {
+    content='Name,Phone,Address,Note\nRam Kumar,9800000001,Kathmandu,Regular\nSita Devi,9800000002,Pokhara,';
+    filename='sample-customers.csv';
+  }
+  const blob=new Blob([content],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+}
+function importStockCSV(input){
+  const file=input.files[0]; if(!file) return;
+  input.value='';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const rows=_parseCSV(e.target.result);
+    // Skip header row if first cell looks like a label
+    const data=rows[0]&&isNaN(rows[0][1])?rows.slice(1):rows;
+    if(!data.length){alert('No data found in CSV.');return;}
+    const preview=data.slice(0,3).map(r=>`• ${r[0]||'?'} — Qty:${r[1]||0} Buy:${r[2]||0} Sell:${r[3]||0}`).join('\n');
+    const more=data.length>3?`\n...and ${data.length-3} more`:'';
+    if(!confirm(`Import ${data.length} stock items?\n\n${preview}${more}\n\nDuplicate names will be skipped.`))return;
+    let added=0,skipped=0;
+    const promises=[];
+    for(const r of data){
+      const name=(r[0]||'').trim(); if(!name){skipped++;continue;}
+      if(stock.find(s=>s.name.toLowerCase()===name.toLowerCase())){skipped++;continue;}
+      const qty=Math.round(parseFloat(r[1]))||0;
+      const buy=Math.round(parseFloat(r[2]))||0;
+      const sell=Math.round(parseFloat(r[3]))||0;
+      const item={id:uid(),name,size:'',qty,buy,sell,country:S.country,barcode:''};
+      stock.push(item);
+      promises.push(dbAdd('pm_stock',{id:item.id,user_id:currentUser?.id,name,size:'',qty,buy,sell,country:S.country,barcode:''}));
+      added++;
+    }
+    Promise.all(promises).then(()=>{cacheWrite();renderStock();});
+    alert(`✓ Imported ${added} items.${skipped>0?` ${skipped} skipped (duplicate or empty).`:''}`);
+  };
+  reader.readAsText(file);
+}
+
+function importCustomersCSV(input){
+  const file=input.files[0]; if(!file) return;
+  input.value='';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const rows=_parseCSV(e.target.result);
+    const data=rows[0]&&isNaN(rows[0][0])&&!/^\d/.test(rows[0][0])&&rows[0][0].toLowerCase().includes('name')?rows.slice(1):rows;
+    if(!data.length){alert('No data found in CSV.');return;}
+    const preview=data.slice(0,3).map(r=>`• ${r[0]||'?'} ${r[1]?'· '+r[1]:''}`).join('\n');
+    const more=data.length>3?`\n...and ${data.length-3} more`:'';
+    if(!confirm(`Import ${data.length} customers?\n\n${preview}${more}\n\nDuplicate names will be skipped.`))return;
+    let added=0,skipped=0;
+    const promises=[];
+    for(const r of data){
+      const name=(r[0]||'').trim(); if(!name){skipped++;continue;}
+      if(customers.find(c=>c.name.toLowerCase()===name.toLowerCase())){skipped++;continue;}
+      const phone=(r[1]||'').trim();
+      const address=(r[2]||'').trim();
+      const note=(r[3]||'').trim();
+      const cust={id:uid(),name,phone,address,note,ts:Date.now()};
+      customers.push(cust);
+      promises.push(dbAdd('pm_customers',{id:cust.id,user_id:currentUser?.id,name,phone,address,note,ts:cust.ts}));
+      added++;
+    }
+    Promise.all(promises).then(()=>{cacheWrite();renderCustomers(document.getElementById('page-more'));});
+    alert(`✓ Imported ${added} customers.${skipped>0?` ${skipped} skipped (duplicate or empty).`:''}`);
+  };
+  reader.readAsText(file);
+}
+
 // ===== OFFLINE WRITE QUEUE =====
 // Queues failed Supabase writes and retries when back online
 const _WQ_KEY='pm_write_queue';
@@ -3875,6 +3967,15 @@ function renderStock(){
         </button>
       </div>
       <button id="btn-add-stock" class="btn-block" onclick="addStock()">${t('addItem')}</button>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;flex:1;padding:10px;background:var(--color-background-secondary);border:1.5px dashed var(--color-border);border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-secondary)">
+          ${licon('upload',14,'color:var(--color-text-secondary)')} Import CSV
+          <input type="file" accept=".csv,.txt" onchange="importStockCSV(this)" style="display:none">
+        </label>
+        <button onclick="downloadSampleCSV('stock')" style="flex:1;padding:10px;background:var(--color-background-secondary);border:1.5px dashed var(--color-border);border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-secondary);display:flex;align-items:center;justify-content:center;gap:6px">
+          ${licon('download',14,'color:var(--color-text-secondary)')} Sample CSV
+        </button>
+      </div>
     </div>
     <div style="padding:8px 16px 4px;border-bottom:1px solid var(--color-border-tertiary);display:flex;gap:8px;align-items:center;background:var(--color-background-secondary)">
       <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--color-text-secondary);fill:none;stroke-width:2;flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -4304,6 +4405,15 @@ function renderCustomers(el){
       <button class="btn-block" style="border-radius:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px" onclick="addCustomer()">
         ${licon('user-plus',16,'color:#fff')} ${t('addCustomer')}
       </button>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;flex:1;padding:10px;background:var(--color-background-primary);border:1.5px dashed var(--color-border);border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-secondary)">
+          ${licon('upload',14,'color:var(--color-text-secondary)')} Import CSV
+          <input type="file" accept=".csv,.txt" onchange="importCustomersCSV(this)" style="display:none">
+        </label>
+        <button onclick="downloadSampleCSV('customers')" style="flex:1;padding:10px;background:var(--color-background-primary);border:1.5px dashed var(--color-border);border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-secondary);display:flex;align-items:center;justify-content:center;gap:6px">
+          ${licon('download',14,'color:var(--color-text-secondary)')} Sample CSV
+        </button>
+      </div>
     </div>
 
     <!-- Tabs -->
