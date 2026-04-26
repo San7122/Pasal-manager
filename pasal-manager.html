@@ -1771,12 +1771,34 @@ body {
           💡 <span id="voice-ex-lbl">Examples</span>
         </button>
       </div>
-      <div id="voice-examples-box" class="voice-examples-box" style="display:none">
-        <div class="vex-item">👤 <b>"Ramesh lai pach saya udhaar diye"</b></div>
-        <div class="vex-item">💰 <b>"Aaj tin hajaar ko bikri bhayo"</b></div>
-        <div class="vex-item">🧾 <b>"Ek hajaar pach saya kharcha bhayo"</b></div>
-        <div class="vex-item">📦 <b>"Pach kilo chini aayo stock ma"</b></div>
-        <div class="vex-item">✅ <b>"Ramesh ko udhaar tiryo"</b></div>
+      <div id="voice-examples-box" class="voice-examples-box" style="display:none" id="voice-examples-box">
+        <div id="vex-ne">
+          <div class="vex-item">💰 <b>"Aaj tin hajaar ko bikri bhayo"</b></div>
+          <div class="vex-item">👤 <b>"Ramesh lai pach saya udhaar diye"</b></div>
+          <div class="vex-item">✅ <b>"Ramesh ko udhaar tiryo"</b></div>
+          <div class="vex-item">🧾 <b>"Ek hajaar pach saya kharcha bhayo"</b></div>
+          <div class="vex-item">📦 <b>"Pach kilo chini aayo stock ma"</b></div>
+          <div class="vex-item">🔍 <b>"Ramesh ko kati udhaar cha?"</b></div>
+          <div class="vex-item">🧭 <b>"Stock khol" / "Udhaar dekha"</b></div>
+        </div>
+        <div id="vex-hi" style="display:none">
+          <div class="vex-item">💰 <b>"Aaj teen hazaar ki bikri hui"</b></div>
+          <div class="vex-item">👤 <b>"Ramesh ko paanch sau udhaar diya"</b></div>
+          <div class="vex-item">✅ <b>"Ramesh ka udhaar chukta"</b></div>
+          <div class="vex-item">🧾 <b>"Ek hazaar paanch sau kharcha hua"</b></div>
+          <div class="vex-item">📦 <b>"Paanch kilo cheeni stock mein aaya"</b></div>
+          <div class="vex-item">🔍 <b>"Ramesh ka kitna udhaar hai?"</b></div>
+          <div class="vex-item">🧭 <b>"Stock kholein" / "Udhaar dikhao"</b></div>
+        </div>
+        <div id="vex-en" style="display:none">
+          <div class="vex-item">💰 <b>"Sale five hundred"</b></div>
+          <div class="vex-item">👤 <b>"Ramesh udhaar three hundred"</b></div>
+          <div class="vex-item">✅ <b>"Ramesh paid"</b></div>
+          <div class="vex-item">🧾 <b>"Expense two hundred rent"</b></div>
+          <div class="vex-item">📦 <b>"Five kilo sugar stock"</b></div>
+          <div class="vex-item">🔍 <b>"How much does Ramesh owe?"</b></div>
+          <div class="vex-item">🧭 <b>"Open stock" / "Show udhaar"</b></div>
+        </div>
       </div>
     </div>
 
@@ -6794,9 +6816,12 @@ function setVoiceLang(lang){
 
 function _updateVoiceLangChips(){
   const map={'ne-NP':'ne','hi-IN':'hi','en-IN':'en'};
+  const active=map[_voiceLang]||'ne';
   ['ne','hi','en'].forEach(k=>{
     const el=document.getElementById('vlc-'+k);
-    if(el) el.classList.toggle('active', map[_voiceLang]===k);
+    if(el) el.classList.toggle('active', k===active);
+    const ex=document.getElementById('vex-'+k);
+    if(ex) ex.style.display=(k===active?'block':'none');
   });
 }
 
@@ -6948,7 +6973,9 @@ function _buildConfirmCard(parsed, transcript){
     'udhaar-paid':t('voiceUdhaarPaid'),
     'sale':t('voiceSale'),
     'expense':t('voiceExpense'),
-    'stock':t('voiceStock')
+    'stock':t('voiceStock'),
+    'nav':'Navigate',
+    'balance':'Check Balance'
   };
 
   let rows='';
@@ -7037,6 +7064,28 @@ async function voiceConfirm(){
       if(currentTab==='stock') renderStock();
       _voiceSuccess(`✓ ${newItem.name} (${newItem.qty}) stock ma thapiyeo!`, 'Price fill garnuhos');
     }
+  } else if(p.intent==='nav'){
+    const pageMap={stock:'stock',udhaar:'udhaar',katha:'katha',today:'today',expense:'expense',customers:'customers',settings:'settings'};
+    const pg=pageMap[p.page];
+    if(pg){
+      closeVoice();
+      if(['today','katha','udhaar','stock'].includes(pg)) switchTab(pg);
+      else { switchTab('more'); setTimeout(()=>goMore(pg),200); }
+      return;
+    }
+
+  } else if(p.intent==='balance'){
+    const nameL=(p.name||'').toLowerCase();
+    const matches=udhaars.filter(u=>!u.paid && u.name.toLowerCase().includes(nameL));
+    if(matches.length>0){
+      const total=matches.reduce((a,u)=>a+u.amt,0);
+      const names=[...new Set(matches.map(u=>u.name))].join(', ');
+      _voiceSuccess(`${names} — ${cur_sym}${fmt(total).replace(/रू|₹/,'')} baki cha`, `${matches.length} entry`);
+    } else {
+      _voiceSuccess(`"${p.name}" ko kुनै udhaar fेला परेन`, '');
+    }
+    voiceParsed=null;
+    return;
   }
 
   if(navigator.vibrate) navigator.vibrate([80,40,120]);
@@ -7189,9 +7238,31 @@ function parseVoiceInput(transcript, lang){
   const saleKW  =/\b(bikri|bikrima|bechyo|becha|sale|sell|sold|income|बिक्री)\b/i;
   const expKW   =/\b(kharcha|kharch|kharach|खर्च|expense|payment|bill)\b/i;
   const stockKW =/\b(stock|maal|aayo|kharida|purchase|kilo|kg|kilogram|piece|dozen|litre|liter)\b/i;
+  const navKW   =/\b(open|show|go|khol|dekha|dikhao|jaau)\b/i;
+  const balKW   =/\b(kati|kitna|how much|balance|baaki|baki|owe)\b/i;
 
   const amount=wordsToNumber(clean);
   const name  =_extractName(text);
+
+  // ── 0. NAVIGATION ─────────────────────────────────────────────────────────
+  if(navKW.test(text)){
+    if(/\b(stock|maal)\b/i.test(text)) return{intent:'nav', page:'stock'};
+    if(/\b(udhaar|udhar|credit)\b/i.test(text)) return{intent:'nav', page:'udhaar'};
+    if(/\b(katha|report|ledger)\b/i.test(text)) return{intent:'nav', page:'katha'};
+    if(/\b(expense|kharcha|kharch)\b/i.test(text)) return{intent:'nav', page:'expense'};
+    if(/\b(today|aaj|sales|bikri)\b/i.test(text)) return{intent:'nav', page:'today'};
+    if(/\b(customer|grahak|customers)\b/i.test(text)) return{intent:'nav', page:'customers'};
+    if(/\b(setting|settings)\b/i.test(text)) return{intent:'nav', page:'settings'};
+  }
+
+  // ── 0b. BALANCE CHECK ─────────────────────────────────────────────────────
+  // "Ramesh ko kati udhaar cha?" / "How much does Ramesh owe?"
+  if(balKW.test(text) && (udhaarKW.test(text)||/\b(owe|cha|hai)\b/i.test(text))){
+    const bName=name || text.split(/\s+/)[0];
+    if(bName && !_VSTOP.has(bName.toLowerCase())){
+      return{intent:'balance', name:_capName(bName)};
+    }
+  }
 
   // ── 1. UDHAAR PAID — must have both a paid-word AND udhaar-word ────────────
   // "Ramesh ko udhaar tiryo"
