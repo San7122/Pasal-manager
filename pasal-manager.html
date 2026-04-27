@@ -1185,6 +1185,13 @@ body {
   padding:5px 12px; display:flex; align-items:center;
   justify-content:space-between; flex-shrink:0; gap:8px;
 }
+.staff-banner {
+  background:linear-gradient(90deg,#0891B2,#0E7490);
+  color:#fff; font-size:12px; font-weight:600;
+  padding:6px 14px; display:flex; align-items:center;
+  justify-content:space-between; flex-shrink:0; gap:8px;
+}
+.staff-banner-exit { font-size:11px; font-weight:700; text-decoration:underline; cursor:pointer; color:#BAE6FD; }
 .guest-banner-link {
   font-size:11px; font-weight:700; text-decoration:underline;
   cursor:pointer; white-space:nowrap; color:#4C1D95;
@@ -1994,6 +2001,98 @@ let currentKharidiSupplier='', currentDealerName='';
 let kharidiEntryType='purchase', dealerEntryType='given';
 let currentUser=null;
 let isGuestMode=false;
+let isStaffMode=false;
+const _SK='pasal_staff_pin';
+
+// ===== STAFF MODE =====
+function staffPinSet(){ return !!localStorage.getItem(_SK); }
+function getStaffPin(){ return localStorage.getItem(_SK)||''; }
+
+function enterStaffMode(){
+  if(!staffPinSet()){ alert('No staff PIN set. Go to Settings → Staff Mode to set one first.'); return; }
+  const pin=prompt('Enter Staff PIN:');
+  if(!pin) return;
+  if(pin!==getStaffPin()){ alert('Incorrect staff PIN.'); return; }
+  isStaffMode=true;
+  _applyStaffMode();
+}
+
+function _applyStaffMode(){
+  // Hide restricted nav tabs
+  ['nav-katha','nav-udhaar','nav-more'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display='none';
+  });
+  // Switch to today if on restricted tab
+  if(['katha','udhaar','more'].includes(currentTab)) switchTab('today');
+  // Show staff banner
+  _renderStaffBanner();
+  renderTab();
+}
+
+function _renderStaffBanner(){
+  document.getElementById('staff-banner-el')?.remove();
+  const div=document.createElement('div');
+  div.id='staff-banner-el';
+  div.className='staff-banner';
+  div.innerHTML=`<span>👷 Staff Mode — limited access</span><span class="staff-banner-exit" onclick="exitStaffMode()">Exit Staff Mode</span>`;
+  const app=document.getElementById('app');
+  const scrollArea=document.getElementById('scroll-area');
+  if(app&&scrollArea) app.insertBefore(div,scrollArea);
+}
+
+function exitStaffMode(){
+  if(pinEnabled()){
+    // Use owner PIN to exit
+    const pin=prompt('Enter owner PIN to exit staff mode:');
+    if(!pin){return;}
+    pinHash(pin).then(h=>{
+      if(h!==pinStoredHash()){alert('Incorrect owner PIN.');return;}
+      _doExitStaffMode();
+    });
+  } else {
+    _doExitStaffMode();
+  }
+}
+
+function _doExitStaffMode(){
+  isStaffMode=false;
+  document.getElementById('staff-banner-el')?.remove();
+  ['nav-katha','nav-udhaar','nav-more'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display='';
+  });
+  renderTab();
+}
+
+function setStaffPin(){
+  const pin=prompt('Set a 4-digit Staff PIN:\n(Staff will use this to enter staff mode)');
+  if(!pin) return;
+  if(pin.length<4||pin.length>6||!/^\d+$/.test(pin)){alert('PIN must be 4-6 digits.');return;}
+  const confirm=prompt('Confirm Staff PIN:');
+  if(pin!==confirm){alert('PINs do not match.');return;}
+  localStorage.setItem(_SK,pin);
+  alert('Staff PIN set! Staff can now use this PIN to enter limited access mode.');
+  goMore('settings');
+}
+function changeStaffPin(){
+  const old=prompt('Enter current Staff PIN:');
+  if(!old) return;
+  if(old!==getStaffPin()){alert('Incorrect PIN.');return;}
+  const pin=prompt('Enter new Staff PIN:');
+  if(!pin) return;
+  if(pin.length<4||pin.length>6||!/^\d+$/.test(pin)){alert('PIN must be 4-6 digits.');return;}
+  const confirm=prompt('Confirm new Staff PIN:');
+  if(pin!==confirm){alert('PINs do not match.');return;}
+  localStorage.setItem(_SK,pin);
+  alert('Staff PIN changed.');
+  goMore('settings');
+}
+function removeStaffPin(){
+  if(!confirm('Remove staff PIN? Staff mode will no longer be available.')) return;
+  localStorage.removeItem(_SK);
+  goMore('settings');
+}
 
 // ── Lazy script loader ────────────────────────────────────────────────────────
 const _lazyLoaded = {};
@@ -3318,8 +3417,8 @@ function renderToday(){
 
     <div class="today-hero">
       <div class="today-hero-label">${totalRetAmt>0?t('netSales'):t('todaySales')}</div>
-      <div class="today-hero-amt">${fmt(netAmt)}</div>
-      <div class="today-hero-sub">${cnt} ${cnt===1?t('entry'):t('entries')}${totalRetAmt>0?` · Returns: −${fmt(totalRetAmt)}`:''}</div>
+      <div class="today-hero-amt">${isStaffMode?'— hidden —':fmt(netAmt)}</div>
+      <div class="today-hero-sub">${cnt} ${cnt===1?t('entry'):t('entries')}${!isStaffMode&&totalRetAmt>0?` · Returns: −${fmt(totalRetAmt)}`:''}</div>
       ${hasCost||totalRetAmt>0?`<div class="today-hero-stats">
         ${hasCost?`<div class="today-stat-chip today-stat-red"><i data-lucide="trending-down" style="width:13px;height:13px"></i> Cost ${fmt(totalCost)}</div>
         <div class="today-stat-chip ${totalProfit>=0?'today-stat-green':'today-stat-red'}"><i data-lucide="trending-up" style="width:13px;height:13px"></i> Profit ${fmt(totalProfit)}</div>`:''}
@@ -6060,6 +6159,35 @@ function renderSettingsPage(el){
           <button class="btn-confirm no" onclick="document.getElementById('clr-cf').style.display='none'">${t('cancel')}</button>
         </div>
       </div>
+    </div>
+
+    <!-- Staff Mode -->
+    <div class="settings-card">
+      ${sectionHead('user-check','Staff Mode','#0891B2')}
+      <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.5">
+        Give staff limited access — they can add sales and update stock, but cannot see financials, udhaar, or reports.
+      </div>
+      ${staffPinSet()?`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;background:#ECFEFF;border-radius:10px;border:1px solid #A5F3FC">
+          ${licon('shield-check',16,'color:#0891B2;')}
+          <span style="font-size:13px;color:#0E7490;font-weight:600">Staff PIN is set</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="settings-opt" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px" onclick="changeStaffPin()">
+            ${licon('key',14)} Change PIN
+          </button>
+          <button class="settings-opt" style="flex:1;border-color:#FCA5A5;color:var(--color-danger);display:flex;align-items:center;justify-content:center;gap:6px" onclick="removeStaffPin()">
+            ${licon('trash-2',14)} Remove PIN
+          </button>
+        </div>
+        <button class="btn-block" style="margin-top:8px;background:#0891B2;display:flex;align-items:center;justify-content:center;gap:8px" onclick="enterStaffMode()">
+          ${licon('user-check',16,'color:#fff;')} Switch to Staff Mode
+        </button>
+      `:`
+        <button class="btn-block" style="background:#0891B2;display:flex;align-items:center;justify-content:center;gap:8px" onclick="setStaffPin()">
+          ${licon('user-plus',16,'color:#fff;')} Set Staff PIN
+        </button>
+      `}
     </div>
 
     <!-- Account -->
