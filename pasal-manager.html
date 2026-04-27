@@ -4195,6 +4195,51 @@ function renderDashboard(el){
       </div>
     </div>`:''}
 
+    <!-- Expense by category -->
+    ${(()=>{
+      const catMap={};
+      expenses.filter(e=>e.date.substring(0,7)===mk).forEach(e=>{
+        const c=e.category||'Shop';
+        catMap[c]=(catMap[c]||0)+e.amt;
+      });
+      const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+      if(!cats.length) return '';
+      return `<div class="chart-card">
+        <div class="chart-card-title" style="margin-bottom:14px">Expenses by Category — This Month</div>
+        <canvas id="chart-exp-cat" height="150"></canvas>
+      </div>`;
+    })()}
+
+    <!-- Top customers -->
+    ${(()=>{
+      const custMap={};
+      sales.forEach(s=>{
+        if(!s.customerId) return;
+        custMap[s.customerId]=(custMap[s.customerId]||0)+s.amt;
+      });
+      const top=Object.entries(custMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      if(!top.length) return '';
+      const topNames=top.map(([id,amt])=>{const c=customers.find(x=>x.id===id);return{name:c?c.name:'Unknown',amt};});
+      return `<div class="chart-card">
+        <div class="chart-card-title" style="margin-bottom:14px">Top 5 Customers — All Time</div>
+        <canvas id="chart-top-cust" height="150"></canvas>
+        <div id="chart-top-cust-data" style="display:none">${encodeURIComponent(JSON.stringify(topNames))}</div>
+      </div>`;
+    })()}
+
+    <!-- Sales by hour -->
+    ${(()=>{
+      const hourMap=new Array(24).fill(0);
+      sales.forEach(s=>{if(s.ts){hourMap[new Date(s.ts).getHours()]+=s.amt;}});
+      const hasHour=hourMap.some(v=>v>0);
+      if(!hasHour) return '';
+      return `<div class="chart-card">
+        <div class="chart-card-title" style="margin-bottom:14px">Sales by Hour of Day</div>
+        <canvas id="chart-hour" height="130"></canvas>
+        <div id="chart-hour-data" style="display:none">${encodeURIComponent(JSON.stringify(hourMap))}</div>
+      </div>`;
+    })()}
+
   </div>`;
 
   // Draw charts after DOM is ready
@@ -4261,6 +4306,60 @@ function renderDashboard(el){
           animation:false,
           plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ₹${fmt(ctx.raw)}`}}},
           scales:{...commonScales},
+          responsive:true,maintainAspectRatio:false
+        }
+      }));
+    }
+
+    // Expense by category horizontal bar
+    const cExpCat=document.getElementById('chart-exp-cat');
+    if(cExpCat){
+      const catMap={};
+      expenses.filter(e=>e.date.substring(0,7)===mk).forEach(e=>{
+        const c=e.category||'Shop'; catMap[c]=(catMap[c]||0)+e.amt;
+      });
+      const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+      const CAT_COLORS=['#E11D48','#F59E0B','#0891B2','#059669','#8B5CF6','#64748B'];
+      _charts.push(new Chart(cExpCat,{
+        type:'bar',
+        data:{labels:cats.map(([k])=>k),datasets:[{data:cats.map(([,v])=>v),backgroundColor:CAT_COLORS,borderRadius:6,borderSkipped:false}]},
+        options:{
+          indexAxis:'y',animation:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${cur()}${fmt(ctx.raw)}`}}},
+          scales:{x:{grid:{color:'#F1F5F9'},ticks:{font:{size:10},color:'#64748B',callback:v=>cur()+fmtK(v)}},y:{grid:{display:false},ticks:{font:{size:12},color:'#1E293B'}}},
+          responsive:true,maintainAspectRatio:false
+        }
+      }));
+    }
+
+    // Top customers bar
+    const cTopCust=document.getElementById('chart-top-cust');
+    if(cTopCust){
+      const raw=JSON.parse(decodeURIComponent(document.getElementById('chart-top-cust-data').textContent));
+      _charts.push(new Chart(cTopCust,{
+        type:'bar',
+        data:{labels:raw.map(r=>r.name),datasets:[{data:raw.map(r=>r.amt),backgroundColor:'#818CF8',borderRadius:6,borderSkipped:false}]},
+        options:{
+          indexAxis:'y',animation:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${cur()}${fmt(ctx.raw)}`}}},
+          scales:{x:{grid:{color:'#F1F5F9'},ticks:{font:{size:10},color:'#64748B',callback:v=>cur()+fmtK(v)}},y:{grid:{display:false},ticks:{font:{size:12},color:'#1E293B'}}},
+          responsive:true,maintainAspectRatio:false
+        }
+      }));
+    }
+
+    // Sales by hour line
+    const cHour=document.getElementById('chart-hour');
+    if(cHour){
+      const hourData=JSON.parse(decodeURIComponent(document.getElementById('chart-hour-data').textContent));
+      const labels=Array.from({length:24},(_,i)=>i===0?'12am':i<12?i+'am':i===12?'12pm':(i-12)+'pm');
+      _charts.push(new Chart(cHour,{
+        type:'line',
+        data:{labels,datasets:[{data:hourData,borderColor:'#4F46E5',backgroundColor:'rgba(79,70,229,0.08)',fill:true,tension:0.4,pointRadius:2,borderWidth:2}]},
+        options:{
+          animation:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${cur()}${fmt(ctx.raw)}`}}},
+          scales:{x:{grid:{display:false},ticks:{font:{size:9},color:'#94A3B8',maxRotation:0}},y:{grid:{color:'#F1F5F9'},ticks:{font:{size:10},color:'#64748B',callback:v=>cur()+fmtK(v)}}},
           responsive:true,maintainAspectRatio:false
         }
       }));
