@@ -3632,15 +3632,19 @@ async function delSale(id){
 let _upiAmt=0, _upiLink='';
 function _payConfig(){
   if(S.country==='NP'){
-    const id=S.npPaymentId||S.esewaId||S.khaltiId||'';
+    const esewa=S.esewaId||'';
+    const khalti=S.khaltiId||'';
+    const phone=S.npPaymentId||esewa||khalti||'';
+    const id=phone;
     return {
       hasId:!!id, id, currency:'NPR', symbol:'रू',
-      label:'Nepal Pay (eSewa, Khalti, Fonepay)',
-      apps:'eSewa · Khalti · Fonepay · IME Pay',
-      idLabel:'Pay to',
-      linkPrefix:'fonepay://merchant?', // graceful fallback - QR will work
-      makeLink:(amt,name)=>`fonepay://merchant?merchant=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}&amount=${amt}&currency=NPR`,
-      noIdMsg:'No payment ID set. Go to <b>Settings → Nepal Payment</b> to add your phone / Fonepay code.'
+      isNepal:true,
+      esewaId:esewa,
+      khaltiId:khalti,
+      phoneNum:phone,
+      // QR contains phone number — customer manually opens their app & enters it
+      makeLink:(amt,name)=>id, // just the ID, customer types it in their app
+      noIdMsg:'Add your phone number in <b>Settings → Nepal Payment</b> first.'
     };
   }
   return {
@@ -3648,6 +3652,7 @@ function _payConfig(){
     label:'UPI (GPay, PhonePe, Paytm)',
     apps:'GPay · PhonePe · Paytm · Any UPI app',
     idLabel:'UPI',
+    isNepal:false,
     makeLink:(amt,name)=>`upi://pay?pa=${encodeURIComponent(S.upiId)}&pn=${encodeURIComponent(name)}&am=${amt}&cu=INR`,
     noIdMsg:'No UPI ID set. Go to <b>Settings → UPI / Collect Payment</b> and enter your UPI ID first.'
   };
@@ -3665,15 +3670,16 @@ function openUpiModal(amt){
   if(symEl) symEl.textContent=cfg.symbol;
   // Title
   const titleEl=document.getElementById('upi-modal-title');
-  if(titleEl) titleEl.textContent='Collect Payment';
+  if(titleEl) titleEl.textContent=cfg.isNepal?'Request Payment (Nepal)':'Collect Payment';
   // Open button label
   const openBtn=document.getElementById('upi-open-btn');
-  if(openBtn) openBtn.querySelector('span').textContent='Open '+cfg.apps.split('·')[0].trim()+' App';
+  if(openBtn&&!cfg.isNepal) openBtn.querySelector('span').textContent='Open '+cfg.apps.split('·')[0].trim()+' App';
   // No ID message
   document.getElementById('upi-no-id-msg').innerHTML=cfg.noIdMsg;
   document.getElementById('upi-no-id-msg').style.display=cfg.hasId?'none':'block';
   document.getElementById('upi-qr-wrap').style.display=cfg.hasId?'block':'none';
-  document.getElementById('upi-open-btn').style.display=cfg.hasId?'flex':'none';
+  // Hide "Open Payment App" for Nepal (no working URI scheme)
+  document.getElementById('upi-open-btn').style.display=(cfg.hasId&&!cfg.isNepal)?'flex':'none';
   document.querySelector('#upi-modal [onclick="shareUpiWA()"]').style.display=cfg.hasId?'flex':'none';
   if(!cfg.hasId) return;
   updateUpiAmount();
@@ -3685,8 +3691,20 @@ function updateUpiAmount(){
   _upiAmt=amtInput?parseInt(amtInput.value)||0:0;
   const amtStr=_upiAmt>0?_upiAmt.toFixed(2):'';
   _upiLink=cfg.makeLink(amtStr,S.shopName||'Shop');
-  document.getElementById('upi-amount-display').textContent=_upiAmt>0?`Payment link ready for ${cfg.symbol}${fmt(_upiAmt).replace(/^[₹रू]/,'')}`:'Enter amount to generate QR code';
-  document.getElementById('upi-id-display').textContent=`${cfg.idLabel}: ${cfg.id}`;
+  if(cfg.isNepal){
+    document.getElementById('upi-amount-display').innerHTML=_upiAmt>0
+      ? `<div style="color:#7c3aed;font-weight:700;margin-bottom:6px">Amount to send: रू${fmt(_upiAmt).replace(/^[₹रू]/,'')}</div><div style="font-size:12px;color:#64748b">Customer opens eSewa/Khalti app and sends to the number below</div>`
+      : '<div style="font-size:12px;color:#64748b">Enter amount above. Customer sends manually via their eSewa/Khalti app.</div>';
+    // Show ID info as readable text below QR
+    const idParts=[];
+    if(cfg.esewaId) idParts.push(`<b>eSewa:</b> ${esc(cfg.esewaId)}`);
+    if(cfg.khaltiId) idParts.push(`<b>Khalti:</b> ${esc(cfg.khaltiId)}`);
+    if(cfg.phoneNum&&!cfg.esewaId&&!cfg.khaltiId) idParts.push(`<b>Phone:</b> ${esc(cfg.phoneNum)}`);
+    document.getElementById('upi-id-display').innerHTML=idParts.join(' &nbsp;·&nbsp; ');
+  } else {
+    document.getElementById('upi-amount-display').textContent=_upiAmt>0?`Payment link ready for ${cfg.symbol}${fmt(_upiAmt).replace(/^[₹रू]/,'')}`:'Enter amount to generate QR code';
+    document.getElementById('upi-id-display').textContent=`${cfg.idLabel}: ${cfg.id}`;
+  }
   _drawUpiQR(_upiLink);
 }
 function _drawUpiQR(text){
@@ -3713,7 +3731,16 @@ function shareUpiWA(){
   const cfg=_payConfig();
   const shop=S.shopName||'Shop';
   const amtPart=_upiAmt>0?` of ${cfg.symbol}${fmt(_upiAmt).replace(/^[₹रू]/,'')}`:'';
-  const msg=`Hi 🙏\nPlease pay${amtPart} to *${shop}*:\n\n*${cfg.idLabel}:* ${cfg.id}\n\nOr tap to pay directly:\n${_upiLink}\n\n_(Works with ${cfg.apps})_`;
+  let msg;
+  if(cfg.isNepal){
+    const parts=[];
+    if(cfg.esewaId) parts.push(`📱 *eSewa:* ${cfg.esewaId}`);
+    if(cfg.khaltiId) parts.push(`📱 *Khalti:* ${cfg.khaltiId}`);
+    if(cfg.phoneNum&&!cfg.esewaId&&!cfg.khaltiId) parts.push(`📱 *Phone:* ${cfg.phoneNum}`);
+    msg=`नमस्ते 🙏\n\nकृपया *${shop}* लाई${amtPart} भुक्तानी पठाउनुहोस्:\n\n${parts.join('\n')}\n\nआफ्नो eSewa, Khalti वा कुनै payment app खोल्नुहोस्, माथिको नम्बर हालेर पैसा पठाउनुहोस्।\n\n_धन्यवाद!_`;
+  } else {
+    msg=`Hi 🙏\nPlease pay${amtPart} to *${shop}*:\n\n*${cfg.idLabel}:* ${cfg.id}\n\nOr tap to pay directly:\n${_upiLink}\n\n_(Works with ${cfg.apps})_`;
+  }
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
