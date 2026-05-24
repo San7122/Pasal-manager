@@ -4886,7 +4886,8 @@ function renderMoreMenu(el){
     {id:'reminders',icon:'bell',color:'#1E88E5',label:t('remindersTitle'),desc:'Auto-scheduled WhatsApp reminders from payment history'},
     {id:'pl',icon:'trending-up',color:'#059669',label:'P&L Report',desc:'Monthly profit & loss summary'},
     {id:'export',icon:'download',color:'#D97706',label:'Export & Audit',desc:'Download Excel & audit report'},
-    {id:'settings',icon:'settings',color:'#64748B',label:t('settings'),desc:''}
+    {id:'settings',icon:'settings',color:'#64748B',label:t('settings'),desc:''},
+    {id:'logout',icon:'log-out',color:'#DC2626',label:'Logout',desc:'Sign out of your account',action:'signOut()'}
   ];
   const advancedItems=[
     {id:'kharidi',icon:'shopping-cart',color:'#EA580C',label:'Purchase Book',desc:'Track goods bought on credit from suppliers'},
@@ -4896,7 +4897,7 @@ function renderMoreMenu(el){
     {id:'branches',icon:'building-2',color:'#7C3AED',label:'Multi-Branch',desc:'Manage 2-3 shop locations separately'},
   ];
   const renderItem=i=>`
-    <div class="more-menu-item" onclick="${i.locked?`showUnlockModal('${i.id}')`:`goMore('${i.id}')`}">
+    <div class="more-menu-item" onclick="${i.action?i.action:(i.locked?`showUnlockModal('${i.id}')`:`goMore('${i.id}')`)}">
       <div class="more-icon" style="background:${i.color}">${licon(i.icon,20,'color:#fff;')}</div>
       <div style="flex:1;min-width:0"><div class="more-menu-title">${i.label}</div>${i.desc?`<div class="more-menu-desc">${i.desc}</div>`:''}</div>
       ${i.badgeId?`<span class="sup-cal-badge" id="${i.badgeId}" style="display:none">0</span>`:''}
