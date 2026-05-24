@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X, ArrowRight, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../LanguageContext';
+import InstallButton from '../InstallButton';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -85,6 +86,8 @@ const Header = () => {
                 </div>
               )}
             </div>
+
+            <InstallButton variant="secondary" />
 
             <a href="/app.html" className="bg-black text-white text-sm font-black px-6 py-2.5 rounded-full flex items-center gap-2 hover:shadow-xl transform active:scale-95 transition-all">
               {t('logIn')} <ArrowRight size={14} />

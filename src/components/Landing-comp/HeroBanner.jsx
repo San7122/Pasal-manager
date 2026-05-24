@@ -1,7 +1,54 @@
-import React from 'react';
-import { Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../LanguageContext';
+import InstallButton from '../InstallButton';
+
+// Hero-styled install button (bigger, more prominent than the small Header one)
+const HeroInstallButton = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream);
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      setIsInstalled(true);
+    }
+    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  if (isInstalled) return null;
+
+  const handleClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+    } else {
+      // iOS / fallback — trigger the header's install button modal by clicking it programmatically
+      const headerInstallBtn = document.querySelector('header button[class*="Install"]');
+      if (headerInstallBtn) headerInstallBtn.click();
+      else {
+        // Final fallback: scroll to instructions in FAQ
+        alert(isIOS
+          ? '📱 On iPhone: Tap Share (↑) at bottom → "Add to Home Screen" → Add'
+          : '📱 Tap browser menu (⋮) → "Install app" or "Add to Home Screen"');
+      }
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className="px-7 py-4 bg-[#7c3aed] text-white rounded-2xl font-bold text-base sm:text-lg hover:bg-[#5b21b6] transition-all shadow-xl shadow-[#7c3aed]/40 active:scale-95 inline-flex items-center gap-2"
+    >
+      <Download size={18} /> Install App
+    </button>
+  );
+};
 
 const HeroBanner = () => {
     const { t } = useLanguage();
@@ -43,11 +90,13 @@ const HeroBanner = () => {
                         Complete shop management in your pocket.
                     </p>
 
-                    <div className="flex flex-wrap gap-4">
-                        <a href="/app.html" className="px-8 py-4 bg-white text-black rounded-2xl font-bold text-lg hover:bg-blue-50 transition-all shadow-xl active:scale-95">
-                            {t('getStarted')}
+                    <div className="flex flex-wrap gap-3">
+                        <a href="/app.html" className="px-7 py-4 bg-white text-black rounded-2xl font-bold text-base sm:text-lg hover:bg-blue-50 transition-all shadow-xl active:scale-95 inline-flex items-center gap-2">
+                            {t('getStarted')} →
                         </a>
+                        <HeroInstallButton />
                     </div>
+                    <p className="text-xs text-blue-100/70 mt-3 font-medium">📱 Works on Android, iPhone, Desktop · 100% Free</p>
                 </div>
 
                 {/* Right Side: Floating Dashboard Preview */}
