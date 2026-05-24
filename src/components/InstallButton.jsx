@@ -1,37 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, Share2, Plus } from 'lucide-react';
+import { Download, X, Share2, Plus, AlertTriangle } from 'lucide-react';
 
 /**
  * Smart Install Button — handles PWA install across platforms:
  *  - Android/Chrome → triggers native install prompt
  *  - iOS Safari    → shows "Add to Home Screen" instructions
+ *  - iOS Chrome    → warns user to switch to Safari
  *  - Already installed → hides itself
  */
 const InstallButton = ({ variant = 'primary', className = '' }) => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [isIOSChrome, setIsIOSChrome] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
-    // Detect iOS
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const ua = navigator.userAgent;
+    const iOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const iOSChrome = iOS && /CriOS/.test(ua); // Chrome on iOS
     setIsIOS(iOS);
+    setIsIOSChrome(iOSChrome);
 
-    // Detect if already running as installed PWA
     if (window.matchMedia('(display-mode: standalone)').matches ||
         window.navigator.standalone === true) {
       setIsInstalled(true);
     }
 
-    // Capture Android install prompt
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handler);
 
-    // Detect when user actually installs
     const installedHandler = () => setIsInstalled(true);
     window.addEventListener('appinstalled', installedHandler);
 
@@ -43,7 +44,7 @@ const InstallButton = ({ variant = 'primary', className = '' }) => {
 
   const handleClick = async () => {
     if (isIOS) {
-      setShowIOSGuide(true);
+      setShowGuide(true);
       return;
     }
     if (deferredPrompt) {
@@ -52,8 +53,7 @@ const InstallButton = ({ variant = 'primary', className = '' }) => {
       if (outcome === 'accepted') setIsInstalled(true);
       setDeferredPrompt(null);
     } else {
-      // Fallback: show generic instructions
-      setShowIOSGuide(true);
+      setShowGuide(true);
     }
   };
 
@@ -73,21 +73,22 @@ const InstallButton = ({ variant = 'primary', className = '' }) => {
         Install App
       </button>
 
-      {/* iOS / Fallback Install Guide Modal */}
-      {showIOSGuide && (
+      {/* Install Guide Modal */}
+      {showGuide && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-end sm:items-center justify-center p-4"
-          onClick={() => setShowIOSGuide(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setShowGuide(false)}
         >
           <div
-            className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative animate-slide-up"
+            className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative animate-slide-up max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => setShowIOSGuide(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              onClick={() => setShowGuide(false)}
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors z-10"
+              aria-label="Close"
             >
-              <X size={16} className="text-gray-600" />
+              <X size={18} className="text-gray-600" />
             </button>
 
             <div className="text-center mb-6">
@@ -95,62 +96,100 @@ const InstallButton = ({ variant = 'primary', className = '' }) => {
                 <Download size={28} className="text-[#7c3aed]" />
               </div>
               <h3 className="text-2xl font-black text-gray-900 mb-1">Install Pasal Manager</h3>
-              <p className="text-sm text-gray-500">Add to your home screen for app-like experience</p>
+              <p className="text-sm text-gray-500">Add to home screen for app-like experience</p>
             </div>
 
-            {isIOS ? (
-              <div className="space-y-4">
-                <div className="bg-[#f5f3ff] rounded-2xl p-4 border border-[#ede9fe]">
-                  <div className="font-bold text-[#5b21b6] mb-3 flex items-center gap-2">
-                    🍎 On iPhone / iPad (Safari)
+            {/* iOS Chrome warning — they cannot install at all */}
+            {isIOSChrome && (
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 mb-4">
+                <div className="flex gap-3 items-start">
+                  <AlertTriangle size={22} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-900">
+                    <div className="font-bold mb-1">⚠️ Chrome on iPhone can't install apps</div>
+                    <div className="text-amber-800">Please open this page in <strong>Safari</strong> instead, then try Install again.</div>
+                    <button
+                      onClick={() => { window.location.href = 'x-safari-' + window.location.href; }}
+                      className="mt-2 text-amber-700 underline font-semibold"
+                    >
+                      Try to open in Safari →
+                    </button>
                   </div>
-                  <ol className="space-y-3 text-sm text-gray-700">
-                    <li className="flex gap-3">
-                      <span className="w-6 h-6 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">1</span>
-                      <span>Tap the <strong className="inline-flex items-center gap-1"><Share2 size={14} className="text-[#7c3aed]" /> Share</strong> button at the bottom of Safari</span>
-                    </li>
-                    <li className="flex gap-3">
-                      <span className="w-6 h-6 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">2</span>
-                      <span>Scroll down and tap <strong className="inline-flex items-center gap-1"><Plus size={14} className="text-[#7c3aed]" /> Add to Home Screen</strong></span>
-                    </li>
-                    <li className="flex gap-3">
-                      <span className="w-6 h-6 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">3</span>
-                      <span>Tap <strong>Add</strong> in the top right corner</span>
-                    </li>
-                  </ol>
                 </div>
-                <p className="text-xs text-gray-500 text-center">
-                  ⚠️ Make sure you're using <strong>Safari</strong>, not Chrome on iPhone
-                </p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="bg-[#f5f3ff] rounded-2xl p-4 border border-[#ede9fe]">
-                  <div className="font-bold text-[#5b21b6] mb-3">📱 To install this app:</div>
-                  <ol className="space-y-3 text-sm text-gray-700">
-                    <li className="flex gap-3">
-                      <span className="w-6 h-6 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">1</span>
-                      <span>Tap the <strong>⋮ menu</strong> in your browser (top-right)</span>
-                    </li>
-                    <li className="flex gap-3">
-                      <span className="w-6 h-6 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">2</span>
-                      <span>Tap <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong></span>
-                    </li>
-                    <li className="flex gap-3">
-                      <span className="w-6 h-6 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">3</span>
-                      <span>Tap <strong>Install</strong> — done! ✅</span>
-                    </li>
-                  </ol>
+            )}
+
+            {isIOS && !isIOSChrome && (
+              <div>
+                <div className="bg-gradient-to-br from-[#f5f3ff] to-[#ede9fe] rounded-2xl p-5 border border-[#ddd6fe] mb-3">
+                  <div className="font-bold text-[#5b21b6] mb-4 flex items-center gap-2 text-sm">
+                    🍎 SAFARI ON IPHONE / IPAD
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex gap-3 items-start">
+                      <span className="w-8 h-8 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-black text-sm flex-shrink-0">1</span>
+                      <div className="flex-1 pt-1">
+                        <div className="text-sm text-gray-800 mb-2">Tap the <strong>Share button</strong> at the bottom of Safari</div>
+                        <div className="inline-flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200">
+                          <Share2 size={18} className="text-[#007AFF]" />
+                          <span className="text-xs font-semibold text-gray-700">Share button</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 items-start">
+                      <span className="w-8 h-8 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-black text-sm flex-shrink-0">2</span>
+                      <div className="flex-1 pt-1">
+                        <div className="text-sm text-gray-800 mb-2">Scroll down and tap <strong>"Add to Home Screen"</strong></div>
+                        <div className="inline-flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200">
+                          <Plus size={18} className="text-[#007AFF]" strokeWidth={2.5} />
+                          <span className="text-xs font-semibold text-gray-700">Add to Home Screen</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 items-start">
+                      <span className="w-8 h-8 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-black text-sm flex-shrink-0">3</span>
+                      <div className="flex-1 pt-1">
+                        <div className="text-sm text-gray-800 mb-2">Tap <strong>"Add"</strong> in the top right</div>
+                        <div className="inline-flex items-center gap-2 bg-[#007AFF] px-4 py-2 rounded-lg shadow-sm">
+                          <span className="text-xs font-bold text-white">Add</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 text-center">
-                  💡 Tip: Works best in Chrome, Edge, or Safari
-                </p>
+
+                <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex gap-2 items-center">
+                  <span className="text-lg">✅</span>
+                  <p className="text-xs text-green-800 font-medium">App icon appears on your home screen instantly!</p>
+                </div>
+              </div>
+            )}
+
+            {!isIOS && (
+              <div className="bg-gradient-to-br from-[#f5f3ff] to-[#ede9fe] rounded-2xl p-5 border border-[#ddd6fe]">
+                <div className="font-bold text-[#5b21b6] mb-4 text-sm">📱 ON YOUR DEVICE</div>
+                <ol className="space-y-3 text-sm text-gray-800">
+                  <li className="flex gap-3 items-start">
+                    <span className="w-7 h-7 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">1</span>
+                    <span>Tap the <strong>⋮ menu</strong> in your browser</span>
+                  </li>
+                  <li className="flex gap-3 items-start">
+                    <span className="w-7 h-7 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">2</span>
+                    <span>Tap <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong></span>
+                  </li>
+                  <li className="flex gap-3 items-start">
+                    <span className="w-7 h-7 rounded-full bg-[#7c3aed] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">3</span>
+                    <span>Tap <strong>Install</strong> — done! ✅</span>
+                  </li>
+                </ol>
               </div>
             )}
 
             <button
-              onClick={() => setShowIOSGuide(false)}
-              className="w-full mt-5 bg-[#7c3aed] hover:bg-[#5b21b6] text-white font-bold py-3 rounded-xl transition-all"
+              onClick={() => setShowGuide(false)}
+              className="w-full mt-5 bg-[#7c3aed] hover:bg-[#5b21b6] text-white font-bold py-3.5 rounded-xl transition-all active:scale-[0.98]"
             >
               Got it!
             </button>

@@ -4,51 +4,22 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '../../LanguageContext';
 import InstallButton from '../InstallButton';
 
-// Hero-styled install button (bigger, more prominent than the small Header one)
+// Hero-styled install button — reuses the smart InstallButton with custom styling
 const HeroInstallButton = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream);
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
       setIsInstalled(true);
     }
-    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   if (isInstalled) return null;
 
-  const handleClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      setDeferredPrompt(null);
-    } else {
-      // iOS / fallback — trigger the header's install button modal by clicking it programmatically
-      const headerInstallBtn = document.querySelector('header button[class*="Install"]');
-      if (headerInstallBtn) headerInstallBtn.click();
-      else {
-        // Final fallback: scroll to instructions in FAQ
-        alert(isIOS
-          ? '📱 On iPhone: Tap Share (↑) at bottom → "Add to Home Screen" → Add'
-          : '📱 Tap browser menu (⋮) → "Install app" or "Add to Home Screen"');
-      }
-    }
-  };
-
   return (
-    <button
-      onClick={handleClick}
-      className="px-8 py-4 bg-white text-[#1e1147] rounded-2xl font-black text-base sm:text-lg hover:scale-105 transition-all shadow-2xl shadow-black/30 active:scale-95 inline-flex items-center gap-2.5 group"
-    >
-      <Download size={20} className="group-hover:translate-y-0.5 transition-transform" />
-      Install App
-      <span className="hidden sm:inline-block px-2 py-0.5 bg-[#ede9fe] text-[#5b21b6] text-[10px] font-black rounded-full uppercase tracking-wider ml-1">Free</span>
-    </button>
+    <div className="hero-install-wrap [&_button]:!px-8 [&_button]:!py-4 [&_button]:!bg-white [&_button]:!text-[#1e1147] [&_button]:!text-base [&_button]:sm:[&_button]:!text-lg [&_button]:!font-black [&_button]:!rounded-2xl [&_button]:!shadow-2xl [&_button]:!shadow-black/30">
+      <InstallButton variant="secondary" />
+    </div>
   );
 };
 
@@ -68,7 +39,7 @@ const HeroBanner = () => {
                 <div className="absolute inset-0 bg-gradient-to-r from-[#1e1147]/90 via-[#5b21b6]/70 to-transparent"></div>
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-12 items-center">
+            <div className="relative z-10 max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-12 items-center pt-24 pb-16 lg:pt-32 lg:pb-20">
 
                 {/* Left Side: Content */}
                 <div className="text-white">
