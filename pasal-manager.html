@@ -3028,7 +3028,24 @@ async function loadAll(){
     if(ur.data) udhaars=ur.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',amt:r.amt,date:r.date,ts:r.ts,paid:r.paid,dueDate:r.due_date||'',country:r.country||'IN'}));
     if(str.data) stock=str.data.map(r=>({id:r.id,name:r.name,size:r.size||'',qty:r.qty,buy:r.buy,sell:r.sell,country:r.country||'IN',barcode:r.barcode||''}));
     if(spr.data) suppliers=spr.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',note:r.note||''}));
-    if(setr.data){const d=setr.data;S={country:d.country||'IN',language:d.language||'en',shopName:d.shop_name||'',ownPhone:d.own_phone||'',reminderTime:d.reminder_time||'21:00',gstin:d.gstin||'',bizAddress:d.biz_address||'',bizState:d.biz_state||''};udhaarUnlocked=true;billUnlocked=true;exportUnlocked=true;}
+    if(setr.data){
+      const d=setr.data;
+      try{
+        const localCacheTs = parseInt(localStorage.getItem(cacheKey('cacheWriteAt'))||'0',10);
+        const serverTs = d.updated_at?Date.parse(d.updated_at):0;
+        if(localCacheTs && localCacheTs > serverTs){
+          udhaarUnlocked = udhaarUnlocked || !!d.udhaar_unlocked;
+          billUnlocked   = billUnlocked   || !!d.bill_unlocked;
+          exportUnlocked = exportUnlocked || !!d.export_unlocked;
+        } else {
+          S={country:d.country||'IN',language:d.language||'en',shopName:d.shop_name||'',ownPhone:d.own_phone||'',reminderTime:d.reminder_time||'21:00',gstin:d.gstin||'',bizAddress:d.biz_address||'',bizState:d.biz_state||''};
+          udhaarUnlocked=true;billUnlocked=true;exportUnlocked=true;
+        }
+      }catch(e){
+        S={country:d.country||'IN',language:d.language||'en',shopName:d.shop_name||'',ownPhone:d.own_phone||'',reminderTime:d.reminder_time||'21:00',gstin:d.gstin||'',bizAddress:d.biz_address||'',bizState:d.biz_state||''};
+        udhaarUnlocked=true;billUnlocked=true;exportUnlocked=true;
+      }
+    }
     if(gbr.data) gstBills=gbr.data.map(r=>({id:r.id,invoiceNo:r.invoice_no,date:r.date,buyerName:r.buyer_name||'',buyerGstin:r.buyer_gstin||'',buyerAddr:r.buyer_address||'',buyerState:r.buyer_state||'',items:r.items||[],taxable:r.taxable||0,cgst:r.cgst||0,sgst:r.sgst||0,igst:r.igst||0,total:r.total||0,isInterstate:!!r.is_interstate,note:r.note||''}));
     if(rtr.data) returns=rtr.data.map(r=>({id:r.id,date:r.date,ts:r.ts,amt:r.amt,type:r.type,reason:r.reason||'Defective',note:r.note||'',refName:r.ref_name||'',country:r.country||'IN'}));
     if(khr.data) kharidiEntries=khr.data.map(r=>({id:r.id,supplierName:r.supplier_name,date:r.date,ts:r.ts,amt:r.amt,type:r.type,note:r.note||'',country:r.country||'IN'}));

@@ -93,6 +93,10 @@ pasal-manager/
 
 See [`QA-REPORT.md`](./QA-REPORT.md) — 98.9% pass rate, security-audited, cross-browser tested, 375px/768px/1440px responsive.
 
+## 🩹 Recent Fixes
+
+- Preserve local settings when reconnecting: fixed an issue where a user's offline change to `Country` could be overwritten by server settings on reconnect. The app now prefers the newer local cache when merging settings.
+
 ## 📄 License
 
 Free forever for individual shops. Use, share, modify — just don't sell as your own.
