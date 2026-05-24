@@ -43,9 +43,11 @@ const HeroInstallButton = () => {
   return (
     <button
       onClick={handleClick}
-      className="px-7 py-4 bg-[#7c3aed] text-white rounded-2xl font-bold text-base sm:text-lg hover:bg-[#5b21b6] transition-all shadow-xl shadow-[#7c3aed]/40 active:scale-95 inline-flex items-center gap-2"
+      className="px-8 py-4 bg-white text-[#1e1147] rounded-2xl font-black text-base sm:text-lg hover:scale-105 transition-all shadow-2xl shadow-black/30 active:scale-95 inline-flex items-center gap-2.5 group"
     >
-      <Download size={18} /> Install App
+      <Download size={20} className="group-hover:translate-y-0.5 transition-transform" />
+      Install App
+      <span className="hidden sm:inline-block px-2 py-0.5 bg-[#ede9fe] text-[#5b21b6] text-[10px] font-black rounded-full uppercase tracking-wider ml-1">Free</span>
     </button>
   );
 };
@@ -90,13 +92,19 @@ const HeroBanner = () => {
                         Complete shop management in your pocket.
                     </p>
 
-                    <div className="flex flex-wrap gap-3">
-                        <a href="/app.html" className="px-7 py-4 bg-white text-black rounded-2xl font-bold text-base sm:text-lg hover:bg-blue-50 transition-all shadow-xl active:scale-95 inline-flex items-center gap-2">
-                            {t('getStarted')} →
-                        </a>
+                    <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                         <HeroInstallButton />
+                        <a href="/app.html" className="text-white/90 font-semibold text-sm sm:text-base underline-offset-4 hover:underline inline-flex items-center gap-1.5 transition-all">
+                            or try in browser →
+                        </a>
                     </div>
-                    <p className="text-xs text-blue-100/70 mt-3 font-medium">📱 Works on Android, iPhone, Desktop · 100% Free</p>
+                    <div className="flex items-center gap-3 mt-5 text-xs sm:text-sm text-white/80 font-medium">
+                        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>Free forever</span>
+                        <span className="text-white/30">·</span>
+                        <span>Works offline</span>
+                        <span className="text-white/30">·</span>
+                        <span>No signup</span>
+                    </div>
                 </div>
 
                 {/* Right Side: Floating Dashboard Preview */}
