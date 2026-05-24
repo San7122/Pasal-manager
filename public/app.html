@@ -3723,6 +3723,7 @@ function renderToday(){
         </div>
         <datalist id="item-list-today">${stock.filter(it=>it.qty>0).map(it=>`<option value="${esc(it.name)}">${it.size?it.size+' · ':''}${fmt(it.sell)} · stock: ${it.qty}</option>`).join('')}</datalist>
         <div style="display:flex;gap:6px">
+          <input class="input-big" id="s-qty" type="text" inputmode="numeric" placeholder="Qty" value="1" style="max-width:64px;text-align:center" oninput="_recalcSaleTotals()">
           <input class="input-big" id="s-amt" type="text" inputmode="numeric" placeholder="Sell ${cur()}" style="flex:1" onkeydown="if(event.key==='Enter')addSale()">
           <input class="input-big" id="s-cost" type="text" inputmode="numeric" placeholder="Cost ${cur()}" style="flex:1;font-size:16px;color:var(--color-text-secondary)">
         </div>
@@ -3758,16 +3759,31 @@ function renderToday(){
   setTimeout(()=>{const el=document.getElementById('s-note');if(el&&todayTab==='sale')el.focus();},50);
 }
 
-// Autofill Sell/Cost when user picks an item from stock datalist
+// Track the matched stock item so qty changes can recalculate totals
+let _saleStockMatch=null;
+
+// Autofill Sell/Cost when user picks an item from stock datalist (qty-aware)
 function _autofillFromStock(itemName){
-  if(!itemName||!itemName.trim()) return;
+  if(!itemName||!itemName.trim()){_saleStockMatch=null;return;}
   const match=stock.find(i=>i.name.toLowerCase()===itemName.trim().toLowerCase());
-  if(!match) return;
+  if(!match){_saleStockMatch=null;return;}
+  _saleStockMatch=match;
+  const qty=Math.max(1,parseInt(document.getElementById('s-qty')?.value)||1);
   const sellEl=document.getElementById('s-amt');
   const costEl=document.getElementById('s-cost');
   // Only autofill if fields are empty (don't override user typing)
-  if(sellEl&&(!sellEl.value||sellEl.value==='0')&&match.sell>0) sellEl.value=match.sell;
-  if(costEl&&(!costEl.value||costEl.value==='0')&&match.buy>0) costEl.value=match.buy;
+  if(sellEl&&(!sellEl.value||sellEl.value==='0')&&match.sell>0) sellEl.value=match.sell*qty;
+  if(costEl&&(!costEl.value||costEl.value==='0')&&match.buy>0) costEl.value=match.buy*qty;
+}
+
+// Recalculate sell/cost totals when qty changes (only for stock-matched items)
+function _recalcSaleTotals(){
+  if(!_saleStockMatch) return;
+  const qty=Math.max(1,parseInt(document.getElementById('s-qty')?.value)||1);
+  const sellEl=document.getElementById('s-amt');
+  const costEl=document.getElementById('s-cost');
+  if(sellEl&&_saleStockMatch.sell>0) sellEl.value=_saleStockMatch.sell*qty;
+  if(costEl&&_saleStockMatch.buy>0) costEl.value=_saleStockMatch.buy*qty;
 }
 
 async function addSale(){
@@ -3779,19 +3795,22 @@ async function addSale(){
     const amt=Math.round(parseFloat(inp.value));
     if(!amt||amt<=0||isNaN(amt)){inp.focus();return;}
     const cost=Math.round(parseFloat(document.getElementById('s-cost').value))||0;
+    const qty=Math.max(1,parseInt(document.getElementById('s-qty')?.value)||1);
     const note=document.getElementById('s-note').value.trim();
     const custVal=(document.getElementById('s-cust')?.value||'').trim();
     const cust=custVal?customers.find(c=>c.name.toLowerCase()===custVal.toLowerCase()||c.phone===custVal):null;
     const customerId=cust?cust.id:null;
-    // Auto-decrement stock if note matches a stock item name
+    // Build note with qty prefix if > 1 ("3 × Nivea body milk")
+    const noteWithQty=(qty>1&&note)?`${qty} × ${note}`:note;
+    // Auto-decrement stock by qty if item name matches stock
     if(note){
       const stockItem=stock.find(i=>i.name.toLowerCase()===note.toLowerCase());
       if(stockItem&&stockItem.qty>0){
-        stockItem.qty=Math.max(0,stockItem.qty-1);
+        stockItem.qty=Math.max(0,stockItem.qty-qty);
         await dbUpdate('pm_stock',stockItem.id,{qty:stockItem.qty});
       }
     }
-    const sale={id:uid(),date:todayStr(),ts:Date.now(),amt,cost,note,payMode:selectedPay,country:S.country,customerId};
+    const sale={id:uid(),date:todayStr(),ts:Date.now(),amt,cost,note:noteWithQty,qty,payMode:selectedPay,country:S.country,customerId};
     sales.push(sale);
     await dbAdd('pm_sales',{id:sale.id,user_id:currentUser?.id,date:sale.date,ts:sale.ts,amt:sale.amt,cost:sale.cost,note:sale.note,pay_mode:sale.payMode,country:sale.country,customer_id:customerId});
     renderToday();
