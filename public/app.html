@@ -4409,6 +4409,8 @@ function _handleScannedCode(code){
       _showToast('Not in stock: '+code);
     }
   }
+  // FIX: Always close the scanner modal after handling the scan
+  closeScanner();
 }
 let _toastTimer=null;
 let _toastQueue=[];
