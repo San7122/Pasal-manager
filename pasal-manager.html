@@ -2260,13 +2260,13 @@ const LANG = {
     guestAccountLabel:'Guest Mode',
     guestConvertBtn:'Create Free Account',
     guestExitBtn:'Exit Guest Mode',
-    voiceListening:'Speak…',voiceHeard:'Heard:',voiceThikCha:'✓ Thik Cha — Save',voicePheri:'↺ Pheri',
-    voiceUdhaarAdd:'Udhaar diye',voiceUdhaarPaid:'Udhaar tiryo (paid)',voiceSale:'Bikri (Sale)',
-    voiceExpense:'Kharcha (Expense)',voiceStock:'Stock aayo',voiceWhatFor:'Ke ho?',
-    voiceUnknown:'Bujhiena — pheri bhannus',voiceNotFound:'Udhaar record fella parena',
-    voiceMicBlocked:'Microphone band cha — browser settings ma jaau',
-    voiceNoSpeech:'Kehi suniena — pheri koshis garnuhos',
-    voiceAdded:'Add bhayo!',voiceExamples:'Examples',voiceClose:'Close',
+    voiceListening:'Speak…',voiceHeard:'Heard:',voiceThikCha:'✓ OK — Save',voicePheri:'↺ Retry',
+    voiceUdhaarAdd:'Added to Credit',voiceUdhaarPaid:'Credit Paid',voiceSale:'Sale',
+    voiceExpense:'Expense',voiceStock:'Stock Received',voiceWhatFor:'What is it?',
+    voiceUnknown:'Didn\'t understand — please try again',voiceNotFound:'Credit record not found',
+    voiceMicBlocked:'Microphone is blocked — check browser settings',
+    voiceNoSpeech:'No speech detected — please try again',
+    voiceAdded:'Added!',voiceExamples:'Examples',voiceClose:'Close',
     sahiChhap:'Sahi-Chhap',anchoring:'Creating Pakka Proof…',anchored:'✅ Pakka Proof Created',
     shareProof:'Share Proof via WhatsApp',verifying:'Verifying...',proofValid:'Verified Record ✅',
     proofInvalid:'Record Not Found',needInternet:'Internet required to anchor',
@@ -6758,6 +6758,17 @@ function renderSettingsPage(el){
 }
 async function setCo(c){S.country=c;selectedPay='Cash';await saveSettings();updateTopbar();updateNavLabels();goMore('settings');}
 async function setLa(l){S.language=l;await saveSettings();updateTopbar();updateNavLabels();initVoice();goMore('settings');}
+
+async function setCo(c){
+  S.country=c;
+  // Auto-set language based on country
+  if(c==='IN' && S.language==='np') S.language='en'; // Default to English for India
+  if(c==='NP' && S.language==='hi') S.language='np'; // Default to Nepali for Nepal
+  await saveSettings();
+  updateTopbar();
+  initVoice();
+  goMore('settings');
+}
 async function clearAll(){
   if(currentUser){
     const uid=currentUser.id;
@@ -7028,9 +7039,15 @@ async function confirmUnlock(){
 function updateTopbar(){
   document.getElementById('topbar-title').textContent=S.shopName||'Pasal Manager';
   document.getElementById('topbar-sub').textContent=S.country==='NP'?'Nepal':'India';
-  document.getElementById('topbar-date').textContent=fmtDate(todayStr());
+
+  // Show both international and BS calendars
+  const intlDate=fmtDate(todayStr()); // International calendar
+  const bsStr=bsDateStrLatin(new Date()); // BS calendar
+  const dateDisplay=bsStr ? `${intlDate} · ${bsStr}` : intlDate;
+  document.getElementById('topbar-date').textContent=dateDisplay;
+
   const bsChip=document.getElementById('bs-today-chip');
-  if(bsChip){const bsStr=bsDateStrLatin(new Date());if(bsStr){bsChip.textContent=bsStr;bsChip.style.display='';}else{bsChip.style.display='none';}}
+  if(bsChip) bsChip.style.display='none'; // Hide separate BS chip since it's now in the date
   const chip=document.getElementById('branch-chip');
   const chipName=document.getElementById('branch-chip-name');
   if(chip&&chipName){
@@ -7663,6 +7680,7 @@ let voiceRec=null, voiceParsed=null;
 let _voiceLang='ne-NP';      // active language for SpeechRecognition
 let _voiceAmbigAmt=null;     // stored amount when intent is unclear
 let _voiceLastTranscript=''; // last heard text (for ambiguity resolution)
+let _voiceListeningForIntent=false; // flag for listening to user's intent choice
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -7688,11 +7706,18 @@ function setVoiceLang(lang){
 function _updateVoiceLangChips(){
   const map={'ne-NP':'ne','hi-IN':'hi','en-IN':'en'};
   const active=map[_voiceLang]||'ne';
+  const allowedLangs=S.country==='IN'?['hi','en']:['ne','en'];
   ['ne','hi','en'].forEach(k=>{
     const el=document.getElementById('vlc-'+k);
-    if(el) el.classList.toggle('active', k===active);
+    const elConfirm=document.getElementById('vlc-'+k+'-confirm');
+    const show=allowedLangs.includes(k);
+    if(el){
+      el.style.display=show?'block':'none';
+      el.classList.toggle('active', k===active);
+    }
+    if(elConfirm) elConfirm.style.display=show?'block':'none';
     const ex=document.getElementById('vex-'+k);
-    if(ex) ex.style.display=(k===active?'block':'none');
+    if(ex) ex.style.display=(k===active && show?'block':'none');
   });
 }
 
@@ -7779,8 +7804,13 @@ function startListening(){
       }
       const live=final||interim;
       if(live){
-        document.getElementById('voice-transcript').textContent=live;
         _voiceLastTranscript=live;
+        // Show interim results with lower opacity, final with full opacity
+        if(final){
+          _updateFinalTranscript(final);
+        } else if(interim){
+          _updateLiveTranscript(interim);
+        }
       }
       if(final){
         if(ring) ring.classList.remove('listening');
@@ -7816,6 +7846,30 @@ function startListening(){
 }
 
 function _processVoiceResult(transcript){
+  // Check if we're listening for the user's choice (udhaar/bikari/kharcha)
+  if(_voiceListeningForIntent && _voiceAmbigAmt){
+    _voiceListeningForIntent=false;
+    const text=transcript.toLowerCase();
+    // Match spoken intent
+    if(/\b(udhaar|udhar|credit|diye)\b/i.test(text)){
+      voiceResolve('udhaar-add');
+      return;
+    } else if(/\b(bikri|bikrima|bechyo|sale|sell|income)\b/i.test(text)){
+      voiceResolve('sale');
+      return;
+    } else if(/\b(kharcha|kharch|expense|payment)\b/i.test(text)){
+      voiceResolve('expense');
+      return;
+    }
+    // If not matched, ask again
+    document.getElementById('voice-transcript').textContent='Didn\'t understand. Say: Udhaar, Sale, or Expense';
+    setTimeout(()=>{
+      _voiceListeningForIntent=true;
+      startListening();
+    }, 1500);
+    return;
+  }
+
   const parsed=parseVoiceInput(transcript, _voiceLang);
 
   if(parsed && parsed.intent==='unclear'){
@@ -7823,14 +7877,37 @@ function _processVoiceResult(transcript){
     const cur_sym=S.country==='NP'?'रू':'₹';
     document.getElementById('vp-ambig-heard').textContent=`"${transcript}"`;
     document.getElementById('vp-ambig-title').textContent=`${cur_sym}${parsed.amount} — ${t('voiceWhatFor')}`;
-    document.getElementById('vab-sale').textContent=t('voiceSale');
-    document.getElementById('vab-udhaar').textContent=t('voiceUdhaarAdd');
-    document.getElementById('vab-expense').textContent=t('voiceExpense');
+
+    // Ask where to add it
+    document.getElementById('vab-sale').innerHTML=`<button class="voice-action-btn" onclick="voiceResolve('sale')" style="padding:12px 16px;margin:6px;border:2px solid #10b981;background:#f0fdf4;border-radius:8px;cursor:pointer;font-weight:600;min-width:120px">${t('voiceSale')}</button>`;
+    document.getElementById('vab-sale').style.display='inline-block';
+
+    document.getElementById('vab-udhaar').innerHTML=`<button class="voice-action-btn" onclick="voiceResolve('udhaar-add')" style="padding:12px 16px;margin:6px;border:2px solid #f59e0b;background:#fffbf0;border-radius:8px;cursor:pointer;font-weight:600;min-width:120px">${t('voiceUdhaarAdd')}</button>`;
+    document.getElementById('vab-udhaar').style.display='inline-block';
+
+    document.getElementById('vab-expense').innerHTML=`<button class="voice-action-btn" onclick="voiceResolve('expense')" style="padding:12px 16px;margin:6px;border:2px solid #ef4444;background:#fef2f2;border-radius:8px;cursor:pointer;font-weight:600;min-width:120px">${t('voiceExpense')}</button>`;
+    document.getElementById('vab-expense').style.display='inline-block';
+
+    // Speak simplified message
+    const amtWord=parsed.amount;
+    _speakText(`${amtWord} rupees — Udhaar, Khata, or Sale?`);
+
     _showVoicePhase('ambig');
+
+    // Continue listening for user's spoken choice
+    setTimeout(()=>{
+      _voiceListeningForIntent=true;
+      startListening();
+    }, 2000); // Wait 2 seconds after speaking question
     return;
   }
 
   if(parsed && parsed.intent){
+    // Check if amount seems too small — offer alternatives
+    if(parsed.amount && ['sale','expense','udhaar-add'].includes(parsed.intent) && _shouldSuggestAlternatives(parsed.amount)){
+      _showAmountSuggestions(parsed, transcript);
+      return;
+    }
     voiceParsed={...parsed, transcript};
     _buildConfirmCard(parsed, transcript);
     _showVoicePhase('confirm');
@@ -7887,10 +7964,64 @@ function _buildConfirmCard(parsed, transcript){
   document.getElementById('vp-card').innerHTML=rows;
 }
 
+function _shouldSuggestAlternatives(amt){
+  if(!amt || amt<1) return false;
+  // If amount is between 1-9, it's probably a mishearing (too small)
+  // Suggest 10x, 100x, 1000x versions
+  return amt<=9;
+}
+
+function _showAmountSuggestions(parsed, transcript){
+  const amt=parsed.amount;
+  const cur_sym=S.country==='NP'?'रू':'₹';
+  // Generate suggestions: original + 10x, 100x, 1000x
+  const suggestions=[amt, amt*10, amt*100, amt*1000].filter((v,i,a)=>a.indexOf(v)===i); // unique values
+
+  let btns='';
+  suggestions.forEach(s=>{
+    btns+=`<button class="voice-amt-btn" onclick="_selectVoiceAmount(${s},'${parsed.intent}',\`${transcript}\`)" style="padding:12px;margin:8px 4px;border:2px solid #7c3aed;background:#f5f3ff;border-radius:8px;cursor:pointer;font-weight:600;min-width:100px">${cur_sym}${fmt(s).replace(/रू|₹/,'')}</button>`;
+  });
+
+  document.getElementById('vp-ambig-heard').textContent=`"${transcript}"`;
+  document.getElementById('vp-ambig-title').innerHTML=`<div style="margin-bottom:12px">${cur_sym}${amt} — ${t('voiceWhatFor')}?</div><div style="font-size:13px;color:#666;font-weight:400">Or select:</div>`;
+  document.getElementById('vab-sale').innerHTML=btns;
+  document.getElementById('vab-udhaar').style.display='none';
+  document.getElementById('vab-expense').style.display='none';
+  _showVoicePhase('ambig');
+}
+
+function _selectVoiceAmount(amt, intent, transcript){
+  voiceParsed={intent, amount:amt, transcript};
+  _buildConfirmCard({intent, amount:amt}, transcript);
+  _showVoicePhase('confirm');
+  // Simpler message
+  _speakText(`${amt} rupees — Confirm?`);
+  _updateVoiceLangChips();
+  const map={'ne-NP':'ne','hi-IN':'hi','en-IN':'en'};
+  const active=map[_voiceLang]||'ne';
+  ['ne','hi','en'].forEach(k=>{
+    const el=document.getElementById('vlc-'+k+'-confirm');
+    if(el) el.classList.toggle('active', k===active);
+  });
+  const cb=document.getElementById('voice-confirm-btn');
+  if(cb) cb.textContent=t('voiceThikCha');
+  const rb=document.getElementById('voice-retry-btn');
+  if(rb) rb.textContent=t('voicePheri');
+}
+
 function voiceResolve(intent){
   if(!_voiceAmbigAmt) return;
   voiceParsed={intent, amount:_voiceAmbigAmt, transcript:_voiceLastTranscript};
   _buildConfirmCard(voiceParsed, _voiceLastTranscript);
+
+  // Simpler confirmation message
+  const intentMap={
+    'sale':'Sale',
+    'expense':'Expense',
+    'udhaar-add':'Udhaar'
+  };
+  _speakText(`${intentMap[intent]} — Confirm?`);
+
   _showVoicePhase('confirm');
 }
 
@@ -7899,28 +8030,60 @@ async function voiceConfirm(){
   const p=voiceParsed;
   const cur_sym=S.country==='NP'?'रू':'₹';
 
+  // Validate amount
+  if(!p.amount || p.amount<=0){
+    const errMsg=S.language==='en'?'Invalid amount':(S.language==='hi'?'अमान्य राशि':'अमान्य रकम');
+    document.getElementById('voice-transcript').textContent=errMsg;
+    setTimeout(voiceRetry,1500);
+    return;
+  }
+
   if(p.intent==='sale'){
-    const sale={id:uid(),date:todayStr(),ts:Date.now(),amt:p.amount,cost:0,note:p.note||'(voice)',payMode:p.payMode||selectedPay,country:S.country};
-    sales.push(sale); _rawSales.unshift(sale);
-    await dbAdd('pm_sales',{id:sale.id,user_id:currentUser?.id,date:sale.date,ts:sale.ts,amt:sale.amt,cost:0,note:sale.note,pay_mode:sale.payMode,country:sale.country});
-    if(currentTab==='today') renderToday();
-    _voiceSuccess(`✓ ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} ko bikri add bhayo!`, p.note||'');
+    try{
+      const sale={id:uid(),date:todayStr(),ts:Date.now(),amt:p.amount,cost:0,note:p.note||'(voice)',payMode:p.payMode||selectedPay||'Cash',country:S.country};
+      sales.push(sale); _rawSales.unshift(sale);
+      await dbAdd('pm_sales',{id:sale.id,user_id:currentUser?.id,date:sale.date,ts:sale.ts,amt:sale.amt,cost:0,note:sale.note,pay_mode:sale.payMode,country:sale.country});
+      if(currentTab==='today') renderToday();
+      const saleMsg=S.language==='en'?`✓ ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} sale added`:(S.language==='hi'?`✓ ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} बिक्री जोड़ी गई`:`✓ ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} को बिक्री थपिएको`);
+      _voiceSuccess(saleMsg, p.note||'');
+    } catch(e){
+      console.error('Voice sale error:',e);
+      const errMsg=S.language==='en'?'Failed to save sale':(S.language==='hi'?'बिक्री सहेजने में विफल':'विक्रय सहेज्न गर्न सकेन');
+      document.getElementById('voice-transcript').textContent=errMsg;
+      setTimeout(closeVoice,2000);
+    }
 
   } else if(p.intent==='expense'){
-    const exp={id:uid(),date:todayStr(),ts:Date.now(),amt:p.amount,note:p.note||'(voice)',category:p.category||selectedExpCat||'Shop',country:S.country};
-    expenses.push(exp); _rawExpenses.unshift(exp);
-    await dbAdd('pm_expenses',{id:exp.id,user_id:currentUser?.id,date:exp.date,ts:exp.ts,amt:exp.amt,note:exp.note,category:exp.category,country:exp.country});
-    if(currentTab==='today') renderToday();
-    _voiceSuccess(`✓ ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} kharcha add bhayo!`, p.note||'');
+    try{
+      const exp={id:uid(),date:todayStr(),ts:Date.now(),amt:p.amount,note:p.note||'(voice)',category:p.category||selectedExpCat||'Shop',country:S.country};
+      expenses.push(exp); _rawExpenses.unshift(exp);
+      await dbAdd('pm_expenses',{id:exp.id,user_id:currentUser?.id,date:exp.date,ts:exp.ts,amt:exp.amt,note:exp.note,category:exp.category,country:exp.country});
+      if(currentTab==='today') renderToday();
+      const expMsg=S.language==='en'?`✓ ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} expense added`:(S.language==='hi'?`✓ ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} खर्च जोड़ा गया`:`✓ ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} खर्च थपिएको`);
+      _voiceSuccess(expMsg, p.note||'');
+    } catch(e){
+      console.error('Voice expense error:',e);
+      const errMsg=S.language==='en'?'Failed to save expense':(S.language==='hi'?'खर्च सहेजने में विफल':'खर्च सहेज्न गर्न सकेन');
+      document.getElementById('voice-transcript').textContent=errMsg;
+      setTimeout(closeVoice,2000);
+    }
 
   } else if(p.intent==='udhaar-add'){
-    const uname=p.name||'Customer';
-    const u={id:uid(),name:uname,phone:'',amt:p.amount,date:todayStr(),ts:Date.now(),paid:false,dueDate:'',country:S.country};
-    udhaars.push(u);
-    await dbAdd('pm_udhaar',{id:u.id,user_id:currentUser?.id,name:u.name,phone:'',amt:u.amt,date:u.date,ts:u.ts,paid:false,due_date:'',country:u.country});
-    updateUdhaarBadge();
-    if(currentTab==='udhaar') renderUdhaar();
-    _voiceSuccess(`✓ ${uname} ko ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} udhaar add bhayo!`, '');
+    try{
+      const uname=p.name||'Customer';
+      const u={id:uid(),name:uname,phone:'',amt:p.amount,date:todayStr(),ts:Date.now(),paid:false,dueDate:'',country:S.country};
+      udhaars.push(u);
+      await dbAdd('pm_udhaar',{id:u.id,user_id:currentUser?.id,name:u.name,phone:'',amt:u.amt,date:u.date,ts:u.ts,paid:false,due_date:'',country:u.country});
+      updateUdhaarBadge();
+      if(currentTab==='udhaar') renderUdhaar();
+      const udhaarMsg=S.language==='en'?`✓ ${uname} — ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} credit added`:(S.language==='hi'?`✓ ${uname} को ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} उधार जोड़ा गया`:`✓ ${uname} को ${cur_sym}${fmt(p.amount).replace(/रू|₹/,'')} उधार थपिएको`);
+      _voiceSuccess(udhaarMsg, '');
+    } catch(e){
+      console.error('Voice udhaar error:',e);
+      const errMsg=S.language==='en'?'Failed to save credit':(S.language==='hi'?'क्रेडिट सहेजने में विफल':'साख सहेज्न गर्न सकेन');
+      document.getElementById('voice-transcript').textContent=errMsg;
+      setTimeout(closeVoice,2000);
+    }
 
   } else if(p.intent==='udhaar-paid'){
     const nameToFind=(p.name||'').toLowerCase();
@@ -7932,7 +8095,8 @@ async function voiceConfirm(){
       await dbUpdate('pm_udhaar',match.id,{paid:true});
       updateUdhaarBadge();
       if(currentTab==='udhaar') renderUdhaar();
-      _voiceSuccess(`✓ ${match.name} ko udhaar tiryo!`, '');
+      const paidMsg=S.language==='en'?`✓ ${match.name} credit paid`:(S.language==='hi'?`✓ ${match.name} का उधार भुगतान हो गया`:`✓ ${match.name} को उधार तिरेको`);
+      _voiceSuccess(paidMsg, '');
     } else {
       document.getElementById('voice-transcript').textContent=t('voiceNotFound')+`: "${p.name}"`;
       _showVoicePhase('listen');
@@ -7946,14 +8110,16 @@ async function voiceConfirm(){
       existing.qty+=(p.qty||1);
       await dbUpdate('pm_stock',existing.id,{qty:existing.qty});
       if(currentTab==='stock') renderStock();
-      _voiceSuccess(`✓ ${existing.name} — qty updated to ${existing.qty}`, '');
+      const stockMsg=S.language==='en'?`✓ ${existing.name} — qty: ${existing.qty}`:(S.language==='hi'?`✓ ${existing.name} — मात्रा: ${existing.qty}`:`✓ ${existing.name} — मात्रा: ${existing.qty}`);
+      _voiceSuccess(stockMsg, '');
     } else {
       // Create new stock item with qty, no price (will need manual fill)
       const newItem={id:uid(),name:p.item||'Item',size:'',qty:p.qty||1,buy:0,sell:0,country:S.country,barcode:''};
       stock.push(newItem);
       await dbAdd('pm_stock',{id:newItem.id,user_id:currentUser?.id,name:newItem.name,size:'',qty:newItem.qty,buy:0,sell:0,country:newItem.country,barcode:''});
       if(currentTab==='stock') renderStock();
-      _voiceSuccess(`✓ ${newItem.name} (${newItem.qty}) stock ma thapiyeo!`, 'Price fill garnuhos');
+      const newMsg=S.language==='en'?`✓ ${newItem.name} (${newItem.qty}) added to stock`:(S.language==='hi'?`✓ ${newItem.name} (${newItem.qty}) स्टॉक में जोड़ा गया`:`✓ ${newItem.name} (${newItem.qty}) स्टॉक में थपिएको`);
+      _voiceSuccess(newMsg, S.language==='en'?'Add price later':(S.language==='hi'?'बाद में कीमत जोड़ें':'बाद मा मूल्य जोड्नुहोस्'));
     }
   } else if(p.intent==='nav'){
     const pageMap={stock:'stock',udhaar:'udhaar',katha:'katha',today:'today',expense:'expense',customers:'customers',settings:'settings'};
@@ -7971,9 +8137,11 @@ async function voiceConfirm(){
     if(matches.length>0){
       const total=matches.reduce((a,u)=>a+u.amt,0);
       const names=[...new Set(matches.map(u=>u.name))].join(', ');
-      _voiceSuccess(`${names} — ${cur_sym}${fmt(total).replace(/रू|₹/,'')} baki cha`, `${matches.length} entry`);
+      const balMsg=S.language==='en'?`${names} — ${cur_sym}${fmt(total).replace(/रू|₹/,'')} pending`:(S.language==='hi'?`${names} — ${cur_sym}${fmt(total).replace(/रू|₹/,'')} बाकी है`:`${names} — ${cur_sym}${fmt(total).replace(/रू|₹/,'')} बाकी छ`);
+      _voiceSuccess(balMsg, `${matches.length} entry`);
     } else {
-      _voiceSuccess(`"${p.name}" ko kुनै udhaar fेला परेन`, '');
+      const notFound=S.language==='en'?`${p.name} has no credit`:(S.language==='hi'?`${p.name} का कोई उधार नहीं`:`${p.name} को कुनै उधार फेला परेन`);
+      _voiceSuccess(notFound, '');
     }
     voiceParsed=null;
     return;
@@ -7988,7 +8156,60 @@ function _voiceSuccess(text, sub){
   _showVoicePhase('success');
   document.getElementById('vp-success-text').textContent=text;
   document.getElementById('vp-success-sub').textContent=sub;
+  _speakText(text);
   setTimeout(closeVoice, 1900);
+}
+
+function _speakText(text){
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+
+  // Break text into smaller chunks for clarity
+  const chunks=text.split(' — ').length>1 ? text.split(' — ') : [text];
+
+  chunks.forEach((chunk, idx)=>{
+    setTimeout(()=>{
+      const utterance=new SpeechSynthesisUtterance(chunk);
+      // Map to language codes
+      const langMap={'en':'en-US','hi':'hi-IN','np':'ne-NP'};
+      utterance.lang=langMap[S.language]||'en-US';
+      utterance.rate=0.75; // Slower for clarity
+      utterance.pitch=1.1; // Slightly higher pitch for clarity
+      utterance.volume=1;
+
+      // Try to find best voice for language
+      try{
+        const voices=window.speechSynthesis.getVoices();
+        if(voices.length>0){
+          // Map language to voice search codes
+          let langCode;
+          if(S.language==='hi') langCode='hi';
+          else if(S.language==='np') langCode='ne';
+          else langCode='en';
+
+          const preferredVoice=voices.find(v=>v.lang.startsWith(langCode))||voices.find(v=>v.lang.startsWith(langMap[S.language].split('-')[0]))||voices[0];
+          if(preferredVoice) utterance.voice=preferredVoice;
+        }
+        window.speechSynthesis.speak(utterance);
+      }catch(e){}
+    }, idx*800); // 800ms between chunks for pause effect
+  });
+}
+
+function _updateLiveTranscript(text){
+  const el=document.getElementById('voice-transcript');
+  if(el){
+    el.textContent=text;
+    el.style.opacity='0.7';
+  }
+}
+
+function _updateFinalTranscript(text){
+  const el=document.getElementById('voice-transcript');
+  if(el){
+    el.textContent=text;
+    el.style.opacity='1';
+  }
 }
 
 // ─── Number Parser ────────────────────────────────────────────────────────────
@@ -7999,7 +8220,18 @@ function wordsToNumber(text){
   if(!text) return null;
   text=text.toLowerCase().trim();
 
-  // Direct digit first (handles "500", "1,500", "10000")
+  // Check for patterns like "1 lakh", "2 hajaar", "5 saya"
+  const patterns=[
+    {re:/\b(\d+)\s*(lakh|lac|lakha)\b/i, mult:100000},
+    {re:/\b(\d+)\s*(hajaar|hazar|hazaar|hajar|thousand)\b/i, mult:1000},
+    {re:/\b(\d+)\s*(saya|sau|sou|hundred|sae)\b/i, mult:100},
+  ];
+  for(const {re, mult} of patterns){
+    const m=text.match(re);
+    if(m) return parseInt(m[1])*mult;
+  }
+
+  // Direct digit next (handles "500", "1,500", "10000")
   const dMatch=text.match(/\b(\d[\d,]*)\b/);
   if(dMatch) return parseInt(dMatch[1].replace(/,/g,''));
 
@@ -8746,9 +8978,14 @@ function generateCertificateCanvas(sc) {
 
   ctx.fillStyle = '#4B5563'; ctx.font = '15px Arial,sans-serif';
   const dateStr = new Date().toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'});
-  ctx.fillText('Certificate Date: ' + dateStr, 60, y); y += 20;
+  ctx.fillText('International Date: ' + dateStr, 60, y); y += 20;
   const _bsStr=bsDateStrLatin(new Date());
-  if(_bsStr){ctx.fillStyle='#9c7c38';ctx.font='13px Arial,sans-serif';ctx.fillText('नेपाली मिति: '+_bsStr,60,y);y+=18;}
+  if(_bsStr){
+    ctx.fillStyle='#9c7c38';
+    ctx.font='13px Arial,sans-serif';
+    ctx.fillText('Bikram Sambat: '+_bsStr,60,y);
+    y+=18;
+  }
   ctx.fillStyle = '#9CA3AF'; ctx.font = '13px Arial,sans-serif';
   ctx.fillText('Valid for 30 days  ·  For reference & loan application use', 60, y); y += 28;
 

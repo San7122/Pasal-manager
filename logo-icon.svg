@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="awning" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#5b21b6"/>
+    </linearGradient>
+    <linearGradient id="counter" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6d28d9"/>
+      <stop offset="1" stop-color="#4c1d95"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Posts -->
+  <rect x="44" y="46" width="6" height="48" rx="2" fill="#5b21b6"/>
+  <rect x="150" y="46" width="6" height="48" rx="2" fill="#5b21b6"/>
+
+  <!-- Awning roof -->
+  <path d="M 32 56 L 100 28 L 168 56 L 168 70 L 32 70 Z" fill="url(#awning)"/>
+  <!-- Awning scallop -->
+  <path d="M 32 70 Q 41 86 50 70 Q 59 86 68 70 Q 77 86 86 70 Q 95 86 104 70 Q 113 86 122 70 Q 131 86 140 70 Q 149 86 158 70 Q 165 80 168 70 Z" fill="url(#awning)"/>
+
+  <!-- Counter top -->
+  <rect x="40" y="88" width="120" height="20" rx="4" fill="url(#counter)"/>
+  <!-- Handles -->
+  <rect x="58" y="95" width="20" height="5" rx="2" fill="#e9d5ff"/>
+  <rect x="124" y="95" width="14" height="5" rx="2" fill="#e9d5ff"/>
+
+  <!-- Body / sign -->
+  <rect x="40" y="108" width="120" height="64" rx="6" fill="url(#body)"/>
+
+  <!-- PM text -->
+  <text x="100" y="158" font-family="Inter, Arial, sans-serif" font-size="46" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="-2">PM</text>
+
+  <!-- Base shadow -->
+  <ellipse cx="100" cy="178" rx="58" ry="3" fill="#1e1147" opacity="0.4"/>
+</svg>
