@@ -287,6 +287,7 @@ body {
 .tab-page { display: none; opacity: 0; }
 .tab-page.active { display: block; animation: tab-fade-in 0.18s ease; opacity: 1; max-width: 720px; margin: 0 auto; }
 @keyframes tab-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideDown { from { transform: translateX(-50%) translateY(-30px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
 @media (max-width: 767px) { .tab-page.active { max-width: 100%; } }
 
 /* ===== SAVED BADGE ===== */
@@ -4237,13 +4238,44 @@ function sendBulkReminders(){
     setTimeout(()=>sendWA(u.name,u.phone,u.amt,u.dueDate||''),i*1500);
   });
 }
+function _showInAppOverdueReminder(overdue){
+  // Don't spam — show only once per session
+  if(sessionStorage.getItem('overdueReminderShown'))return;
+  sessionStorage.setItem('overdueReminderShown','1');
+  const total=overdue.reduce((a,u)=>a+u.amt,0);
+  const existing=document.getElementById('overdue-toast');
+  if(existing) existing.remove();
+  const div=document.createElement('div');
+  div.id='overdue-toast';
+  div.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#fff;color:#1e1147;padding:12px 16px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:9000;display:flex;align-items:center;gap:10px;max-width:90vw;border:2px solid #fbbf24;animation:slideDown .3s ease-out;cursor:pointer';
+  div.innerHTML=`<span style="font-size:20px">⚠️</span><div style="flex:1"><div style="font-weight:800;font-size:14px">${overdue.length} overdue payment${overdue.length>1?'s':''}</div><div style="font-size:12px;color:#64748b">Total ${fmt(total)} — tap to view Udhaar</div></div><span style="font-size:18px;padding:0 4px">×</span>`;
+  div.onclick=(e)=>{
+    if(e.target.textContent==='×'){div.remove();return;}
+    div.remove();
+    if(typeof switchTab==='function') switchTab('udhaar');
+  };
+  document.body.appendChild(div);
+  setTimeout(()=>{if(div.parentNode)div.remove();},10000);
+}
+
 function checkOverdueNotification(){
   const overdue=udhaars.filter(u=>!u.paid&&u.dueDate&&u.dueDate<todayStr());
   if(overdue.length===0) return;
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  // iOS only supports Notification API when installed as PWA AND on iOS 16.4+
+  // If iPhone user not installed, show in-app reminder banner instead
+  if(isIOS && !isStandalone){
+    _showInAppOverdueReminder(overdue);
+    return;
+  }
   if('Notification' in window&&Notification.permission==='granted'){
     new Notification(`${S.shopName||'Pasal Manager'} — Payment Reminder`,{body:`${overdue.length} customer${overdue.length>1?'s':''} have overdue payments totalling ${fmt(overdue.reduce((a,u)=>a+u.amt,0))}`,icon:'./icon.svg'});
   } else if('Notification' in window&&Notification.permission==='default'){
     Notification.requestPermission().then(p=>{if(p==='granted') checkOverdueNotification();});
+  } else {
+    // Permission denied or API missing — fall back to in-app reminder
+    _showInAppOverdueReminder(overdue);
   }
 }
 
@@ -4712,13 +4744,28 @@ function showBarcodeModal(stockId){
   }catch(e){console.error(e);}
 }
 
-function downloadBarcode(stockId){
+async function downloadBarcode(stockId){
   const item=stock.find(i=>i.id===stockId);
   if(!item||!item.barcode)return;
   const canvas=document.createElement('canvas');
   JsBarcode(canvas,item.barcode,{format:'CODE128',width:3,height:100,displayValue:true,fontSize:18,margin:12});
+  const filename=`barcode_${item.name.replace(/[^a-z0-9]/gi,'_')}_${item.barcode}.png`;
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  if(isIOS && navigator.canShare){
+    // iOS: use Share Sheet so user can save to Photos / Files
+    try{
+      const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
+      const file=new File([blob],filename,{type:'image/png'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:filename});
+        _showToast('Tap "Save Image" in the share menu');
+        return;
+      }
+    }catch(e){if(e.name!=='AbortError')console.error(e);else return;}
+  }
+  // Android / Desktop: native download
   const link=document.createElement('a');
-  link.download=`barcode_${item.name.replace(/[^a-z0-9]/gi,'_')}_${item.barcode}.png`;
+  link.download=filename;
   link.href=canvas.toDataURL('image/png');
   link.click();
   _showToast('Barcode downloaded');
@@ -6130,9 +6177,24 @@ function _buildBillPDF(){
   return {doc,filename:`Bill_${billNo}_${todayStr()}.pdf`};
 }
 
-function downloadBillPDF(){
+async function downloadBillPDF(){
   const result=_buildBillPDF();
   if(!result)return;
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  // iOS: use Web Share API so user can "Save to Files" properly
+  // (Apple ignores the download attribute — would just open PDF in new tab otherwise)
+  if(isIOS && navigator.canShare){
+    try{
+      const blob=result.doc.output('blob');
+      const file=new File([blob],result.filename,{type:'application/pdf'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:result.filename,text:'Bill PDF'});
+        _showToast('Tap "Save to Files" in the share menu');
+        return;
+      }
+    }catch(e){if(e.name!=='AbortError')console.error(e);else return;}
+  }
+  // Android / Desktop: native download
   result.doc.save(result.filename);
   _showToast('PDF downloaded');
 }
@@ -7986,6 +8048,27 @@ function _dismissPwa(){
   if(b) b.remove();
 }
 
+// iOS dictation guide — shows users how to use iPhone keyboard mic
+function _showIOSDictationGuide(){
+  // Switch to Today tab + sale mode + focus item name input (with keyboard up)
+  try{
+    if(typeof switchTab==='function') switchTab('today');
+    setTimeout(()=>{
+      const el=document.getElementById('s-note')||document.getElementById('s-amt');
+      if(el){
+        el.focus();
+        el.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+    },300);
+  }catch(e){}
+  // One-time tip per session
+  if(sessionStorage.getItem('iosDictationShown'))return;
+  sessionStorage.setItem('iosDictationShown','1');
+  setTimeout(()=>{
+    alert('🎤 iPhone Voice Tip:\n\n1. Tap any input field (Sell, Item name, Note)\n2. On the keyboard, tap the 🎤 microphone button (bottom right)\n3. Speak your sale\n4. Tap "Done"\n\nAll iPhone dictation works in this app — just use the keyboard mic!');
+  },400);
+}
+
 // ===== VOICE ENGINE — NEPALI/HINDI/ENGLISH =====
 const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
 let voiceRec=null, voiceParsed=null;
@@ -7999,16 +8082,14 @@ let _voiceListeningForIntent=false; // flag for listening to user's intent choic
 function initVoice(){
   const fab=document.getElementById('mic-fab');
   if(!SpeechRec){
-    // iOS Safari and some browsers don't support Web Speech API
+    // iOS Safari blocks Web Speech API — BUT iPhone has its own keyboard mic dictation
     const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
     if(isIOS){
-      // On iPhone, replace mic with info button that explains the limitation
-      fab.innerHTML='<i data-lucide="mic-off" style="width:20px;height:20px"></i>';
-      fab.style.background='#94A3B8';
+      // On iPhone, the mic button now shows iOS dictation guide
+      fab.innerHTML='<i data-lucide="mic" style="width:20px;height:20px"></i>';
+      fab.style.background='var(--color-accent)';
       fab.style.display='flex';
-      fab.onclick=()=>{
-        alert('🎤 Voice entry is not supported on iPhone (Apple restriction).\n\nPlease type your sale entries manually. All other features work normally on iPhone.');
-      };
+      fab.onclick=()=>_showIOSDictationGuide();
       try{lucide.createIcons();}catch(e){}
     } else {
       fab.style.display='none';
