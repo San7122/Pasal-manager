@@ -3081,11 +3081,16 @@ async function loadAll(){
 
 async function saveSettings(){
   cacheWrite();
-  if(!currentUser) return;
+  showSaved();
+  if(!currentUser){
+    _showToast('Saved locally on this device');
+    return;
+  }
   try{
     await sb.from('pm_settings').upsert({user_id:currentUser.id,country:S.country,language:S.language,shop_name:S.shopName,own_phone:S.ownPhone,reminder_time:S.reminderTime,gstin:S.gstin,biz_address:S.bizAddress,biz_state:S.bizState,udhaar_unlocked:udhaarUnlocked,bill_unlocked:billUnlocked,export_unlocked:exportUnlocked,updated_at:new Date().toISOString()},{onConflict:'user_id'});
     showSaved();
-  }catch(e){console.error('Settings save failed',e);}
+    _showToast(navigator.onLine ? 'Saved locally and on server' : 'Saved locally — will sync when online');
+  }catch(e){console.error('Settings save failed',e);_showToast('Saved locally; server sync failed');}
 }
 
 async function dbAdd(table,row){
