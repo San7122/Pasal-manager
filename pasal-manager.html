@@ -4476,7 +4476,26 @@ async function addStock(){
     const sell=Math.round(parseFloat(document.getElementById('st-sell').value))||0;
     let barcode=(document.getElementById('st-barcode')?.value||'').trim();
     if(!name) return;
-    // Auto-generate barcode if not provided
+
+    // FIX: If barcode already exists in stock, ADD to existing qty (don't duplicate)
+    if(barcode){
+      const existing=stock.find(i=>i.barcode&&i.barcode===barcode);
+      if(existing){
+        const addedQty=qty||1;
+        existing.qty=(parseInt(existing.qty)||0)+addedQty;
+        // Update buy/sell if user entered new values (newer price wins)
+        if(buy>0) existing.buy=buy;
+        if(sell>0) existing.sell=sell;
+        await dbUpdate('pm_stock',existing.id,{qty:existing.qty,buy:existing.buy,sell:existing.sell});
+        cacheWrite();renderStock();
+        _showToast(`Added ${addedQty} more to "${existing.name}" · now ${existing.qty} in stock`);
+        // Clear the form
+        ['st-name','st-size','st-qty','st-buy','st-sell','st-barcode'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+        return;
+      }
+    }
+
+    // No existing barcode match — create new item
     if(!barcode) barcode=_autoBarcode();
     const item={id:uid(),name,size,qty,buy,sell,country:S.country,barcode};
     stock.push(item);
