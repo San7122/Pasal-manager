@@ -3653,11 +3653,17 @@ function renderToday(){
     </div>`:`
     <div class="inline-form">
       <div class="form-col">
+        <div style="position:relative">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;display:flex;align-items:center;color:#94A3B8">
+            <i data-lucide="package" style="width:15px;height:15px"></i>
+          </span>
+          <input class="input-sm" id="s-note" type="text" list="item-list-today" placeholder="Item name (type to search stock)" autocomplete="off" style="padding-left:32px" oninput="_autofillFromStock(this.value)">
+        </div>
+        <datalist id="item-list-today">${stock.filter(it=>it.qty>0).map(it=>`<option value="${esc(it.name)}">${it.size?it.size+' · ':''}${fmt(it.sell)} · stock: ${it.qty}</option>`).join('')}</datalist>
         <div style="display:flex;gap:6px">
           <input class="input-big" id="s-amt" type="text" inputmode="numeric" placeholder="Sell ${cur()}" style="flex:1" onkeydown="if(event.key==='Enter')addSale()">
           <input class="input-big" id="s-cost" type="text" inputmode="numeric" placeholder="Cost ${cur()}" style="flex:1;font-size:16px;color:var(--color-text-secondary)">
         </div>
-        <input class="input-sm" id="s-note" type="text" placeholder="${t('note')}">
         <div style="position:relative">
           <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;display:flex;align-items:center;color:#94A3B8">
             <i data-lucide="user-round" style="width:15px;height:15px"></i>
@@ -3687,8 +3693,21 @@ function renderToday(){
         return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.cost>0?' · Cost: '+fmt(i.cost):''}${i.note?' · '+i.note:''}${cust?` · <span style="color:var(--color-accent);font-weight:600;display:inline-flex;align-items:center;gap:3px"><i data-lucide="user" style="width:11px;height:11px"></i>${esc(cust.name)}</span>`:''}</div></div>${profit!==null?`<div style="text-align:center;margin-right:4px"><div style="font-size:13px;font-weight:700;color:${profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(profit)}</div><div style="font-size:10px;color:var(--color-text-secondary)">profit</div></div>`:''}<button class="btn-icon" title="Print receipt" style="background:#EFF6FF;color:#1D4ED8" onclick="printSaleReceipt('${i.id}')"><i data-lucide="printer" style="width:13px;height:13px"></i></button>${S.country==='IN'&&S.upiId?`<button class="btn-icon" title="Collect via UPI" style="background:#ECFDF5;color:#059669" onclick="openUpiModal(${i.amt})"><i data-lucide="qr-code" style="width:13px;height:13px"></i></button>`:''}<button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderToday()">✕</button></div>`;
       }).join('')}`;
   _renderIcons();
-  setTimeout(()=>{const el=document.getElementById('s-amt');if(el&&todayTab==='sale')el.focus();},50);
+  setTimeout(()=>{const el=document.getElementById('s-note');if(el&&todayTab==='sale')el.focus();},50);
 }
+
+// Autofill Sell/Cost when user picks an item from stock datalist
+function _autofillFromStock(itemName){
+  if(!itemName||!itemName.trim()) return;
+  const match=stock.find(i=>i.name.toLowerCase()===itemName.trim().toLowerCase());
+  if(!match) return;
+  const sellEl=document.getElementById('s-amt');
+  const costEl=document.getElementById('s-cost');
+  // Only autofill if fields are empty (don't override user typing)
+  if(sellEl&&(!sellEl.value||sellEl.value==='0')&&match.sell>0) sellEl.value=match.sell;
+  if(costEl&&(!costEl.value||costEl.value==='0')&&match.buy>0) costEl.value=match.buy;
+}
+
 async function addSale(){
   const btn=document.getElementById('btn-add-sale');
   if(btn?.disabled) return;
@@ -3702,6 +3721,14 @@ async function addSale(){
     const custVal=(document.getElementById('s-cust')?.value||'').trim();
     const cust=custVal?customers.find(c=>c.name.toLowerCase()===custVal.toLowerCase()||c.phone===custVal):null;
     const customerId=cust?cust.id:null;
+    // Auto-decrement stock if note matches a stock item name
+    if(note){
+      const stockItem=stock.find(i=>i.name.toLowerCase()===note.toLowerCase());
+      if(stockItem&&stockItem.qty>0){
+        stockItem.qty=Math.max(0,stockItem.qty-1);
+        await dbUpdate('pm_stock',stockItem.id,{qty:stockItem.qty});
+      }
+    }
     const sale={id:uid(),date:todayStr(),ts:Date.now(),amt,cost,note,payMode:selectedPay,country:S.country,customerId};
     sales.push(sale);
     await dbAdd('pm_sales',{id:sale.id,user_id:currentUser?.id,date:sale.date,ts:sale.ts,amt:sale.amt,cost:sale.cost,note:sale.note,pay_mode:sale.payMode,country:sale.country,customer_id:customerId});
