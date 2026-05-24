@@ -4372,12 +4372,29 @@ async function openScanner(target){
   // Restore action buttons (in case they were hidden by a previous successful scan)
   const actionsEl=document.getElementById('scanner-actions');
   if(actionsEl) actionsEl.style.display='flex';
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
   try{
-    scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
+    // iOS needs specific constraints — avoid 'ideal' resolution which can fail
+    const constraints=isIOS
+      ? {video:{facingMode:{ideal:'environment'}}}
+      : {video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}};
+    scannerStream=await navigator.mediaDevices.getUserMedia(constraints);
     const video=document.getElementById('scanner-video');
+    // iOS-critical attributes (set programmatically to be safe)
+    video.setAttribute('playsinline','true');
+    video.setAttribute('webkit-playsinline','true');
+    video.muted=true;
+    video.autoplay=true;
     video.srcObject=scannerStream;
-    await video.play();
-    if('BarcodeDetector' in window){
+    // Wait for video to be ready (iOS needs this before scanning)
+    await new Promise((resolve)=>{
+      if(video.readyState>=2){resolve();}
+      else video.onloadedmetadata=()=>resolve();
+    });
+    try{await video.play();}catch(e){/* iOS may throw if not in user gesture — video still works */}
+
+    // iOS Safari doesn't have BarcodeDetector → always use ZXing on iOS
+    if(!isIOS && 'BarcodeDetector' in window){
       _runBarcodeDetector(video);
     } else {
       document.getElementById('scanner-status').textContent='Loading scanner…';
@@ -4385,7 +4402,11 @@ async function openScanner(target){
       _runZXing(ZXing);
     }
   }catch(e){
-    document.getElementById('scanner-status').textContent='Camera unavailable — enter code manually';
+    console.error('Scanner error:',e);
+    const msg=e.name==='NotAllowedError'?'Camera permission denied. Enable in Settings → Safari → Camera':
+              e.name==='NotFoundError'?'No camera found':
+              'Camera unavailable — enter code manually';
+    document.getElementById('scanner-status').textContent=msg;
     document.getElementById('scanner-manual').style.display='block';
     setTimeout(()=>document.getElementById('scanner-manual-input')?.focus(),100);
   }
@@ -4405,12 +4426,40 @@ function _runBarcodeDetector(video){
 }
 function _runZXing(ZXing){
   if(_zxingReader) try{_zxingReader.reset();}catch(e){}
-  _zxingReader=new ZXing.BrowserMultiFormatReader();
+  // Restrict formats for better performance + reliability on iOS
+  const hints=new Map();
+  if(ZXing.DecodeHintType&&ZXing.BarcodeFormat){
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.QR_CODE,
+      ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.CODABAR,
+    ]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
+  }
+  _zxingReader=new ZXing.BrowserMultiFormatReader(hints);
   document.getElementById('scanner-status').textContent='Scanning…';
-  _zxingReader.decodeFromVideoElement(document.getElementById('scanner-video'),(result,err)=>{
-    if(!scannerActive) return;
-    if(result) _onBarcodeDetected(result.getText());
-  });
+  const video=document.getElementById('scanner-video');
+  // decodeFromVideoElementContinuously works better on iOS than decodeFromVideoElement
+  try{
+    _zxingReader.decodeFromVideoElementContinuously
+      ? _zxingReader.decodeFromVideoElementContinuously(video,(result,err)=>{
+          if(!scannerActive) return;
+          if(result) _onBarcodeDetected(result.getText());
+        })
+      : _zxingReader.decodeFromVideoElement(video,(result,err)=>{
+          if(!scannerActive) return;
+          if(result) _onBarcodeDetected(result.getText());
+        });
+  }catch(e){
+    console.error('ZXing decode error:',e);
+    document.getElementById('scanner-status').textContent='Scanner failed — use Enter Code';
+  }
 }
 function _onBarcodeDetected(code){
   if(!scannerActive) return;
