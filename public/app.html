@@ -1614,9 +1614,9 @@ body {
       </button>
     </nav>
     <div class="sidebar-bottom">
-      <button class="sidebar-item sidebar-wallet" id="sidebar-wallet-btn" onclick="connectPhantom ? connectPhantom() : null" title="Connect Wallet">
-        <i data-lucide="wallet" style="width:20px;height:20px;flex-shrink:0"></i>
-        <span class="sidebar-label" style="display:none;font-size:12px">Wallet</span>
+      <button class="sidebar-item sidebar-wallet" id="sidebar-wallet-btn" onclick="signOut()" title="Sign Out">
+        <i data-lucide="log-out" style="width:20px;height:20px;flex-shrink:0"></i>
+        <span class="sidebar-label" style="display:none;font-size:12px">Logout</span>
       </button>
     </div>
   </div>
@@ -1639,6 +1639,10 @@ body {
         <i data-lucide="building-2" style="width:13px;height:13px;flex-shrink:0"></i>
         <span class="branch-chip-name" id="branch-chip-name">Shop</span>
         <i data-lucide="chevron-down" style="width:11px;height:11px;flex-shrink:0"></i>
+      </button>
+      <button id="topbar-signout" onclick="signOut()" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--color-border-tertiary);border-radius:999px;background:transparent;color:var(--color-text-secondary);font-size:12px;cursor:pointer;white-space:nowrap">
+        <i data-lucide="log-out" style="width:16px;height:16px;flex-shrink:0"></i>
+        Logout
       </button>
       <div id="topbar-wallet" style="display:none" class="topbar-wallet-chip"></div>
       <div class="topbar-date" id="topbar-date"></div>
@@ -10055,6 +10059,7 @@ function _truncatePubkey(pk){ return pk ? pk.slice(0,4)+'...'+pk.slice(-4) : '';
 function _renderWalletUI(){
   const btn = document.getElementById('sidebar-wallet-btn');
   const lbl = document.getElementById('sidebar-wallet-label');
+  if(btn?.title==='Sign Out') return;
   if(!btn) return;
   if(_phantomConnected && _phantomPubkey){
     btn.style.color = '#059669';
