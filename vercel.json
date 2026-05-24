@@ -4,7 +4,9 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/privacy", "destination": "/privacy.html" }
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/share", "destination": "/share.html" },
+    { "source": "/app", "destination": "/app.html" }
   ],
   "headers": [
     {
