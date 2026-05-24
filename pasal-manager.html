@@ -8,19 +8,19 @@
 <meta name="keywords" content="pasal manager, shop manager, dukan manager, udhaar, khata book, sales tracker, expense tracker, stock manager, business app, nepal shop, india shop">
 <meta name="author" content="Pasal Manager">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#4F46E5">
+<meta name="theme-color" content="#7c3aed">
 <!-- Apple PWA -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pasal Manager">
-<link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-180.png">
+<link rel="apple-touch-icon" href="logo-icon.svg">
+<link rel="apple-touch-icon" sizes="152x152" href="logo-icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="logo-icon.svg">
+<link rel="apple-touch-icon" sizes="167x167" href="logo-icon.svg">
 <!-- Favicon -->
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="logo-icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="logo-icon.svg">
 <!-- Apple Splash Screens (iPhone 14 Pro Max) -->
 <link rel="apple-touch-startup-image" href="icons/icon-1024.png">
 <!-- Privacy Policy -->
@@ -46,6 +46,8 @@
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.441.0/dist/umd/lucide.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js" defer></script>
 <!-- Lazy-loaded on demand (see _lazyLoad helper below) -->
 <!-- xlsx: loaded when user taps Export -->
 <!-- solana-web3: loaded when user taps Sahi-Chhap -->
@@ -53,24 +55,26 @@
 <!-- ZXing loaded lazily on first scan if BarcodeDetector API unavailable -->
 <style>
 :root {
-  /* Brand — deep indigo accent */
-  --pm-purple:        #6366F1;
-  --pm-purple-dark:   #4338CA;
-  --pm-purple-light:  #EEF2FF;
-  --pm-purple-mid:    #A5B4FC;
+  /* Brand — Royal Blue + Navy Theme */
+  --pm-purple:        #7c3aed;
+  --pm-purple-dark:   #5b21b6;
+  --pm-purple-light:  #ede9fe;
+  --pm-purple-mid:    #c4b5fd;
+  --pm-gold:          #7c3aed;
+  --pm-gold-light:    #f5f3ff;
 
-  /* Sidebar dark theme */
-  --sidebar-bg:       #0F172A;
-  --sidebar-hover:    #1E293B;
-  --sidebar-active:   #1E3A5F;
-  --sidebar-active-text: #60A5FA;
-  --sidebar-text:     #94A3B8;
-  --sidebar-text-bright: #E2E8F0;
-  --sidebar-border:   #1E293B;
+  /* Sidebar dark navy */
+  --sidebar-bg:       #1e1147;
+  --sidebar-hover:    #2e1a6e;
+  --sidebar-active:   #7c3aed;
+  --sidebar-active-text: #ffffff;
+  --sidebar-text:     #c4b5fd;
+  --sidebar-text-bright: #ffffff;
+  --sidebar-border:   #2e1a6e;
 
   /* Semantic */
-  --color-accent:             #6366F1;
-  --color-accent-light:       #EEF2FF;
+  --color-accent:             #7c3aed;
+  --color-accent-light:       #ede9fe;
   --color-success:            #059669;
   --color-success-light:      #ECFDF5;
   --color-danger:             #E11D48;
@@ -94,19 +98,19 @@
   --bottom-nav-height:   60px;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --color-background-primary:   #1E1E2E;
-    --color-background-secondary: #181825;
-    --color-background-tertiary:  #2A2A3E;
-    --color-text-primary:         #E2E8F0;
-    --color-text-secondary:       #94A3B8;
-    --color-border-secondary:     #374151;
-    --color-border-tertiary:      #2D3748;
-    --color-accent-light:         #1E1B4B;
-    --pm-purple-light:            #1E1B4B;
-    --color-success-light:        #052E16;
-    --color-danger-light:         #2D0B14;
+    --color-background-primary:   #FFFFFF;
+    --color-background-secondary: #F8FAFC;
+    --color-background-tertiary:  #F1F5F9;
+    --color-text-primary:         #0F172A;
+    --color-text-secondary:       #64748B;
+    --color-border-secondary:     #CBD5E1;
+    --color-border-tertiary:      #E2E8F0;
+    --color-accent-light:         #ede9fe;
+    --pm-purple-light:            #ede9fe;
+    --color-success-light:        #ECFDF5;
+    --color-danger-light:         #FFF1F2;
     --color-warning-light:        #1C1207;
   }
   body { background: var(--color-background-secondary); }
@@ -216,8 +220,8 @@ body {
 .topbar-sub { font-size: 12px; color: var(--color-text-secondary); line-height: 1.2; }
 .topbar-date { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; }
 .topbar-wallet-chip {
-  font-size: 11px; background: #f0fdf4; color: #059669;
-  border: 1px solid #86efac; border-radius: 20px;
+  font-size: 11px; background: #f5f3ff; color: #059669;
+  border: 1px solid #c4b5fd; border-radius: 20px;
   padding: 3px 8px; font-weight: 600;
 }
 
@@ -227,7 +231,7 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  background: var(--color-background-secondary);
+  background: #FFFFFF;
 }
 
 /* ===== BOTTOM NAV ===== */
@@ -346,7 +350,7 @@ body {
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.input-big:focus { border-color: var(--pm-purple); box-shadow: 0 0 0 3px rgba(79,70,229,0.12); outline: none; }
+.input-big:focus { border-color: var(--pm-purple); box-shadow: 0 0 0 4px rgba(124,58,237,0.12); outline: none; }
 .input-sm {
   width: 100%; height: 40px;
   font-size: 14px;
@@ -358,7 +362,7 @@ body {
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.input-sm:focus { border-color: var(--pm-purple); box-shadow: 0 0 0 3px rgba(79,70,229,0.12); outline: none; }
+.input-sm:focus { border-color: var(--pm-purple); box-shadow: 0 0 0 4px rgba(124,58,237,0.12); outline: none; }
 .input-md {
   width: 100%; height: 44px;
   font-size: 15px;
@@ -370,7 +374,7 @@ body {
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.input-md:focus { border-color: var(--pm-purple); box-shadow: 0 0 0 3px rgba(79,70,229,0.12); outline: none; }
+.input-md:focus { border-color: var(--pm-purple); box-shadow: 0 0 0 4px rgba(124,58,237,0.12); outline: none; }
 
 .btn-add {
   width: 64px; min-height: 48px;
@@ -434,7 +438,7 @@ body {
 .summary-card-label { font-size: 11px; color: var(--color-text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .summary-card-value { font-size: 20px; font-weight: 800; color: var(--color-text-primary); line-height: 1.2; }
 .summary-card-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 3px; }
-.summary-card.accent { background: linear-gradient(135deg, #4F46E5, #6366F1); border-color: #4F46E5; }
+.summary-card.accent { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #7c3aed; }
 .summary-card.accent .summary-card-label,
 .summary-card.accent .summary-card-value,
 .summary-card.accent .summary-card-sub { color: #fff; }
@@ -442,15 +446,16 @@ body {
 
 /* Chart cards */
 .chart-card {
-  background: #fff; border-radius: 14px;
-  padding: 16px; margin: 0 12px 12px;
-  border: 1px solid var(--color-border-tertiary);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  background: #fff; border-radius: 16px;
+  padding: 20px 18px; margin: 0 12px 14px;
+  border: 1px solid #ECE7FF;
+  box-shadow: 0 2px 14px rgba(124,58,237,0.06);
+  position: relative;
 }
 .chart-card-title {
-  font-size: 11px; font-weight: 700;
-  color: var(--color-text-secondary); margin-bottom: 12px;
-  text-transform: uppercase; letter-spacing: 0.8px;
+  font-size: 14px; font-weight: 800;
+  color: var(--color-text-primary); margin-bottom: 12px;
+  letter-spacing: -0.2px;
 }
 .chart-row {
   display: grid; grid-template-columns: 1fr;
@@ -691,7 +696,7 @@ body {
   transition: background 0.15s;
 }
 .more-menu-item:hover { background: var(--color-background-secondary); }
-.more-menu-item:active { background: #EEF2FF; }
+.more-menu-item:active { background: var(--color-accent-light); }
 .more-icon {
   width: 44px; height: 44px;
   border-radius: 12px;
@@ -888,10 +893,10 @@ body {
 .auth-logo { text-align: center; margin-bottom: 4px; }
 .auth-logo-icon {
   width: 72px; height: 72px; margin: 0 auto 14px;
-  background: linear-gradient(135deg, #6366F1, #3B82F6);
+  background: linear-gradient(135deg, #5b21b6, #7c3aed);
   border-radius: 20px;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 8px 24px rgba(99,102,241,0.35);
+  box-shadow: 0 8px 24px rgba(124,58,237,0.35);
 }
 .auth-brand { font-size: 26px; font-weight: 800; margin-top: 4px; color: #0F172A; letter-spacing: -0.6px; }
 .auth-sub { font-size: 13px; color: #64748B; margin-top: 5px; font-weight: 500; letter-spacing: 0.2px; }
@@ -914,7 +919,23 @@ body {
   padding: 0 18px; gap: 10px; border-bottom: 1px solid var(--color-border-tertiary);
   flex-shrink: 0;
 }
-.sidebar-logo-mark { flex-shrink: 0; }
+.sidebar-logo-mark {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  background: transparent;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+.sidebar-logo-mark img {
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 0 !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
 .sidebar-toggle {
   margin-left: auto; background: none; border: none;
   cursor: pointer; color: var(--color-text-secondary); padding: 4px;
@@ -991,12 +1012,19 @@ body {
 .today-alert-success .today-alert-sub { color: #065F46; }
 
 .today-hero {
-  text-align: center; padding: 24px 20px 16px;
-  background: #fff; border-bottom: 1px solid var(--color-border-tertiary);
+  text-align: center; padding: 32px 24px 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid var(--color-border-tertiary);
+  position: relative;
 }
-.today-hero-label { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
-.today-hero-amt { font-size: 42px; font-weight: 800; color: var(--color-text-primary); letter-spacing: -1px; line-height: 1; }
-.today-hero-sub { font-size: 13px; color: var(--color-text-secondary); margin-top: 6px; }
+.today-hero::before {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 60px; height: 3px; background: linear-gradient(90deg, #7c3aed, #5b21b6);
+  border-radius: 0 0 4px 4px;
+}
+.today-hero-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 10px; }
+.today-hero-amt { font-size: 48px; font-weight: 900; color: #0f172a; letter-spacing: -1.5px; line-height: 1; background: linear-gradient(135deg, #0f172a, #2e1a6e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.today-hero-sub { font-size: 13px; color: #64748b; margin-top: 8px; font-weight: 500; }
 .today-hero-stats { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
 .today-stat-chip {
   display: inline-flex; align-items: center; gap: 4px;
@@ -1021,7 +1049,7 @@ body {
   background: var(--color-accent); color: #fff;
   border: none; cursor: pointer; z-index: 200;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 16px rgba(109,40,217,0.45);
+  box-shadow: 0 4px 16px rgba(124,58,237,0.45);
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .mic-fab:active { transform: scale(0.93); }
@@ -1076,7 +1104,7 @@ body {
 .voice-ring.listening .voice-wave{display:flex;}
 .voice-ring.listening .voice-mic-icon{display:none;}
 .voice-ring.listening{border:3px solid var(--color-accent);animation:vrPulse 1.3s ease-in-out infinite;background:var(--color-accent-light);}
-@keyframes vrPulse{0%,100%{box-shadow:0 0 0 0 rgba(109,40,217,0.25);}50%{box-shadow:0 0 0 14px rgba(109,40,217,0);}}
+@keyframes vrPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,0.25);}50%{box-shadow:0 0 0 14px rgba(124,58,237,0);}}
 .v-bar{width:5px;border-radius:5px;background:var(--color-accent);height:8px;animation:vbar 1s ease-in-out infinite;}
 .v-bar:nth-child(1){animation-delay:0s;}
 .v-bar:nth-child(2){animation-delay:0.15s;}
@@ -1111,7 +1139,7 @@ body {
 .vex-item b{color:var(--color-text-primary);}
 
 /* ===== PIN LOCK ===== */
-#pin-overlay{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#4C1D95 0%,var(--pm-purple) 50%,#7C3AED 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;color:#fff;user-select:none;-webkit-user-select:none;}
+#pin-overlay{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#1e1147 0%,#5b21b6 50%,#7c3aed 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;color:#fff;user-select:none;-webkit-user-select:none;}
 #pin-overlay.hidden{display:none;}
 .pin-logo-box{width:64px;height:64px;border-radius:16px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff;margin-bottom:12px;flex-shrink:0;}
 .pin-heading{font-size:22px;font-weight:800;margin-bottom:4px;text-align:center;}
@@ -1321,7 +1349,9 @@ body {
 .festival-banner-sub{font-size:13px;color:#5d4037;line-height:1.4;}
 .festival-days-badge{display:inline-block;background:#f9a825;color:#fff;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:700;margin-left:6px;}
 /* ===== PHOTO KHATA ===== */
-.fab-photo{position:fixed;bottom:82px;right:16px;width:48px;height:48px;border-radius:50%;background:#fff;border:2px solid var(--color-border-secondary);font-size:22px;cursor:pointer;z-index:900;box-shadow:0 2px 12px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;}
+.fab-photo{position:fixed;bottom:82px;right:16px;width:48px;height:48px;border-radius:50%;background:#fff;border:1.5px solid var(--color-border-tertiary);cursor:pointer;z-index:900;box-shadow:0 4px 14px rgba(0,0,0,0.10);display:flex;align-items:center;justify-content:center;color:var(--pm-purple);transition:transform .15s,box-shadow .15s,background .15s;}
+.fab-photo:hover{background:var(--pm-purple);color:#fff;border-color:var(--pm-purple);box-shadow:0 6px 18px rgba(124,58,237,0.35);}
+.fab-photo:active{transform:scale(0.94);}
 @media(min-width:768px){.fab-photo{bottom:24px;} .mic-fab{bottom:84px;}}
 /* Bottom sheet overlay */
 .bottom-sheet{
@@ -1421,19 +1451,7 @@ body {
   <div class="auth-card">
     <div class="auth-logo">
       <div class="auth-logo-icon">
-        <svg viewBox="0 0 32 32" width="40" height="40">
-          <defs>
-            <linearGradient id="loginLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#6366F1"/>
-              <stop offset="100%" style="stop-color:#3B82F6"/>
-            </linearGradient>
-          </defs>
-          <rect width="32" height="32" rx="0" fill="none"/>
-          <rect x="2" y="6" width="13" height="3" rx="1.5" fill="white" opacity="0.95"/>
-          <rect x="2" y="13" width="19" height="3" rx="1.5" fill="white"/>
-          <rect x="2" y="20" width="10" height="3" rx="1.5" fill="white" opacity="0.7"/>
-          <rect x="23" y="4" width="2.5" height="22" rx="1.25" fill="white" opacity="0.35"/>
-        </svg>
+        <img src="logo-icon.svg" alt="Pasal Manager" style="width:100px;height:100px;object-fit:contain">
       </div>
       <div class="auth-brand">Pasal Manager</div>
       <div class="auth-sub">Apno Pasal, Apna Hisab</div>
@@ -1461,7 +1479,9 @@ body {
     <!-- Guest shop-name setup (swaps in when guest chosen) -->
     <div id="guest-setup">
       <div style="text-align:center;padding:4px 0 16px">
-        <div style="font-size:32px;line-height:1;margin-bottom:10px">🏪</div>
+        <div style="margin-bottom:16px">
+          <img src="logo-icon.svg" alt="Pasal Manager" style="width:100px;height:100px;border-radius:20px;object-fit:cover;margin:0 auto;display:block">
+        </div>
         <div style="font-size:19px;font-weight:800;color:#1A1A1A" id="guest-setup-title">What is your shop called?</div>
         <div style="font-size:13px;color:#888;margin-top:5px" id="guest-setup-sub">You can change this anytime</div>
       </div>
@@ -1484,7 +1504,9 @@ body {
 
 <!-- ===== PIN LOCK OVERLAY ===== -->
 <div id="pin-overlay" class="hidden">
-  <div class="pin-logo-box">P</div>
+  <div class="pin-logo-box">
+    <img src="logo-icon.svg" alt="Pasal Manager" style="width:56px;height:56px;border-radius:14px;object-fit:cover">
+  </div>
   <div class="pin-heading">Pasal Manager</div>
   <div class="pin-sub" id="pin-sub">Enter PIN to continue</div>
   <div class="pin-dots" id="pin-dots">
@@ -1543,19 +1565,7 @@ body {
   <div class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="sidebar-logo-mark">
-        <svg viewBox="0 0 32 32" width="32" height="32">
-          <defs>
-            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#6366F1"/>
-              <stop offset="100%" style="stop-color:#3B82F6"/>
-            </linearGradient>
-          </defs>
-          <rect width="32" height="32" rx="8" fill="url(#logoGrad)"/>
-          <rect x="7" y="9" width="11" height="2.5" rx="1.25" fill="white" opacity="0.95"/>
-          <rect x="7" y="14.5" width="16" height="2.5" rx="1.25" fill="white"/>
-          <rect x="7" y="20" width="9" height="2.5" rx="1.25" fill="white" opacity="0.7"/>
-          <rect x="21" y="7" width="2" height="18" rx="1" fill="white" opacity="0.3"/>
-        </svg>
+        <img src="logo-icon.svg" alt="Pasal Manager" style="width:60px;height:auto;object-fit:contain">
       </div>
       <span class="sidebar-label" style="display:none;font-size:15px;font-weight:800;color:#E2E8F0;letter-spacing:-0.3px">Pasal<span style="color:#60A5FA;font-weight:500"> Mgr</span></span>
       <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebar-toggle-btn">
@@ -1600,13 +1610,7 @@ body {
     <div class="topbar">
       <div class="topbar-brand" id="topbar-brand">
         <div class="topbar-logo-mark">
-          <svg viewBox="0 0 28 28" width="28" height="28">
-            <rect width="28" height="28" rx="7" fill="#4F46E5"/>
-            <rect x="5" y="8" width="10" height="2" rx="1" fill="white" opacity="0.9"/>
-            <rect x="5" y="13" width="14" height="2" rx="1" fill="white"/>
-            <rect x="5" y="18" width="8" height="2" rx="1" fill="white" opacity="0.7"/>
-            <rect x="18" y="6" width="2" height="16" rx="1" fill="white" opacity="0.35"/>
-          </svg>
+          <img src="logo-icon.svg" alt="Pasal Manager" style="width:32px;height:32px;border-radius:8px;object-fit:cover">
         </div>
         <div>
           <div class="topbar-title" id="topbar-title">Pasal Manager</div>
@@ -1689,7 +1693,7 @@ body {
 </div>
 
 <!-- ===== PHOTO KHATA FAB ===== -->
-<button class="fab-photo" id="fab-photo" onclick="openPhotoKhata()" title="Photo Khata">📷</button>
+<button class="fab-photo" id="fab-photo" onclick="openPhotoKhata()" title="Photo Khata"><i data-lucide="image-plus" style="width:22px;height:22px"></i></button>
 
 <!-- ===== PHOTO KHATA BOTTOM SHEET ===== -->
 <div id="photo-khata-sheet" class="bottom-sheet" style="display:none" onclick="if(event.target===this)closePhotoKhata()">
@@ -1700,11 +1704,11 @@ body {
     <!-- Phase 1: source picker -->
     <div id="pk-pick" style="display:flex;gap:10px">
       <button class="pk-source-btn" onclick="photoKhataCapture('camera')">
-        <span class="pk-source-icon">📷</span>
+        <span class="pk-source-icon"><i data-lucide="camera" style="width:28px;height:28px;color:var(--pm-purple)"></i></span>
         <span id="pk-lbl-camera"></span>
       </button>
       <button class="pk-source-btn" onclick="photoKhataCapture('file')">
-        <span class="pk-source-icon">🖼️</span>
+        <span class="pk-source-icon"><i data-lucide="image" style="width:28px;height:28px;color:var(--pm-purple)"></i></span>
         <span id="pk-lbl-upload"></span>
       </button>
       <input id="pk-input-camera" type="file" accept="image/*" capture="environment"
@@ -1756,20 +1760,30 @@ body {
 <div id="upi-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:flex-end;justify-content:center">
   <div style="background:var(--color-background-primary);border-radius:24px 24px 0 0;padding:24px 20px 32px;width:100%;max-width:480px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div style="font-size:18px;font-weight:800;color:var(--color-text-primary)">Collect Payment</div>
+      <div style="font-size:18px;font-weight:800;color:var(--color-text-primary)" id="upi-modal-title">Collect Payment</div>
       <button onclick="closeUpiModal()" style="background:var(--color-background-secondary);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--color-text-secondary)">✕</button>
     </div>
-    <div id="upi-amount-display" style="text-align:center;font-size:36px;font-weight:800;color:var(--color-accent);margin-bottom:16px"></div>
-    <div style="text-align:center;margin-bottom:16px">
-      <div id="upi-qr-wrap" style="display:inline-block;padding:12px;background:#fff;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,0.1)">
-        <canvas id="upi-qr-canvas" width="180" height="180"></canvas>
+    <!-- Amount Input -->
+    <div style="margin-bottom:20px;position:relative">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--color-text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Amount to collect</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="upi-currency-symbol" style="font-size:20px;font-weight:700;color:var(--color-text-primary)">₹</span>
+        <input id="upi-amount-input" type="number" placeholder="Enter amount" value="0" onchange="updateUpiAmount()" oninput="updateUpiAmount()" style="flex:1;padding:12px 14px;border:2px solid #e5e7eb;border-radius:10px;font-size:18px;font-weight:700;color:var(--color-accent);background:#fafbfc" min="0">
       </div>
-      <div style="font-size:12px;color:var(--color-text-secondary);margin-top:8px" id="upi-id-display"></div>
+    </div>
+
+    <div id="upi-amount-display" style="text-align:center;font-size:14px;color:var(--color-text-secondary);margin-bottom:20px;font-weight:500"></div>
+
+    <div style="text-align:center;margin-bottom:20px">
+      <div id="upi-qr-wrap" style="display:inline-block;padding:16px;background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.1)">
+        <canvas id="upi-qr-canvas" width="200" height="200"></canvas>
+      </div>
+      <div style="font-size:13px;color:var(--color-text-secondary);margin-top:12px;font-weight:500" id="upi-id-display"></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <button id="upi-open-btn" onclick="openUpiApp()" style="padding:14px;background:#059669;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
-        Open UPI App (GPay / PhonePe / Paytm)
+        <span>Open Payment App</span>
       </button>
       <button onclick="shareUpiWA()" style="padding:14px;background:#25D366;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
@@ -1843,9 +1857,14 @@ body {
     <div id="vp-confirm" style="display:none">
       <div class="voice-heard-line" id="vp-heard"></div>
       <div class="voice-confirm-card" id="vp-card"></div>
+      <div class="voice-lang-row" style="margin:12px 0 4px;gap:6px">
+        <button class="voice-lang-chip" id="vlc-ne-confirm" onclick="setVoiceLangAndRetry('ne-NP')">नेपाली</button>
+        <button class="voice-lang-chip" id="vlc-hi-confirm" onclick="setVoiceLangAndRetry('hi-IN')">हिंदी</button>
+        <button class="voice-lang-chip" id="vlc-en-confirm" onclick="setVoiceLangAndRetry('en-IN')">English</button>
+      </div>
       <div class="voice-action-row" style="margin-top:4px">
-        <button onclick="voiceConfirm()" style="flex:2;padding:14px;background:var(--color-accent);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer" id="voice-confirm-btn">✓ Thik Cha</button>
-        <button onclick="voiceRetry()" style="flex:1;padding:14px;background:var(--color-background-secondary);color:var(--color-text-primary);border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer">↺ Pheri</button>
+        <button onclick="voiceConfirm()" style="flex:2;padding:14px;background:var(--color-accent);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer" id="voice-confirm-btn"></button>
+        <button onclick="voiceRetry()" style="flex:1;padding:14px;background:var(--color-background-secondary);color:var(--color-text-primary);border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer" id="voice-retry-btn"></button>
       </div>
     </div>
 
@@ -3073,9 +3092,32 @@ async function doLogin(){
   if(!email||!pass){showAuthErr('Please enter email and password.');return;}
   const btn=document.getElementById('auth-btn');
   btn.innerHTML='<span class="btn-spinner"></span>Logging in...';btn.disabled=true;
-  const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  let data, error;
+  try {
+    const result = await sb.auth.signInWithPassword({email,password:pass});
+    data = result.data; error = result.error;
+  } catch(e) { error = e; }
   if(error){
-    let msg=error.message;
+    let msg=error.message||'';
+    const isNetworkErr = /failed to fetch|networkerror|fetch failed|load failed/i.test(msg);
+    if(isNetworkErr) {
+      // Offline login — restore from local_settings
+      const localSettings = JSON.parse(localStorage.getItem('local_settings')||'{}');
+      isGuestMode = true; currentUser = null;
+      S.shopName = localSettings.shopName || email.split('@')[0] || 'My Shop';
+      localStorage.setItem('local_settings', JSON.stringify({...localSettings, ...S}));
+      if(!localStorage.getItem(GUEST_DATE_KEY)){
+        localStorage.setItem(GUEST_DATE_KEY, Date.now().toString());
+      }
+      try {
+        await afterLogin();
+        setTimeout(() => _showToast('Logged in (offline mode)'), 800);
+      } catch(e) {
+        showAuthErr('Login failed. Try Guest mode.');
+        btn.textContent='Login';btn.disabled=false;
+      }
+      return;
+    }
     if(msg.toLowerCase().includes('invalid login')||msg.toLowerCase().includes('invalid credentials')){
       msg='Wrong email or password. If you just signed up, please check your email and confirm your account first.';
     } else if(msg.toLowerCase().includes('email not confirmed')){
@@ -3095,11 +3137,41 @@ async function doSignup(){
   if(pass.length<6){showAuthErr('Password must be at least 6 characters.');return;}
   const btn=document.getElementById('auth-btn');
   btn.innerHTML='<span class="btn-spinner"></span>Creating...';btn.disabled=true;
-  const{data,error}=await sb.auth.signUp({email,password:pass});
-  if(error){showAuthErr(error.message);btn.textContent='Create Account';btn.disabled=false;return;}
-  currentUser=data.user;
-  if(name)S.shopName=name;
-  await afterLogin();
+
+  try {
+    const{data,error}=await sb.auth.signUp({email,password:pass});
+    if(error) throw error;
+    currentUser=data.user;
+    if(name)S.shopName=name;
+    await afterLogin();
+  } catch(err) {
+    // Network/server failure → fall back to local account (works offline)
+    const isNetworkErr = /failed to fetch|networkerror|fetch failed|load failed/i.test(err.message||'');
+    if(isNetworkErr) {
+      console.warn('Supabase signup failed, creating local account:', err.message);
+      isGuestMode = true;
+      currentUser = null;
+      S.shopName = name || email.split('@')[0] || 'My Shop';
+      const localSettings = JSON.parse(localStorage.getItem('local_settings')||'{}');
+      localSettings.shopName = S.shopName;
+      localSettings.email = email;
+      localStorage.setItem('local_settings', JSON.stringify({...localSettings, ...S}));
+      if(!localStorage.getItem(GUEST_DATE_KEY)){
+        localStorage.setItem(GUEST_DATE_KEY, Date.now().toString());
+      }
+      try {
+        await afterLogin();
+        setTimeout(() => _showToast('Account created locally · works offline'), 800);
+      } catch(e) {
+        console.error('Local signup error:', e);
+        showAuthErr('Could not create account. Try again.');
+        btn.textContent='Create Account';btn.disabled=false;
+      }
+      return;
+    }
+    showAuthErr(err.message);
+    btn.textContent='Create Account';btn.disabled=false;
+  }
 }
 
 function showAuthErr(msg){
@@ -3461,9 +3533,9 @@ function renderToday(){
         ${cnt>0?`<button onclick="printDaySummary()" class="today-report-btn" style="background:var(--color-background-secondary);color:var(--color-text-primary);border:1px solid var(--color-border)">
           <i data-lucide="printer" style="width:14px;height:14px"></i> Print Summary
         </button>`:''}
-        ${S.country==='IN'?`<button onclick="openUpiModal(0)" class="today-report-btn" style="background:#059669;color:#fff;border-color:#059669">
+        <button onclick="openUpiModal(0)" class="today-report-btn" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-color:#7c3aed;box-shadow:0 2px 8px rgba(124,58,237,0.25)">
           <i data-lucide="qr-code" style="width:14px;height:14px"></i> Collect Payment
-        </button>`:''}
+        </button>
       </div>
     </div>
     <div class="sub-tabs" style="border-top:1px solid var(--color-border-tertiary)">
@@ -3501,7 +3573,10 @@ function renderToday(){
         </div>
         <datalist id="cust-list-today">${customers.map(c=>`<option value="${esc(c.name)}">${c.phone?c.name+' · '+c.phone:c.name}</option>`).join('')}</datalist>
         <div class="chip-row" style="padding:0;border:none;">
-          ${modes.map(m=>`<button class="chip${m===selectedPay?' selected':''}" onclick="selectedPay='${m}';renderToday()">${m}</button>`).join('')}
+          ${modes.map(m=>{
+            const ic={Cash:'banknote',UPI:'qr-code',PhonePe:'smartphone',GPay:'smartphone',Paytm:'smartphone',Card:'credit-card',eSewa:'smartphone',Khalti:'smartphone','IME Pay':'smartphone',Fonepay:'qr-code'}[m]||'circle';
+            return `<button class="chip${m===selectedPay?' selected':''}" style="display:inline-flex;align-items:center;gap:5px" onclick="selectedPay='${m}';renderToday()">${licon(ic,12,'')}${m}</button>`;
+          }).join('')}
         </div>
       </div>
       <button id="btn-add-sale" class="btn-add" onclick="addSale()">+</button>
@@ -3516,7 +3591,7 @@ function renderToday(){
         const profit=i.cost>0?i.amt-i.cost:null;
         if(confirmId===i.id) return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${t('delete')}</div></div><div class="confirm-row"><button class="btn-confirm yes" onclick="delSale('${i.id}')">${t('yesDelete')}</button><button class="btn-confirm no" onclick="confirmId=null;renderToday()">${t('cancel')}</button></div></div>`;
         const cust=i.customerId?customers.find(c=>c.id===i.customerId):null;
-        return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.cost>0?' · Cost: '+fmt(i.cost):''}${i.note?' · '+i.note:''}${cust?` · <span style="color:var(--color-accent);font-weight:600">👤 ${esc(cust.name)}</span>`:''}</div></div>${profit!==null?`<div style="text-align:center;margin-right:4px"><div style="font-size:13px;font-weight:700;color:${profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(profit)}</div><div style="font-size:10px;color:var(--color-text-secondary)">profit</div></div>`:''}<button class="btn-icon" title="Print receipt" style="background:#EFF6FF;color:#1D4ED8" onclick="printSaleReceipt('${i.id}')"><i data-lucide="printer" style="width:13px;height:13px"></i></button>${S.country==='IN'&&S.upiId?`<button class="btn-icon" title="Collect via UPI" style="background:#ECFDF5;color:#059669" onclick="openUpiModal(${i.amt})"><i data-lucide="qr-code" style="width:13px;height:13px"></i></button>`:''}<button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderToday()">✕</button></div>`;
+        return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.cost>0?' · Cost: '+fmt(i.cost):''}${i.note?' · '+i.note:''}${cust?` · <span style="color:var(--color-accent);font-weight:600;display:inline-flex;align-items:center;gap:3px"><i data-lucide="user" style="width:11px;height:11px"></i>${esc(cust.name)}</span>`:''}</div></div>${profit!==null?`<div style="text-align:center;margin-right:4px"><div style="font-size:13px;font-weight:700;color:${profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(profit)}</div><div style="font-size:10px;color:var(--color-text-secondary)">profit</div></div>`:''}<button class="btn-icon" title="Print receipt" style="background:#EFF6FF;color:#1D4ED8" onclick="printSaleReceipt('${i.id}')"><i data-lucide="printer" style="width:13px;height:13px"></i></button>${S.country==='IN'&&S.upiId?`<button class="btn-icon" title="Collect via UPI" style="background:#ECFDF5;color:#059669" onclick="openUpiModal(${i.amt})"><i data-lucide="qr-code" style="width:13px;height:13px"></i></button>`:''}<button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderToday()">✕</button></div>`;
       }).join('')}`;
   _renderIcons();
   setTimeout(()=>{const el=document.getElementById('s-amt');if(el&&todayTab==='sale')el.focus();},50);
@@ -3547,21 +3622,63 @@ async function delSale(id){
 }
 // ===== UPI PAYMENT =====
 let _upiAmt=0, _upiLink='';
+function _payConfig(){
+  if(S.country==='NP'){
+    const id=S.npPaymentId||S.esewaId||S.khaltiId||'';
+    return {
+      hasId:!!id, id, currency:'NPR', symbol:'रू',
+      label:'Nepal Pay (eSewa, Khalti, Fonepay)',
+      apps:'eSewa · Khalti · Fonepay · IME Pay',
+      idLabel:'Pay to',
+      linkPrefix:'fonepay://merchant?', // graceful fallback - QR will work
+      makeLink:(amt,name)=>`fonepay://merchant?merchant=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}&amount=${amt}&currency=NPR`,
+      noIdMsg:'No payment ID set. Go to <b>Settings → Nepal Payment</b> to add your phone / Fonepay code.'
+    };
+  }
+  return {
+    hasId:!!S.upiId, id:S.upiId||'', currency:'INR', symbol:'₹',
+    label:'UPI (GPay, PhonePe, Paytm)',
+    apps:'GPay · PhonePe · Paytm · Any UPI app',
+    idLabel:'UPI',
+    makeLink:(amt,name)=>`upi://pay?pa=${encodeURIComponent(S.upiId)}&pn=${encodeURIComponent(name)}&am=${amt}&cu=INR`,
+    noIdMsg:'No UPI ID set. Go to <b>Settings → UPI / Collect Payment</b> and enter your UPI ID first.'
+  };
+}
+
 function openUpiModal(amt){
   _upiAmt=amt||0;
+  const cfg=_payConfig();
   const modal=document.getElementById('upi-modal');
   modal.style.display='flex';
-  const hasUpi=!!S.upiId;
-  document.getElementById('upi-no-id-msg').style.display=hasUpi?'none':'block';
-  document.getElementById('upi-qr-wrap').style.display=hasUpi?'block':'none';
-  document.getElementById('upi-open-btn').style.display=hasUpi?'flex':'none';
-  document.querySelector('#upi-modal [onclick="shareUpiWA()"]').style.display=hasUpi?'flex':'none';
-  document.getElementById('upi-amount-display').textContent=_upiAmt>0?fmt(_upiAmt):'Enter amount below';
-  if(!hasUpi) return;
+  const amtInput=document.getElementById('upi-amount-input');
+  if(amtInput) amtInput.value=_upiAmt>0?_upiAmt:'';
+  // Currency symbol
+  const symEl=document.getElementById('upi-currency-symbol');
+  if(symEl) symEl.textContent=cfg.symbol;
+  // Title
+  const titleEl=document.getElementById('upi-modal-title');
+  if(titleEl) titleEl.textContent='Collect Payment';
+  // Open button label
+  const openBtn=document.getElementById('upi-open-btn');
+  if(openBtn) openBtn.querySelector('span').textContent='Open '+cfg.apps.split('·')[0].trim()+' App';
+  // No ID message
+  document.getElementById('upi-no-id-msg').innerHTML=cfg.noIdMsg;
+  document.getElementById('upi-no-id-msg').style.display=cfg.hasId?'none':'block';
+  document.getElementById('upi-qr-wrap').style.display=cfg.hasId?'block':'none';
+  document.getElementById('upi-open-btn').style.display=cfg.hasId?'flex':'none';
+  document.querySelector('#upi-modal [onclick="shareUpiWA()"]').style.display=cfg.hasId?'flex':'none';
+  if(!cfg.hasId) return;
+  updateUpiAmount();
+}
+
+function updateUpiAmount(){
+  const cfg=_payConfig();
+  const amtInput=document.getElementById('upi-amount-input');
+  _upiAmt=amtInput?parseInt(amtInput.value)||0:0;
   const amtStr=_upiAmt>0?_upiAmt.toFixed(2):'';
-  _upiLink=`upi://pay?pa=${encodeURIComponent(S.upiId)}&pn=${encodeURIComponent(S.shopName||'Shop')}&am=${amtStr}&cu=INR`;
-  document.getElementById('upi-id-display').textContent=`UPI: ${S.upiId}`;
-  // Draw QR
+  _upiLink=cfg.makeLink(amtStr,S.shopName||'Shop');
+  document.getElementById('upi-amount-display').textContent=_upiAmt>0?`Payment link ready for ${cfg.symbol}${fmt(_upiAmt).replace(/^[₹रू]/,'')}`:'Enter amount to generate QR code';
+  document.getElementById('upi-id-display').textContent=`${cfg.idLabel}: ${cfg.id}`;
   _drawUpiQR(_upiLink);
 }
 function _drawUpiQR(text){
@@ -3585,9 +3702,10 @@ function openUpiApp(){
   window.location.href=_upiLink;
 }
 function shareUpiWA(){
+  const cfg=_payConfig();
   const shop=S.shopName||'Shop';
-  const amtPart=_upiAmt>0?` of ${fmt(_upiAmt)}`:'';
-  const msg=`Hi 🙏\nPlease pay${amtPart} to *${shop}* via UPI:\n\n*UPI ID:* ${S.upiId}\n\nOr tap the link to pay directly:\n${_upiLink}\n\n_(Works with GPay, PhonePe, Paytm, any UPI app)_`;
+  const amtPart=_upiAmt>0?` of ${cfg.symbol}${fmt(_upiAmt).replace(/^[₹रू]/,'')}`:'';
+  const msg=`Hi 🙏\nPlease pay${amtPart} to *${shop}*:\n\n*${cfg.idLabel}:* ${cfg.id}\n\nOr tap to pay directly:\n${_upiLink}\n\n_(Works with ${cfg.apps})_`;
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
@@ -3624,7 +3742,7 @@ function printSaleReceipt(id){
   <div class="amt">${cur()} ${sale.amt.toLocaleString('en-IN')}</div>
   <div class="divider"></div>
   <div class="footer">Powered by Pasal Manager · varaai.org</div>
-  <button class="print-btn" onclick="window.print()">🖨 Print / Save PDF</button>
+  <button class="print-btn" onclick="window.print()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print / Save PDF</button>
   </body></html>`);
   w.document.close();
 }
@@ -3661,7 +3779,7 @@ function printDaySummary(){
   ${profit>0?`<div class="total-row" style="color:#059669"><span>Profit</span><span>${cur()} ${profit.toLocaleString('en-IN')}</span></div>`:''}
   <div class="total-row" style="font-size:16px;border-top:2px solid #000;padding-top:6px"><span>NET</span><span>${cur()} ${(total-totalRet).toLocaleString('en-IN')}</span></div>
   <div class="footer">Pasal Manager · ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
-  <button class="print-btn" onclick="window.print()">🖨 Print / Save PDF</button>
+  <button class="print-btn" onclick="window.print()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print / Save PDF</button>
   </body></html>`);
   w.document.close();
 }
@@ -4127,9 +4245,17 @@ function _handleScannedCode(code){
 let _toastTimer=null;
 let _toastQueue=[];
 function _showToast(msg){
-  _toastQueue.push(msg);
-  if(_toastTimer) return;
-  _flushToast();
+  const b=document.getElementById('saved-badge');
+  if(!b)return;
+  _toastQueue=[msg];
+  if(_toastTimer)clearTimeout(_toastTimer);
+  b.textContent=msg;
+  b.classList.add('show');
+  _toastTimer=setTimeout(()=>{
+    b.classList.remove('show');
+    _toastTimer=null;
+    _toastQueue=[];
+  },2500);
 }
 function _flushToast(){
   if(!_toastQueue.length){_toastTimer=null;return;}
@@ -4200,6 +4326,7 @@ function renderStock(){
               <button class="btn-icon" style="background:var(--color-success-light);color:var(--color-success);width:30px;height:30px" onclick="updateQty('${i.id}',1)">+</button>
               <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger);width:30px;height:30px" onclick="updateQty('${i.id}',-1)">−</button>
             </div>
+            <button class="btn-icon" style="background:var(--pm-purple-light);color:var(--pm-purple);width:34px;height:34px" onclick="showBarcodeModal('${i.id}')" title="View Barcode"><i data-lucide="scan-barcode" style="width:16px;height:16px"></i></button>
             <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderStock()">✕</button>
           </div>
         </div>`;
@@ -4207,6 +4334,13 @@ function renderStock(){
     })()}`;
   _renderIcons();
 }
+function _autoBarcode(){
+  // Generate a 12-digit numeric barcode (Code 128 compatible)
+  const ts=Date.now().toString();
+  const rand=Math.floor(Math.random()*1000).toString().padStart(3,'0');
+  return (ts.slice(-9)+rand).slice(-12);
+}
+
 async function addStock(){
   const btn=document.getElementById('btn-add-stock');
   if(btn?.disabled) return;
@@ -4217,13 +4351,84 @@ async function addStock(){
     const qty=Math.round(parseFloat(document.getElementById('st-qty').value))||0;
     const buy=Math.round(parseFloat(document.getElementById('st-buy').value))||0;
     const sell=Math.round(parseFloat(document.getElementById('st-sell').value))||0;
-    const barcode=(document.getElementById('st-barcode')?.value||'').trim();
+    let barcode=(document.getElementById('st-barcode')?.value||'').trim();
     if(!name) return;
+    // Auto-generate barcode if not provided
+    if(!barcode) barcode=_autoBarcode();
     const item={id:uid(),name,size,qty,buy,sell,country:S.country,barcode};
     stock.push(item);
     await dbAdd('pm_stock',{id:item.id,user_id:currentUser?.id,name:item.name,size:item.size,qty:item.qty,buy:item.buy,sell:item.sell,country:item.country,barcode});
     cacheWrite();renderStock();
+    _showToast('Item added · barcode generated');
   }finally{if(btn) btn.disabled=false;}
+}
+
+// =============== BARCODE VIEWER & DOWNLOAD ===============
+function showBarcodeModal(stockId){
+  const item=stock.find(i=>i.id===stockId);
+  if(!item)return;
+  if(!item.barcode){item.barcode=_autoBarcode();cacheWrite();}
+  if(!window.JsBarcode){alert('Barcode library loading. Try again.');return;}
+
+  let modal=document.getElementById('barcode-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='barcode-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.onclick=(e)=>{if(e.target===modal)modal.remove();};
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML=`
+    <div style="background:#fff;border-radius:16px;padding:24px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.3)">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px">
+        <div>
+          <div style="font-size:18px;font-weight:800;color:#0F172A">${esc(item.name)}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px">Qty in stock: <strong>${item.qty}</strong> · Price: ${fmt(item.sell)}</div>
+        </div>
+        <button onclick="document.getElementById('barcode-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#64748b;line-height:1;padding:0">×</button>
+      </div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;text-align:center">
+        <svg id="barcode-svg" style="max-width:100%"></svg>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn-block" style="flex:1;background:var(--pm-purple);display:flex;align-items:center;justify-content:center;gap:6px" onclick="downloadBarcode('${stockId}')"><i data-lucide="download" style="width:16px;height:16px"></i> Download PNG</button>
+        <button class="btn-block" style="flex:1;background:#0F172A;display:flex;align-items:center;justify-content:center;gap:6px" onclick="printBarcode('${stockId}')"><i data-lucide="printer" style="width:16px;height:16px"></i> Print</button>
+      </div>
+    </div>`;
+  // Render barcode
+  try{
+    JsBarcode('#barcode-svg',item.barcode,{format:'CODE128',width:2,height:80,displayValue:true,fontSize:14,margin:8,background:'#ffffff',lineColor:'#000000'});
+  }catch(e){console.error(e);}
+}
+
+function downloadBarcode(stockId){
+  const item=stock.find(i=>i.id===stockId);
+  if(!item||!item.barcode)return;
+  const canvas=document.createElement('canvas');
+  JsBarcode(canvas,item.barcode,{format:'CODE128',width:3,height:100,displayValue:true,fontSize:18,margin:12});
+  const link=document.createElement('a');
+  link.download=`barcode_${item.name.replace(/[^a-z0-9]/gi,'_')}_${item.barcode}.png`;
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+  _showToast('Barcode downloaded');
+}
+
+function printBarcode(stockId){
+  const item=stock.find(i=>i.id===stockId);
+  if(!item||!item.barcode)return;
+  const canvas=document.createElement('canvas');
+  JsBarcode(canvas,item.barcode,{format:'CODE128',width:3,height:100,displayValue:true,fontSize:18,margin:12});
+  const dataUrl=canvas.toDataURL('image/png');
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Barcode - ${esc(item.name)}</title>
+    <style>@page{margin:8mm}body{font-family:system-ui,sans-serif;text-align:center;padding:20px}.label{display:inline-block;border:1px dashed #ccc;padding:12px;margin:6px;page-break-inside:avoid}.label img{display:block;margin:0 auto}.label-name{font-size:11px;font-weight:600;margin-bottom:4px}.label-price{font-size:13px;font-weight:700;margin-top:4px}@media print{.no-print{display:none}}</style>
+    </head><body>
+    <div class="no-print" style="margin-bottom:12px">
+      <button onclick="window.print()" style="padding:8px 16px;background:#7c3aed;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Print Now</button>
+    </div>
+    ${Array.from({length:8}).map(()=>`<div class="label"><div class="label-name">${esc(item.name)}</div><img src="${dataUrl}" style="width:160px"><div class="label-price">${fmt(item.sell)}</div></div>`).join('')}
+    </body></html>`);
+  w.document.close();
 }
 async function updateQty(id,d){
   const item=stock.find(i=>i.id===id);
@@ -4303,63 +4508,98 @@ function renderDashboard(el){
   el.innerHTML=backBtn()+`
   <div style="padding:12px 0 28px">
 
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 16px 12px">
-      <div style="font-size:17px;font-weight:800;color:var(--color-text-primary)">Business Dashboard</div>
-      ${branches.length>0?`<button onclick="showBranchSwitcher()" style="background:var(--pm-purple-light);border:1.5px solid var(--pm-purple);color:var(--pm-purple);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer">${esc(branchLabel)}</button>`:''}
+    <!-- Dashboard header -->
+    <div style="padding:6px 16px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#5b21b6);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(124,58,237,0.3)">${licon('layout-dashboard',18,'color:#fff;')}</div>
+          <div>
+            <div style="font-size:18px;font-weight:800;color:var(--color-text-primary);letter-spacing:-0.3px;line-height:1.2">Business Dashboard</div>
+            <div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">Real-time insights · ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+          </div>
+        </div>
+        ${branches.length>0?`<button onclick="showBranchSwitcher()" style="background:var(--pm-purple-light);border:1.5px solid var(--pm-purple);color:var(--pm-purple);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer">${esc(branchLabel)}</button>`:''}
+      </div>
     </div>
 
     <!-- 4 KPI cards -->
     <div class="summary-card-grid">
-      <div class="summary-card accent">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">${licon('trending-up',18,'opacity:0.8;')}<span style="font-size:10px;font-weight:700;opacity:0.75;letter-spacing:0.5px;text-transform:uppercase">Today</span></div>
-        <div class="summary-card-value">${fmt(todayAmt)}</div>
+      <div class="summary-card accent" style="position:relative;overflow:hidden">
+        <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.1)"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;position:relative">
+          <div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center">${licon('trending-up',16,'color:#fff;')}</div>
+          <span style="font-size:10px;font-weight:800;opacity:0.85;letter-spacing:0.8px;text-transform:uppercase">Today</span>
+        </div>
+        <div class="summary-card-value" style="font-size:24px">${fmt(todayAmt)}</div>
         <div class="summary-card-sub">${sales.filter(s=>s.date===todayS).length} entries today</div>
       </div>
-      <div class="summary-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">${licon('calendar-days',18,'color:var(--color-success);')}<span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);letter-spacing:0.5px;text-transform:uppercase">Week</span></div>
-        <div class="summary-card-value" style="color:var(--color-success)">${fmt(weekAmt)}</div>
+      <div class="summary-card" style="border-left:3px solid var(--color-success)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="width:32px;height:32px;border-radius:10px;background:#ECFDF5;display:flex;align-items:center;justify-content:center">${licon('calendar-days',16,'color:var(--color-success);')}</div>
+          <span style="font-size:10px;font-weight:800;color:var(--color-text-secondary);letter-spacing:0.8px;text-transform:uppercase">Week</span>
+        </div>
+        <div class="summary-card-value" style="color:var(--color-success);font-size:24px">${fmt(weekAmt)}</div>
         <div class="summary-card-sub">Last 7 days</div>
       </div>
-      <div class="summary-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">${licon('bar-chart-2',18,`color:${monthProfit>=0?'var(--color-success)':'var(--color-danger)'};`)}<span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);letter-spacing:0.5px;text-transform:uppercase">Profit</span></div>
-        <div class="summary-card-value" style="color:${monthProfit>=0?'var(--color-success)':'var(--color-danger)'}">${monthProfit>=0?'':'-'}${fmt(Math.abs(monthProfit))}</div>
+      <div class="summary-card" style="border-left:3px solid ${monthProfit>=0?'var(--color-success)':'var(--color-danger)'}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="width:32px;height:32px;border-radius:10px;background:${monthProfit>=0?'#ECFDF5':'#FFF1F2'};display:flex;align-items:center;justify-content:center">${licon('bar-chart-2',16,`color:${monthProfit>=0?'var(--color-success)':'var(--color-danger)'};`)}</div>
+          <span style="font-size:10px;font-weight:800;color:var(--color-text-secondary);letter-spacing:0.8px;text-transform:uppercase">Profit</span>
+        </div>
+        <div class="summary-card-value" style="color:${monthProfit>=0?'var(--color-success)':'var(--color-danger)'};font-size:24px">${monthProfit>=0?'':'-'}${fmt(Math.abs(monthProfit))}</div>
         <div class="summary-card-sub">Sales − Exp this month</div>
       </div>
-      <div class="summary-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">${licon('alert-circle',18,'color:var(--color-warning);')}<span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);letter-spacing:0.5px;text-transform:uppercase">Udhaar</span></div>
-        <div class="summary-card-value" style="color:var(--color-warning)">${fmt(udhaarPending)}</div>
+      <div class="summary-card" style="border-left:3px solid var(--color-warning)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="width:32px;height:32px;border-radius:10px;background:#FFFBEB;display:flex;align-items:center;justify-content:center">${licon('alert-circle',16,'color:var(--color-warning);')}</div>
+          <span style="font-size:10px;font-weight:800;color:var(--color-text-secondary);letter-spacing:0.8px;text-transform:uppercase">Udhaar</span>
+        </div>
+        <div class="summary-card-value" style="color:var(--color-warning);font-size:24px">${fmt(udhaarPending)}</div>
         <div class="summary-card-sub">${udhaars.filter(u=>!u.paid).length} customers pending</div>
       </div>
     </div>
 
     <!-- 7-day bar chart -->
     <div class="chart-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div class="chart-card-title" style="margin:0">Sales — Last 7 Days</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center">${licon('bar-chart-3',14,'color:#7c3aed;')}</div>
+          <div class="chart-card-title" style="margin:0">Sales — Last 7 Days</div>
+        </div>
         <div style="display:flex;gap:12px">
-          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#4F46E5;display:inline-block"></span>Sales</span>
-          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#FDA4AF;display:inline-block"></span>Expenses</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#7c3aed;display:inline-block"></span>Sales</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#FDA4AF;display:inline-block"></span>Expenses</span>
         </div>
       </div>
       ${has7DayData
-        ? `<canvas id="chart-7day" height="140"></canvas>`
-        : `<div style="text-align:center;padding:32px 0;color:var(--color-text-secondary);font-size:13px">No sales data yet this week.<br><span style="font-size:12px">Add your first sale on the Today tab →</span></div>`
+        ? `<div style="position:relative;height:200px"><canvas id="chart-7day"></canvas></div>`
+        : `<div style="text-align:center;padding:40px 0;color:var(--color-text-secondary);font-size:13px">
+            <div style="width:48px;height:48px;border-radius:12px;background:#f5f3ff;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px">${licon('bar-chart',22,'color:#a78bfa;')}</div>
+            <div style="font-weight:600;color:var(--color-text-primary);margin-bottom:4px">No sales data yet this week</div>
+            <div style="font-size:12px">Add your first sale on the Today tab →</div>
+          </div>`
       }
     </div>
 
     <!-- 6-month trend -->
     <div class="chart-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div class="chart-card-title" style="margin:0">6-Month Overview</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center">${licon('line-chart',14,'color:#7c3aed;')}</div>
+          <div class="chart-card-title" style="margin:0">6-Month Overview</div>
+        </div>
         <div style="display:flex;gap:10px">
-          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#818CF8;display:inline-block"></span>Sales</span>
-          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#FDA4AF;display:inline-block"></span>Expenses</span>
-          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#6EE7B7;display:inline-block"></span>Profit</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#7c3aed;display:inline-block"></span>Sales</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#FDA4AF;display:inline-block"></span>Expenses</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#10b981;display:inline-block"></span>Profit</span>
         </div>
       </div>
       ${has6MoData
-        ? `<canvas id="chart-6mo" height="160"></canvas>`
-        : `<div style="text-align:center;padding:32px 0;color:var(--color-text-secondary);font-size:13px">No data for last 6 months yet.</div>`
+        ? `<div style="position:relative;height:220px"><canvas id="chart-6mo"></canvas></div>`
+        : `<div style="text-align:center;padding:40px 0;color:var(--color-text-secondary);font-size:13px">
+            <div style="width:48px;height:48px;border-radius:12px;background:#f5f3ff;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px">${licon('line-chart',22,'color:#a78bfa;')}</div>
+            <div style="font-weight:600;color:var(--color-text-primary)">No data for last 6 months yet</div>
+          </div>`
       }
     </div>
 
@@ -4422,7 +4662,7 @@ function renderDashboard(el){
 
   // Draw charts after DOM is ready
   setTimeout(()=>{
-    const PURPLE='#4F46E5', GREEN='#059669', RED='#E11D48', ORANGE='#D97706';
+    const PURPLE='#7c3aed', GREEN='#059669', RED='#E11D48', ORANGE='#D97706';
     const fmtK=v=>v===0?'0':v>=1000?(v/1000).toFixed(1)+'k':v;
     const commonScales={
       x:{grid:{display:false},ticks:{font:{size:11},color:'#64748B'}},
@@ -4457,7 +4697,7 @@ function renderDashboard(el){
         type:'bar',
         plugins:[datalabelPlugin],
         data:{labels:days.map(d=>d.label),datasets:[
-          {label:'Sales',data:days.map(d=>d.s),backgroundColor:days.map(d=>d.ds===todayS?PURPLE:'#818CF8'),borderRadius:5,borderSkipped:false,barPercentage:0.7},
+          {label:'Sales',data:days.map(d=>d.s),backgroundColor:days.map(d=>d.ds===todayS?PURPLE:'#a78bfa'),borderRadius:5,borderSkipped:false,barPercentage:0.7},
           {label:'Expenses',data:days.map(d=>d.e),backgroundColor:'#FDA4AF',borderRadius:5,borderSkipped:false,barPercentage:0.7}
         ]},
         options:{
@@ -4476,7 +4716,7 @@ function renderDashboard(el){
         type:'bar',
         plugins:[datalabelPlugin],
         data:{labels:months6.map(m=>m.label),datasets:[
-          {label:'Sales',data:months6.map(m=>m.s),backgroundColor:'#818CF8',borderRadius:4,borderSkipped:false,barPercentage:0.75},
+          {label:'Sales',data:months6.map(m=>m.s),backgroundColor:'#7c3aed',borderRadius:4,borderSkipped:false,barPercentage:0.75},
           {label:'Expenses',data:months6.map(m=>m.e),backgroundColor:'#FDA4AF',borderRadius:4,borderSkipped:false,barPercentage:0.75},
           {label:'Profit',data:months6.map(m=>m.p),backgroundColor:months6.map(m=>m.p>=0?'#6EE7B7':'#FCA5A5'),borderRadius:4,borderSkipped:false,barPercentage:0.75}
         ]},
@@ -4516,7 +4756,7 @@ function renderDashboard(el){
       const raw=JSON.parse(decodeURIComponent(document.getElementById('chart-top-cust-data').textContent));
       _charts.push(new Chart(cTopCust,{
         type:'bar',
-        data:{labels:raw.map(r=>r.name),datasets:[{data:raw.map(r=>r.amt),backgroundColor:'#818CF8',borderRadius:6,borderSkipped:false}]},
+        data:{labels:raw.map(r=>r.name),datasets:[{data:raw.map(r=>r.amt),backgroundColor:'#7c3aed',borderRadius:6,borderSkipped:false}]},
         options:{
           indexAxis:'y',animation:false,
           plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${cur()}${fmt(ctx.raw)}`}}},
@@ -4997,7 +5237,7 @@ function renderStaffDetail(el){
     ${histEntries.length===0?`<div class="empty-state">${t('noEntries')}</div>`:
       histEntries.map(e=>`<div class="list-item">
         <div class="list-item-left">
-          <div class="list-item-amt" style="color:${e.type==='salary'?'var(--color-success)':'var(--color-danger)'}">${e.type==='salary'?'💰':'⬆'} ${fmt(e.value)}</div>
+          <div class="list-item-amt" style="color:${e.type==='salary'?'var(--color-success)':'var(--color-danger)'};display:inline-flex;align-items:center;gap:4px">${e.type==='salary'?licon('banknote',14,'color:var(--color-success);'):licon('arrow-up-circle',14,'color:var(--color-danger);')} ${fmt(e.value)}</div>
           <div class="list-item-meta">${e.type==='salary'?t('paySalary'):t('giveAdvance')} · ${e.date}${e.note?' · '+e.note:''}</div>
         </div>
         <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="delStaffEntry('${e.id}','${esc(staff.name)}')">✕</button>
@@ -5317,15 +5557,16 @@ function renderBill(el){
   el.innerHTML=backBtn()+`
     <div class="bill-mode-tabs">
       <button class="bill-mode-tab${billMode==='simple'?' active':''}" onclick="billMode='simple';goMore('bill')">${t('simpleB')}</button>
-      <button class="bill-mode-tab${billMode==='gst'?' active':''}" onclick="billMode='gst';goMore('bill')">🧾 ${t('gstInvoice')}</button>
+      <button class="bill-mode-tab${billMode==='gst'?' active':''}" onclick="billMode='gst';goMore('bill')" style="display:inline-flex;align-items:center;gap:6px;justify-content:center">${licon('file-text',15,'')} ${t('gstInvoice')}</button>
     </div>
     ${billMode==='simple'?renderSimpleBillForm():renderGSTBillForm()}`;
 }
 
 function renderSimpleBillForm(){
+  const savedCust=window._billCustName||'';
   return `
     <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--color-border-tertiary)">
-      <input class="input-md" id="b-cust" placeholder="${t('custName')}">
+      <input class="input-md" id="b-cust" placeholder="${t('custName')}" value="${esc(savedCust)}" oninput="window._billCustName=this.value">
       <div style="display:flex;gap:8px">
         <input class="input-md" id="b-item" placeholder="${t('itemName')}">
         <input class="input-md" id="b-qty" inputmode="numeric" placeholder="${t('qty')}" style="max-width:60px">
@@ -5413,6 +5654,8 @@ function addBillLine(){
   const qty=Math.round(parseFloat(document.getElementById('b-qty').value))||1;
   const price=Math.round(parseFloat(document.getElementById('b-price').value))||0;
   if(!item||!price) return;
+  // Persist customer name before re-render
+  window._billCustName=(document.getElementById('b-cust')?.value||'').trim();
   billItems.push({item,qty,price,rate:price,hsn:'',gstPct:0});
   goMore('bill');
 }
@@ -5428,11 +5671,43 @@ function addGSTLine(){
 }
 function generateBill(){
   if(billItems.length===0) return;
-  const cust=(document.getElementById('b-cust')?.value||'').trim();
+  const cust=(document.getElementById('b-cust')?.value||window._billCustName||'').trim();
   const shop=S.shopName||'Pasal Manager';
   const total=billItems.reduce((a,b)=>a+b.qty*b.price,0);
   const date=fmtDate(todayStr());
-  const billText=`*${shop}*\n${'─'.repeat(28)}\nDate: ${date}\nCustomer: ${cust||'—'}\n${'─'.repeat(28)}\n${billItems.map(b=>`${b.item} ×${b.qty}  ${fmt(b.qty*b.price)}`).join('\n')}\n${'─'.repeat(28)}\nTOTAL: ${fmt(total)}\n${'─'.repeat(28)}\nThank you! 🙏`;
+  const billNo=String(Date.now()).slice(-6);
+  const time=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+  const itemCount=billItems.reduce((a,b)=>a+Number(b.qty),0);
+  const itemLines=billItems.map((b,i)=>{
+    const sub=b.qty*b.price;
+    return `${i+1}. *${b.item}*\n   ${b.qty} x ${fmt(b.price)} = *${fmt(sub)}*`;
+  }).join('\n\n');
+  const line='━━━━━━━━━━━━━━━━━━━━━━━━';
+  const billText=
+`*🧾 RECEIPT*
+${line}
+
+*${shop}*
+
+📅 Date: *${date}*
+⏰ Time: *${time}*
+#️⃣ Bill: *${billNo}*${cust?`\n👤 Customer: *${cust}*`:''}
+
+${line}
+*ORDER DETAILS*
+${line}
+
+${itemLines}
+
+${line}
+Items: *${itemCount}*
+💰 *TOTAL: ${fmt(total)}*
+${line}
+
+✅ _Thank you for your purchase!_
+_Visit us again 🙏_
+
+— _Pasal Manager_`;
   const area=document.getElementById('bill-preview-area');
   area.innerHTML=`
     <div class="bill-preview">
@@ -5444,11 +5719,139 @@ function generateBill(){
       <div class="bill-line bill-total"><span>${t('total')}</span><span>${fmt(total)}</span></div>
       <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--color-text-secondary)">Thank you! 🙏</div>
     </div>
-    <div style="padding:0 16px 16px">
-      <button class="btn-block" style="background:#25D366" onclick="shareBillWA('${encodeURIComponent(billText)}')">${t('shareBill')}</button>
+    <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
+      <button class="btn-block" style="background:#25D366" onclick="shareBillPDFonWA()">📱 Send PDF via WhatsApp</button>
+      <button class="btn-block" style="background:var(--pm-purple)" onclick="downloadBillPDF()">📥 Download PDF</button>
     </div>`;
 }
-function shareBillWA(encodedText){window.open(`https://wa.me/?text=${encodedText}`,'_blank');}
+
+function _buildBillPDF(){
+  if(!window.jspdf||!window.jspdf.jsPDF){alert('PDF library still loading. Try again in a moment.');return null;}
+  if(billItems.length===0)return null;
+  const cust=(document.getElementById('b-cust')?.value||'').trim();
+  const shop=S.shopName||'Pasal Manager';
+  const total=billItems.reduce((a,b)=>a+b.qty*b.price,0);
+  const date=fmtDate(todayStr());
+  const billNo=String(Date.now()).slice(-6);
+  const time=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+  const itemCount=billItems.reduce((a,b)=>a+Number(b.qty),0);
+
+  const {jsPDF}=window.jspdf;
+  // A5 portrait (148mm × 210mm) gives proper room for Indian rupee amounts
+  const doc=new jsPDF({unit:'mm',format:'a5',orientation:'portrait'});
+  const W=148; // page width
+  const M=12;  // left margin
+
+  // Column x-positions (right-aligned for numeric columns)
+  const colItem=M;        // ITEM (left aligned)
+  const colQty=85;        // QTY (right aligned)
+  const colPrice=110;     // PRICE (right aligned)
+  const colTotal=W-M;     // TOTAL (right aligned)
+
+  let y=15;
+  // Shop header
+  doc.setFont('helvetica','bold');doc.setFontSize(18);
+  doc.text(shop,W/2,y,{align:'center'});y+=6;
+  doc.setFont('helvetica','italic');doc.setFontSize(10);
+  doc.setTextColor(120);
+  doc.text('Smart Business. Better Growth.',W/2,y,{align:'center'});y+=10;
+  doc.setTextColor(0);
+
+  // Divider
+  doc.setLineWidth(0.5);doc.line(M,y,W-M,y);y+=7;
+
+  // RECEIPT label
+  doc.setFont('helvetica','bold');doc.setFontSize(13);
+  doc.text('RECEIPT',W/2,y,{align:'center'});y+=8;
+
+  // Metadata in two columns
+  doc.setFont('helvetica','normal');doc.setFontSize(10);
+  doc.text(`Date: ${date}`,M,y);
+  doc.text(`Time: ${time}`,W-M,y,{align:'right'});y+=5;
+  doc.text(`Bill #: ${billNo}`,M,y);y+=5;
+  if(cust){doc.text(`Customer: ${cust}`,M,y);y+=5;}
+  y+=2;
+
+  // Table header
+  doc.setFillColor(245,245,245);
+  doc.rect(M,y-4,W-2*M,8,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);
+  doc.text('ITEM',colItem,y);
+  doc.text('QTY',colQty,y,{align:'right'});
+  doc.text('PRICE',colPrice,y,{align:'right'});
+  doc.text('TOTAL',colTotal,y,{align:'right'});
+  y+=7;
+
+  // Items
+  doc.setFont('helvetica','normal');doc.setFontSize(10);
+  billItems.forEach((b,i)=>{
+    if(i%2===1){
+      doc.setFillColor(252,252,252);
+      doc.rect(M,y-4,W-2*M,7,'F');
+    }
+    const itemName=b.item.length>28?b.item.substring(0,26)+'..':b.item;
+    doc.text(itemName,colItem,y);
+    doc.text(String(b.qty),colQty,y,{align:'right'});
+    doc.text(fmt(b.price).replace('₹','Rs '),colPrice,y,{align:'right'});
+    doc.text(fmt(b.qty*b.price).replace('₹','Rs '),colTotal,y,{align:'right'});
+    y+=6;
+  });
+
+  y+=3;
+  doc.setLineWidth(0.4);doc.line(M,y,W-M,y);y+=8;
+
+  // Totals
+  doc.setFont('helvetica','bold');doc.setFontSize(12);
+  doc.text(`Items: ${itemCount}`,M,y);
+  doc.text(`TOTAL: ${fmt(total).replace('₹','Rs ')}`,W-M,y,{align:'right'});y+=4;
+  doc.setLineWidth(0.5);doc.line(M,y,W-M,y);y+=12;
+
+  // Thank you
+  doc.setFont('helvetica','italic');doc.setFontSize(11);
+  doc.text('Thank you for your purchase!',W/2,y,{align:'center'});y+=6;
+  doc.text('Visit us again',W/2,y,{align:'center'});y+=12;
+
+  doc.setFont('helvetica','normal');doc.setFontSize(8);
+  doc.setTextColor(150);
+  doc.text('Powered by Pasal Manager',W/2,y,{align:'center'});
+
+  return {doc,filename:`Bill_${billNo}_${todayStr()}.pdf`};
+}
+
+function downloadBillPDF(){
+  const result=_buildBillPDF();
+  if(!result)return;
+  result.doc.save(result.filename);
+  _showToast('PDF downloaded');
+}
+
+async function shareBillPDFonWA(){
+  const result=_buildBillPDF();
+  if(!result)return;
+  const blob=result.doc.output('blob');
+  const file=new File([blob],result.filename,{type:'application/pdf'});
+
+  // Mobile: use Web Share API to send PDF directly via WhatsApp
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({
+        files:[file],
+        title:'Your Bill',
+        text:`Bill from ${S.shopName||'Pasal Manager'}`
+      });
+      _showToast('Bill sent');
+      return;
+    }catch(e){if(e.name!=='AbortError')console.error(e);else return;}
+  }
+
+  // Desktop fallback: download PDF then guide user to WhatsApp Web
+  result.doc.save(result.filename);
+  setTimeout(()=>{
+    if(confirm('PDF downloaded! Open WhatsApp Web now to attach it?')){
+      window.open('https://web.whatsapp.com','_blank');
+    }
+  },600);
+}
 
 // =============== GST INVOICE ===============
 function calcGSTTotals(items,isInterstate){
@@ -5680,8 +6083,8 @@ function renderExport(el){
       <!-- ALL DATA EXCEL -->
       <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <div style="width:34px;height:34px;background:#EEF2FF;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            ${licon('table',18,'color:#4338CA')}
+          <div style="width:34px;height:34px;background:var(--color-accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${licon('table',18,'color:var(--pm-purple)')}
           </div>
           <div>
             <div style="font-size:14px;font-weight:700;color:var(--color-text-primary)">Excel Download (All Data)</div>
@@ -6130,8 +6533,7 @@ function renderSettingsPage(el){
       ${sectionHead('languages','Language','#0D9488')}
       <div class="settings-options">
         <button class="settings-opt${S.language==='en'?' selected':''}" onclick="setLa('en')" style="flex:1">English</button>
-        <button class="settings-opt${S.language==='hi'?' selected':''}" onclick="setLa('hi')" style="flex:1">हिंदी</button>
-        <button class="settings-opt${S.language==='np'?' selected':''}" onclick="setLa('np')" style="flex:1">नेपाली</button>
+        ${S.country==='IN'?`<button class="settings-opt${S.language==='hi'?' selected':''}" onclick="setLa('hi')" style="flex:1">हिंदी</button>`:`<button class="settings-opt${S.language==='np'?' selected':''}" onclick="setLa('np')" style="flex:1">नेपाली</button>`}
       </div>
     </div>
 
@@ -6166,12 +6568,21 @@ function renderSettingsPage(el){
       <div class="settings-info" style="display:flex;align-items:center;gap:5px;margin-top:6px">${licon('info',12,'color:var(--color-text-secondary);')} ${t('reminderInfo')}</div>
     </div>
 
-    <!-- UPI Payment -->
+    <!-- Collect Payment Setup -->
     ${S.country==='IN'?`
     <div class="settings-card">
       ${sectionHead('qr-code','UPI / Collect Payment','#059669')}
       <input class="settings-input" id="s-upi" value="${esc(S.upiId)}" placeholder="Your UPI ID (e.g. shop@upi, 9876543210@paytm)">
       <div class="settings-info" style="display:flex;align-items:center;gap:5px;margin-top:6px">${licon('info',12,'color:var(--color-text-secondary);')} Used to generate QR codes for customer payments. Works with GPay, PhonePe, Paytm etc.</div>
+    </div>`:''}
+
+    ${S.country==='NP'?`
+    <div class="settings-card">
+      ${sectionHead('qr-code','Nepal Payment / Collect','#7c3aed')}
+      <input class="settings-input" id="s-np-pay" value="${esc(S.npPaymentId||'')}" placeholder="Your phone number or Fonepay merchant code" style="margin-bottom:8px">
+      <input class="settings-input" id="s-esewa" value="${esc(S.esewaId||'')}" placeholder="eSewa ID / Phone (optional)" style="margin-bottom:8px">
+      <input class="settings-input" id="s-khalti" value="${esc(S.khaltiId||'')}" placeholder="Khalti ID / Phone (optional)">
+      <div class="settings-info" style="display:flex;align-items:center;gap:5px;margin-top:6px">${licon('info',12,'color:var(--color-text-secondary);')} Generates QR for eSewa, Khalti, IME Pay, Fonepay. Customer scans with any Nepal payment app.</div>
     </div>`:''}
 
     <!-- Branches -->
@@ -6329,10 +6740,16 @@ function renderSettingsPage(el){
     if(bs) bs.onblur=async function(){S.bizState=this.value.trim();await saveSettings();};
     const upi=document.getElementById('s-upi');
     if(upi) upi.onblur=async function(){S.upiId=this.value.trim();await saveSettings();};
+    const np=document.getElementById('s-np-pay');
+    if(np) np.onblur=async function(){S.npPaymentId=this.value.trim();await saveSettings();};
+    const es=document.getElementById('s-esewa');
+    if(es) es.onblur=async function(){S.esewaId=this.value.trim();await saveSettings();};
+    const kh=document.getElementById('s-khalti');
+    if(kh) kh.onblur=async function(){S.khaltiId=this.value.trim();await saveSettings();};
   },50);
 }
 async function setCo(c){S.country=c;selectedPay='Cash';await saveSettings();updateTopbar();updateNavLabels();goMore('settings');}
-async function setLa(l){S.language=l;await saveSettings();updateTopbar();updateNavLabels();goMore('settings');}
+async function setLa(l){S.language=l;await saveSettings();updateTopbar();updateNavLabels();initVoice();goMore('settings');}
 async function clearAll(){
   if(currentUser){
     const uid=currentUser.id;
@@ -7295,6 +7712,11 @@ function openVoice(){
   if(exBox) exBox.style.display='none';
   const exLbl=document.getElementById('voice-ex-lbl');
   if(exLbl) exLbl.textContent=t('voiceExamples');
+  // Initialize button texts for current language
+  const cb=document.getElementById('voice-confirm-btn');
+  if(cb) cb.textContent=t('voiceThikCha');
+  const rb=document.getElementById('voice-retry-btn');
+  if(rb) rb.textContent=t('voicePheri');
   startListening();
 }
 
@@ -7311,6 +7733,11 @@ function voiceRetry(){
   _showVoicePhase('listen');
   document.getElementById('voice-transcript').textContent=t('voiceListening');
   startListening();
+}
+
+function setVoiceLangAndRetry(lang){
+  setVoiceLang(lang);
+  setTimeout(()=>{voiceRetry();},200);
 }
 
 function toggleVoiceExamples(){
@@ -7399,9 +7826,19 @@ function _processVoiceResult(transcript){
     voiceParsed={...parsed, transcript};
     _buildConfirmCard(parsed, transcript);
     _showVoicePhase('confirm');
-    // Update confirm button text
+    _updateVoiceLangChips();
+    // Also update confirm phase language chips
+    const map={'ne-NP':'ne','hi-IN':'hi','en-IN':'en'};
+    const active=map[_voiceLang]||'ne';
+    ['ne','hi','en'].forEach(k=>{
+      const el=document.getElementById('vlc-'+k+'-confirm');
+      if(el) el.classList.toggle('active', k===active);
+    });
+    // Update confirm and retry button texts based on language
     const cb=document.getElementById('voice-confirm-btn');
     if(cb) cb.textContent=t('voiceThikCha');
+    const rb=document.getElementById('voice-retry-btn');
+    if(rb) rb.textContent=t('voicePheri');
     return;
   }
 
@@ -8488,10 +8925,10 @@ function _showSahiPhase(phase){
 }
 async function _getSolanaKeypair(){
   try{
-    const stored=localStorage.getItem('sc_keypair');
+    const stored=sessionStorage.getItem('sc_keypair');
     if(stored){const sec=Uint8Array.from(JSON.parse(stored));return solanaWeb3.Keypair.fromSecretKey(sec);}
     const kp=solanaWeb3.Keypair.generate();
-    localStorage.setItem('sc_keypair',JSON.stringify(Array.from(kp.secretKey)));
+    sessionStorage.setItem('sc_keypair',JSON.stringify(Array.from(kp.secretKey)));
     return kp;
   }catch(e){return solanaWeb3.Keypair.generate();}
 }
