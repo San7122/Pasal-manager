@@ -1,47 +1,49 @@
 {
-  "name": "Pasal Manager - Shop Book",
+  "name": "Pasal Manager - Shop Book & Business Manager",
   "short_name": "Pasal Manager",
-  "description": "Complete business management app for shopkeepers. Track sales, expenses, udhaar (credit), stock, staff, EMI plans, loans and generate reports. Works offline.",
-  "start_url": "./pasal-manager.html",
+  "description": "Complete business management for shopkeepers. Sales, udhaar (credit), stock, bills, EMI, staff. Works offline. Free for India & Nepal.",
+  "start_url": "/app.html",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#6D28D9",
+  "background_color": "#1e1147",
+  "theme_color": "#7c3aed",
   "orientation": "portrait-primary",
   "lang": "en",
   "categories": ["business", "finance", "productivity"],
-  "screenshots": [
-    {
-      "src": "screenshots/screen1.png",
-      "sizes": "1290x2796",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Today's Sales Dashboard"
-    },
-    {
-      "src": "screenshots/screen2.png",
-      "sizes": "1290x2796",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Udhaar (Credit) Tracker"
-    },
-    {
-      "src": "screenshots/screen3.png",
-      "sizes": "1290x2796",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Stock Management"
-    }
-  ],
+  "prefer_related_applications": false,
   "icons": [
-    { "src": "icons/icon-72.png",   "sizes": "72x72",   "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-96.png",   "sizes": "96x96",   "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-128.png",  "sizes": "128x128", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-144.png",  "sizes": "144x144", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-152.png",  "sizes": "152x152", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-180.png",  "sizes": "180x180", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-192.png",  "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/logo-icon.svg",       "sizes": "any",      "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/icons/icon-72.png",   "sizes": "72x72",    "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-96.png",   "sizes": "96x96",    "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-128.png",  "sizes": "128x128",  "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-144.png",  "sizes": "144x144",  "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-152.png",  "sizes": "152x152",  "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-180.png",  "sizes": "180x180",  "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192.png",  "sizes": "192x192",  "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png",  "sizes": "512x512",  "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-1024.png", "sizes": "1024x1024","type": "image/png", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Sale",
+      "short_name": "New Sale",
+      "description": "Quickly record a new sale",
+      "url": "/app.html#today",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Udhaar Book",
+      "short_name": "Udhaar",
+      "description": "View customer credit",
+      "url": "/app.html#udhaar",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Stock",
+      "short_name": "Stock",
+      "description": "Manage inventory",
+      "url": "/app.html#stock",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    }
   ]
 }
