@@ -7997,8 +7997,25 @@ let _voiceListeningForIntent=false; // flag for listening to user's intent choic
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 function initVoice(){
-  if(!SpeechRec){document.getElementById('mic-fab').style.display='none';return;}
-  document.getElementById('mic-fab').style.display='flex';
+  const fab=document.getElementById('mic-fab');
+  if(!SpeechRec){
+    // iOS Safari and some browsers don't support Web Speech API
+    const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+    if(isIOS){
+      // On iPhone, replace mic with info button that explains the limitation
+      fab.innerHTML='<i data-lucide="mic-off" style="width:20px;height:20px"></i>';
+      fab.style.background='#94A3B8';
+      fab.style.display='flex';
+      fab.onclick=()=>{
+        alert('🎤 Voice entry is not supported on iPhone (Apple restriction).\n\nPlease type your sale entries manually. All other features work normally on iPhone.');
+      };
+      try{lucide.createIcons();}catch(e){}
+    } else {
+      fab.style.display='none';
+    }
+    return;
+  }
+  fab.style.display='flex';
   // Sync language from app setting
   if(S.language==='hi') _voiceLang='hi-IN';
   else if(S.language==='np') _voiceLang='ne-NP';
