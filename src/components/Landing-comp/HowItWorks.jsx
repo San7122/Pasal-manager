@@ -23,13 +23,13 @@ const steps = [
 ];
 
 const HowItWorks = () => (
-  <div className="py-24 px-6 bg-gradient-to-b from-[#faf5ff] to-white">
+  <div className="py-14 px-5 sm:py-20 sm:px-6 lg:py-24 bg-gradient-to-b from-[#faf5ff] to-white">
     <div className="max-w-6xl mx-auto">
       <div className="text-center mb-14">
         <div className="inline-flex items-center gap-2 bg-[#ede9fe] text-[#5b21b6] px-4 py-2 rounded-full text-sm font-bold mb-4">
           <Rocket size={14} /> Get started in 3 steps
         </div>
-        <h2 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter mb-3">
+        <h2 className="text-3xl sm:text-4xl lg:text-6xl font-black text-gray-900 tracking-tighter mb-3">
           From zero to <span className="text-[#7c3aed]">selling smarter</span>
         </h2>
         <p className="text-lg text-gray-500 font-medium">Under 2 minutes. No tutorials needed.</p>

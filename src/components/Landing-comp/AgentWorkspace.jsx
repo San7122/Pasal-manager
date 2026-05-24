@@ -135,14 +135,14 @@ const AgentWorkspace = () => {
   const current = features[activeTab];
 
   return (
-    <div className="py-24 px-6 bg-gradient-to-b from-white via-[#faf5ff] to-white">
+    <div className="py-14 px-5 sm:py-20 sm:px-6 lg:py-24 bg-gradient-to-b from-white via-[#faf5ff] to-white">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-[#ede9fe] text-[#5b21b6] px-4 py-2 rounded-full text-sm font-bold mb-4">
             <Sparkles size={14} /> All 12 features
           </div>
-          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter mb-3">
+          <h2 className="text-3xl sm:text-4xl lg:text-6xl font-black text-gray-900 tracking-tighter mb-3">
             Everything you need.<br/>
             <span className="text-[#7c3aed]">Nothing you don't.</span>
           </h2>
@@ -168,11 +168,11 @@ const AgentWorkspace = () => {
         </div>
 
         {/* Feature showcase */}
-        <div className="grid lg:grid-cols-2 gap-16 items-center min-h-[600px]">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center min-h-[480px] lg:min-h-[600px]">
           {/* Left: Copy */}
           <div className="space-y-6" key={activeTab}>
             <div>
-              <h3 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter leading-[1.05] mb-3">
+              <h3 className="text-3xl sm:text-4xl lg:text-6xl font-black text-gray-900 tracking-tighter leading-[1.05] mb-3">
                 {current.title}
               </h3>
               <p className="text-xl font-bold text-[#7c3aed]">{current.subtitle}</p>

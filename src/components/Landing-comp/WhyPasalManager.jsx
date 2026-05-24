@@ -66,7 +66,7 @@ const features = [
 
 const WhyPasalManager = () => {
   return (
-    <div className="py-24 px-6 bg-[#1e1147] relative overflow-hidden">
+    <div className="py-14 px-5 sm:py-20 sm:px-6 lg:py-24 bg-[#1e1147] relative overflow-hidden">
       {/* Background pattern */}
       <div
         className="absolute inset-0 opacity-10"
@@ -84,7 +84,7 @@ const WhyPasalManager = () => {
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-bold mb-4 border border-white/20">
             <Sparkles size={14} /> Why Pasal Manager
           </div>
-          <h2 className="text-5xl lg:text-6xl font-black text-white tracking-tighter mb-3 leading-[1.05]">
+          <h2 className="text-3xl sm:text-4xl lg:text-6xl font-black text-white tracking-tighter mb-3 leading-[1.05]">
             Built for shops,<br/>
             <span className="bg-gradient-to-r from-[#a855f7] to-[#c4b5fd] bg-clip-text text-transparent">
               not generic businesses.

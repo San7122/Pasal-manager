@@ -17,14 +17,14 @@ const PhoneMockup = ({ src, alt, width = 280 }) => (
 
 const MissionVision = () => {
     return (
-        <div className="py-32 px-6 overflow-hidden bg-gradient-to-b from-white via-[#faf5ff] to-white">
-            <div className="max-w-7xl mx-auto space-y-40">
+        <div className="py-16 px-5 sm:py-24 sm:px-6 lg:py-32 overflow-hidden bg-gradient-to-b from-white via-[#faf5ff] to-white">
+            <div className="max-w-7xl mx-auto space-y-20 lg:space-y-32">
 
                 {/* ───────────────── OUR MISSION ───────────────── */}
-                <div className="grid lg:grid-cols-2 gap-16 items-center">
+                <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
                     {/* Left: Phone mockups stacked */}
-                    <div className="relative order-2 lg:order-1 flex justify-center items-center min-h-[600px]">
+                    <div className="relative order-2 lg:order-1 flex justify-center items-center min-h-[480px] lg:min-h-[600px]">
                         {/* Decorative blob */}
                         <div className="absolute inset-0 bg-gradient-to-br from-[#7c3aed]/15 via-[#a78bfa]/10 to-transparent rounded-[40px] blur-3xl -z-10"></div>
 
@@ -37,21 +37,21 @@ const MissionVision = () => {
                             />
                         </div>
 
-                        {/* Back phone — slightly rotated and offset */}
-                        <div className="absolute right-0 top-12 z-10 transform rotate-[8deg] opacity-90 hidden md:block">
+                        {/* Back phone — only show on large desktop where there's room */}
+                        <div className="absolute right-0 top-12 z-10 transform rotate-[8deg] opacity-90 hidden xl:block">
                             <PhoneMockup
                                 src="/tool-screens/mobile/udhaar.png"
                                 alt="Udhaar Tracking"
-                                width={240}
+                                width={220}
                             />
                         </div>
 
-                        {/* Back phone — left side */}
-                        <div className="absolute left-0 bottom-8 z-10 transform -rotate-[8deg] opacity-90 hidden md:block">
+                        {/* Back phone — only show on large desktop where there's room */}
+                        <div className="absolute left-0 bottom-8 z-10 transform -rotate-[8deg] opacity-90 hidden xl:block">
                             <PhoneMockup
                                 src="/tool-screens/mobile/stock.png"
                                 alt="Stock Management"
-                                width={240}
+                                width={220}
                             />
                         </div>
 
@@ -80,7 +80,7 @@ const MissionVision = () => {
                         <div className="inline-flex items-center gap-2 bg-[#ede9fe] text-[#5b21b6] px-4 py-2 rounded-full text-sm font-bold">
                             <Shield size={14} /> Our Mission
                         </div>
-                        <h2 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter leading-[1.05]">
+                        <h2 className="text-3xl sm:text-4xl lg:text-6xl font-black text-gray-900 tracking-tighter leading-[1.05]">
                             Operate like a pro,<br/>
                             <span className="text-[#7c3aed]">run beyond limits.</span>
                         </h2>
@@ -100,14 +100,14 @@ const MissionVision = () => {
                 </div>
 
                 {/* ───────────────── OUR VISION ───────────────── */}
-                <div className="grid lg:grid-cols-2 gap-16 items-center">
+                <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
                     {/* Left: Copy */}
                     <div className="space-y-6">
                         <div className="inline-flex items-center gap-2 bg-[#ede9fe] text-[#5b21b6] px-4 py-2 rounded-full text-sm font-bold">
                             <TrendingUp size={14} /> Our Vision
                         </div>
-                        <h2 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter leading-[1.05]">
+                        <h2 className="text-3xl sm:text-4xl lg:text-6xl font-black text-gray-900 tracking-tighter leading-[1.05]">
                             Every shop deserves<br/>
                             <span className="text-[#7c3aed]">a digital katha.</span>
                         </h2>
@@ -136,7 +136,7 @@ const MissionVision = () => {
                     </div>
 
                     {/* Right: Phone mockup with floating screenshot */}
-                    <div className="relative flex justify-center items-center min-h-[600px]">
+                    <div className="relative flex justify-center items-center min-h-[480px] lg:min-h-[600px]">
                         <div className="absolute inset-0 bg-gradient-to-br from-[#a78bfa]/15 via-[#7c3aed]/10 to-transparent rounded-[40px] blur-3xl -z-10"></div>
 
                         {/* Main phone */}
@@ -148,8 +148,8 @@ const MissionVision = () => {
                             />
                         </div>
 
-                        {/* Secondary phone behind */}
-                        <div className="absolute left-2 top-20 z-10 transform -rotate-[6deg] opacity-85 hidden md:block">
+                        {/* Secondary phone behind - only on large desktop */}
+                        <div className="absolute left-2 top-20 z-10 transform -rotate-[6deg] opacity-85 hidden xl:block">
                             <PhoneMockup
                                 src="/tool-screens/mobile/pl.png"
                                 alt="P&L Reports"

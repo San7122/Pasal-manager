@@ -31,13 +31,13 @@ const faqs = [
 const FAQ = () => {
   const [open, setOpen] = useState(0);
   return (
-    <div className="py-24 px-6 bg-gradient-to-b from-white to-[#faf5ff]">
+    <div className="py-14 px-5 sm:py-20 sm:px-6 lg:py-24 bg-gradient-to-b from-white to-[#faf5ff]">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-[#ede9fe] text-[#5b21b6] px-4 py-2 rounded-full text-sm font-bold mb-4">
             <HelpCircle size={14} /> FAQ
           </div>
-          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter mb-3">
+          <h2 className="text-3xl sm:text-4xl lg:text-6xl font-black text-gray-900 tracking-tighter mb-3">
             Questions? <span className="text-[#7c3aed]">We've got answers.</span>
           </h2>
           <p className="text-lg text-gray-500 font-medium">Everything you need to know before getting started</p>

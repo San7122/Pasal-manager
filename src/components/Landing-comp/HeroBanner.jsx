@@ -33,7 +33,7 @@ const HeroBanner = () => {
                         <span className="text-xs font-bold tracking-wide uppercase">{t('trustedByShopkeepers')}</span>
                     </div>
 
-                    <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-6">
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-6">
                         <span><span className="text-amber-300">S</span>mart <span className="text-amber-300">B</span>usiness</span>
                         <br />
                         <span><span className="text-amber-300">S</span>tart <span className="text-amber-300">H</span>ere</span>
