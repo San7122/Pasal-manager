@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  if (new URLSearchParams(location.search).get('guest')) {
+    document.documentElement.classList.add('auto-login');
+    const s = document.createElement('style');
+    s.textContent = '.auto-login #auth-page{display:none!important;}';
+    document.head.appendChild(s);
+  }
+</script>
 <title>Pasal Manager - Shop Book & Business Manager</title>
 <meta name="description" content="Complete business management app for shopkeepers. Track sales, expenses, udhaar (credit), stock, staff, EMI plans, loans. Works offline. Free for India & Nepal shops.">
 <meta name="keywords" content="pasal manager, shop manager, dukan manager, udhaar, khata book, sales tracker, expense tracker, stock manager, business app, nepal shop, india shop">
