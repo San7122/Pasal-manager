@@ -2015,7 +2015,7 @@ body {
   </div>
   <div style="background:#111;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
     <div id="scanner-status" style="text-align:center;color:#9CA3AF;font-size:13px;min-height:18px"></div>
-    <div style="display:flex;gap:10px">
+    <div id="scanner-actions" style="display:flex;gap:10px">
       <button onclick="scannerEnterManual()" style="flex:1;padding:13px;background:#1F2937;color:#D1D5DB;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer">✏ Enter Code</button>
       <button onclick="closeScanner()" style="flex:1;padding:13px;background:#374151;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer">✕ Cancel</button>
     </div>
@@ -4288,6 +4288,9 @@ async function openScanner(target){
   document.getElementById('scanner-manual').style.display='none';
   document.getElementById('scanner-status').textContent='';
   document.getElementById('scanner-frame').classList.remove('scanner-found');
+  // Restore action buttons (in case they were hidden by a previous successful scan)
+  const actionsEl=document.getElementById('scanner-actions');
+  if(actionsEl) actionsEl.style.display='flex';
   try{
     scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
     const video=document.getElementById('scanner-video');
@@ -4333,9 +4336,16 @@ function _onBarcodeDetected(code){
   scannerActive=false;
   const frame=document.getElementById('scanner-frame');
   frame.classList.add('scanner-found');
-  document.getElementById('scanner-status').textContent='✓ '+code;
+  // Replace buttons with a clean success message — user sees confirmation, not action buttons
+  const statusEl=document.getElementById('scanner-status');
+  statusEl.innerHTML=`<span style="color:#10b981;font-size:15px;font-weight:700">✓ Scanned: ${code}</span><div style="color:#9CA3AF;font-size:12px;margin-top:4px">Adding to form…</div>`;
+  const actionsEl=document.getElementById('scanner-actions');
+  if(actionsEl) actionsEl.style.display='none';
+  const manualEl=document.getElementById('scanner-manual');
+  if(manualEl) manualEl.style.display='none';
   if(_zxingReader){try{_zxingReader.reset();}catch(e){}_zxingReader=null;}
-  setTimeout(()=>_handleScannedCode(code),500);
+  // Auto-process after brief flash of success — no manual click needed
+  setTimeout(()=>_handleScannedCode(code),400);
 }
 function closeScanner(){
   scannerActive=false;
