@@ -3001,7 +3001,17 @@ function _checkBackupReminder(){
 
 // ===== DATABASE =====
 async function loadAll(){
-  if(!currentUser){cacheRead();return;}
+  // FIX: Always load local settings first so country/language/Nepal payment IDs persist
+  // across online/offline transitions. Cloud sync can only ENHANCE local, never overwrite.
+  cacheRead();
+  if(!currentUser) return;
+  // Snapshot local-only fields that cloud doesn't sync (Nepal-specific)
+  const _localOnly = {
+    npPaymentId: S.npPaymentId || '',
+    esewaId:     S.esewaId || '',
+    khaltiId:    S.khaltiId || '',
+  };
+  const _localCountry = S.country; // remember user's manual choice
   try{
     const uid=currentUser.id;
     const[brr,sr,er,ur,str,spr,setr,khr,dlr,dle,cbr,ctr,sfr,sfer,gbr,rtr,epr,epyr,lnr,lnpr,scr]=await Promise.all([
@@ -3045,21 +3055,50 @@ async function loadAll(){
       try{
         const localCacheTs = parseInt(localStorage.getItem(cacheKey('cacheWriteAt'))||'0',10);
         const serverTs = d.updated_at?Date.parse(d.updated_at):0;
-        // If local cache was written after the server's settings, prefer local (user made newer change while offline)
         if(localCacheTs && localCacheTs > serverTs){
-          // Keep local S as-is, but merge unlock flags conservatively
+          // Local is newer — keep local S, only unlock features
           udhaarUnlocked = udhaarUnlocked || !!d.udhaar_unlocked;
           billUnlocked   = billUnlocked   || !!d.bill_unlocked;
           exportUnlocked = exportUnlocked || !!d.export_unlocked;
         } else {
-          S={country:d.country||'IN',language:d.language||'en',shopName:d.shop_name||'',ownPhone:d.own_phone||'',reminderTime:d.reminder_time||'21:00',gstin:d.gstin||'',bizAddress:d.biz_address||'',bizState:d.biz_state||''};
+          // Server is newer — merge but PRESERVE Nepal payment fields + respect user's manual country choice
+          S={
+            country:    d.country||_localCountry||'IN',
+            language:   d.language||'en',
+            shopName:   d.shop_name||'',
+            ownPhone:   d.own_phone||'',
+            reminderTime:d.reminder_time||'21:00',
+            gstin:      d.gstin||'',
+            bizAddress: d.biz_address||'',
+            bizState:   d.biz_state||'',
+            upiId:      d.upi_id||S.upiId||'',
+            // CRITICAL: preserve Nepal payment IDs (cloud doesn't sync these)
+            npPaymentId:_localOnly.npPaymentId,
+            esewaId:    _localOnly.esewaId,
+            khaltiId:   _localOnly.khaltiId,
+          };
           udhaarUnlocked=true;billUnlocked=true;exportUnlocked=true;
         }
       }catch(e){
-        // Fallback to server values if anything goes wrong reading cache
-        S={country:d.country||'IN',language:d.language||'en',shopName:d.shop_name||'',ownPhone:d.own_phone||'',reminderTime:d.reminder_time||'21:00',gstin:d.gstin||'',bizAddress:d.biz_address||'',bizState:d.biz_state||''};
+        // Same merge logic on error path
+        S={
+          country:    d.country||_localCountry||'IN',
+          language:   d.language||'en',
+          shopName:   d.shop_name||'',
+          ownPhone:   d.own_phone||'',
+          reminderTime:d.reminder_time||'21:00',
+          gstin:      d.gstin||'',
+          bizAddress: d.biz_address||'',
+          bizState:   d.biz_state||'',
+          upiId:      d.upi_id||S.upiId||'',
+          npPaymentId:_localOnly.npPaymentId,
+          esewaId:    _localOnly.esewaId,
+          khaltiId:   _localOnly.khaltiId,
+        };
         udhaarUnlocked=true;billUnlocked=true;exportUnlocked=true;
       }
+    } else {
+      // No cloud settings row yet — keep whatever cacheRead loaded (don't reset to IN defaults)
     }
     if(gbr.data) gstBills=gbr.data.map(r=>({id:r.id,invoiceNo:r.invoice_no,date:r.date,buyerName:r.buyer_name||'',buyerGstin:r.buyer_gstin||'',buyerAddr:r.buyer_address||'',buyerState:r.buyer_state||'',items:r.items||[],taxable:r.taxable||0,cgst:r.cgst||0,sgst:r.sgst||0,igst:r.igst||0,total:r.total||0,isInterstate:!!r.is_interstate,note:r.note||''}));
     if(rtr.data) returns=rtr.data.map(r=>({id:r.id,date:r.date,ts:r.ts,amt:r.amt,type:r.type,reason:r.reason||'Defective',note:r.note||'',refName:r.ref_name||'',country:r.country||'IN'}));
