@@ -10180,11 +10180,40 @@ async function init(){
   const _vp=new URLSearchParams(location.search);
   if(_vp.has('verify')){showVerifyMode(_vp.get('verify'));return;}
   renderAuthForm('login');
-  const{data:{session}}=await sb.auth.getSession();
-  if(session){
-    currentUser=session.user;
-    await afterLogin();
-  }
+
+  // FIX: Auto-restore returning guest session (skip the auth screen)
+  // If user previously started as guest, their settings are in localStorage.
+  // Don't make them re-enter shop name + lose access to saved settings.
+  try {
+    const savedGuestStart = localStorage.getItem(GUEST_DATE_KEY);
+    const savedSettingsRaw = localStorage.getItem('local_settings');
+    if (savedGuestStart && savedSettingsRaw) {
+      const savedSettings = JSON.parse(savedSettingsRaw);
+      if (savedSettings && savedSettings.shopName) {
+        // Returning guest — restore session silently
+        isGuestMode = true;
+        currentUser = null;
+        cacheRead(); // loads S from cacheKey('settings') = 'local_settings'
+        // Safety: if cacheRead missed anything, merge from local_settings
+        S = { ...S, ...savedSettings };
+        await afterLogin();
+        sb.auth.onAuthStateChange((event)=>{
+          if(event==='SIGNED_OUT' && currentUser){signOut();}
+        });
+        return;
+      }
+    }
+  } catch(e) { console.warn('Guest session restore failed:', e); }
+
+  // No saved guest session — try Supabase signed-in user
+  try {
+    const {data:{session}} = await sb.auth.getSession();
+    if(session){
+      currentUser = session.user;
+      await afterLogin();
+    }
+  } catch(e) { /* offline / Supabase unreachable — stay on auth screen */ }
+
   sb.auth.onAuthStateChange((event)=>{
     if(event==='SIGNED_OUT' && currentUser){signOut();}
   });
