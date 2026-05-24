@@ -3687,7 +3687,7 @@ function renderToday(){
     </div>
     <div class="sub-tabs" style="border-top:1px solid var(--color-border-tertiary)">
       <button class="sub-tab-btn${todayTab==='sale'?' active':''}" onclick="todayTab='sale';renderToday()">${t('todaySales')}</button>
-      <button class="sub-tab-btn${todayTab==='return'?' active':''}" onclick="todayTab='return';renderToday()" style="color:${todayTab==='return'?'var(--color-danger)':''}">↩ ${t('addReturn')}</button>
+      <button class="sub-tab-btn${todayTab==='return'?' active':''}" onclick="todayTab='return';renderToday()" style="color:${todayTab==='return'?'var(--color-danger)':''};display:inline-flex;align-items:center;justify-content:center;gap:6px">${licon('undo-2',15,'')} ${t('addReturn')}</button>
     </div>
     ${todayTab==='return'?`
     <div style="padding:12px 16px;border-bottom:1px solid var(--color-border-tertiary);background:var(--color-danger-light)">
@@ -3703,7 +3703,7 @@ function renderToday(){
         ${REASONS.map((r,i)=>`<button class="chip${selReturnReason===r?' selected-danger':''}" onclick="selReturnReason='${r}';renderToday()" style="${selReturnReason===r?'background:var(--color-danger);color:#fff;border-color:var(--color-danger)':''}">${t(REASON_KEYS[i])}</button>`).join('')}
       </div>
       <input class="input-sm" id="r-note" type="text" placeholder="${t('note')}" style="margin-bottom:8px">
-      <button class="btn-block" style="background:var(--color-danger)" onclick="addReturn()">↩ ${t('addReturn')}</button>
+      <button class="btn-block" style="background:var(--color-danger);display:inline-flex;align-items:center;justify-content:center;gap:6px" onclick="addReturn()">${licon('undo-2',16,'color:#fff;')} ${t('addReturn')}</button>
     </div>`:`
     <div class="inline-form">
       <div class="form-col">
