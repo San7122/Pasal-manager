@@ -3369,17 +3369,34 @@ async function confirmGuest(){
     return;
   }
   if(btn){btn.innerHTML='<span class="btn-spinner"></span>Starting...';btn.disabled=true;}
-  S.shopName=shopName;
   isGuestMode=true;
   currentUser=null;
+
+  // FIX: Load existing saved settings FIRST (country, Nepal payment IDs, etc.)
+  // BEFORE setting shopName, so we don't wipe what the user previously saved.
+  cacheRead();
+
+  // Now update shopName intelligently:
+  // - If no saved name yet → use whatever was typed
+  // - If saved name exists AND this is auto-login from URL param → KEEP saved (don't overwrite)
+  // - If user manually typed a different name on the auth screen → honor that
+  const urlParamName=new URLSearchParams(location.search).get('guest');
+  const isAutoLogin=urlParamName && decodeURIComponent(urlParamName)===shopName;
+  if(!S.shopName||S.shopName.trim()===''){
+    S.shopName=shopName;
+  } else if(!isAutoLogin && shopName!==S.shopName){
+    S.shopName=shopName;
+  }
+  // else: keep the saved S.shopName (don't let URL param overwrite a real saved name)
+
   // Record first-time guest start date
   if(!localStorage.getItem(GUEST_DATE_KEY)){
     localStorage.setItem(GUEST_DATE_KEY, Date.now().toString());
   }
-  // Save shop name to local settings
+  // Persist merged settings (now S has saved country/Nepal IDs + correct shopName)
   const localSettings=JSON.parse(localStorage.getItem('local_settings')||'null')||{};
-  localSettings.shopName=shopName;
   localStorage.setItem('local_settings',JSON.stringify({...localSettings,...S}));
+  cacheWrite();
   try{
     await afterLogin();
   }catch(e){
