@@ -1,70 +1,104 @@
-# Pasal Manager v1.0
+# 🛍️ Pasal Manager
 
-Mobile-first shopkeeper business tool for shoe & slipper shop owners in India and Nepal.
+> **Free shop management app for shopkeepers in India & Nepal**
 
-## Features (All 10)
+[![Live](https://img.shields.io/badge/Live-pasal--manager.vercel.app-7c3aed)](https://pasal-manager.vercel.app)
+[![PWA](https://img.shields.io/badge/PWA-Installable-7c3aed)](https://pasal-manager.vercel.app)
+[![Tests](https://img.shields.io/badge/Tests-72%2F72%20passing-22c55e)](#testing)
 
-1. **Daily Sale Entry** — Tap amount, tap +, done in 3 seconds
-2. **Katha (Ledger)** — Daily / Monthly / Yearly history with navigation
-3. **Udhaar Book** — Track customer credit with amounts and dates
-4. **WhatsApp Reminder** — 1-tap sends udhaar reminder to customer
-5. **Expense Tracker** — Categorized daily expenses (Shop, Rent, Staff, etc.)
-6. **Stock Manager** — Item name, size, qty, buy/sell price, low-stock alerts
-7. **Supplier Book** — Wholesale contact list with 1-tap call
-8. **Digital Bill** — Generate itemized bills, share via WhatsApp
-9. **Profit & Loss Report** — 6-month P&L summary
-10. **Export** — Text summary for CA/bank, copy or WhatsApp share
+Track sales, manage credit (udhaar), monitor stock with auto-generated barcodes, send PDF bills via WhatsApp, and collect payments through UPI / eSewa / Khalti / Fonepay.
 
-## Dual Market Support
+🌐 **Live:** https://pasal-manager.vercel.app
 
-| Feature       | India (IN)                    | Nepal (NP)                     |
-|---------------|-------------------------------|--------------------------------|
-| Currency      | ₹                             | रू                              |
-| Payments      | Cash, UPI, PhonePe, GPay, Paytm, Card | Cash, eSewa, Khalti, IME Pay, Fonepay, Card |
-| Language      | English, हिंदी                  | English, नेपाली                   |
+## ✨ Features (27 Total)
 
-## Tech Stack
+**Sales & Payments:** 3-sec sale entry · UPI QR (India) · eSewa/Khalti/Fonepay (Nepal) · Voice entry · Profit tracking
+**Credit:** Udhaar ledger · WhatsApp reminders · Due date tracking · Bulk overdue alerts
+**Stock:** Auto barcodes (Code 128) · Printable labels · Low-stock alerts · Camera scanner
+**Billing:** Simple + GST bills · A5 PDF receipts · Send PDF via WhatsApp · Print
+**Reports:** Business Dashboard · P&L · Daily WhatsApp reports · CSV/PDF export
+**More:** Customers · Suppliers · Staff Book · Cash Book · EMI/Loans · Multi-branch · Photo Khata · PIN lock
 
-- Pure HTML + CSS + Vanilla JS (no frameworks)
-- Single file — just open `pasal-manager.html`
-- Data stored in `window.storage` (persistent key-value)
-- Works offline — no backend, no login needed
-- Optimized for budget Android phones (₹8K-15K range)
+## 🌍 Regions & Languages
 
-## Storage Keys
+| Country | Currency | Payment Apps |
+|---------|----------|--------------|
+| 🇮🇳 India | ₹ INR | GPay, PhonePe, Paytm, BHIM |
+| 🇳🇵 Nepal | रू NPR | eSewa, Khalti, Fonepay, IME Pay (+ BS Calendar) |
 
-| Key             | Data                                                    |
-|-----------------|--------------------------------------------------------|
-| `pm_settings`   | `{ country, language, shopName }`                       |
-| `pm_sales`      | `[{ id, date, ts, amt, note, payMode, country }]`       |
-| `pm_expenses`   | `[{ id, date, ts, amt, note, category, country }]`      |
-| `pm_udhaar`     | `[{ id, name, phone, amt, date, ts, paid, country }]`   |
-| `pm_stock`      | `[{ id, name, size, qty, buy, sell, country }]`          |
-| `pm_suppliers`  | `[{ id, name, phone, note }]`                           |
+**UI Languages:** English · हिंदी · नेपाली
 
-## How to Use
+## 📱 Installation (PWA — Like a Native App)
 
-1. Open `pasal-manager.html` in any browser
-2. Go to Settings (More → Settings) to set your country and shop name
-3. Start adding sales on the Today tab
-4. Track everything from the Katha tab
+| Platform | Steps |
+|----------|-------|
+| **Android** | Chrome → install banner → tap Install |
+| **iPhone** | Safari → Share button → Add to Home Screen |
+| **Desktop** | Chrome/Edge → install icon in address bar |
 
-## Navigation
+## 🛠️ Tech Stack
 
-- **Today** — Quick sale entry (home screen)
-- **Katha** — History & P&L overview
-- **Udhaar** — Credit ledger (Premium)
-- **Stock** — Inventory management
-- **More** — Expenses, Suppliers, Bill, P&L Report, Export, Settings
+- **Landing:** React 19 + Vite 8 + Tailwind v4
+- **App:** Vanilla JS + HTML5 (9400+ lines)
+- **Storage:** localStorage (offline-first) + optional Supabase cloud sync
+- **PWA:** Service Worker (network-first HTML, cache-first assets)
+- **Libraries:** Chart.js, JsBarcode, jsPDF, Lucide icons
+- **Hosting:** Vercel (auto-deploy from GitHub)
+- **Testing:** 72 Puppeteer automated tests
 
-## Premium Features (Locked by Default)
+## 🚀 Development
 
-- Udhaar Book
-- Digital Bill Generator
-- Export
+```bash
+git clone https://github.com/San7122/Pasal-manager.git
+cd Pasal-manager
+npm install
+npm run dev      # http://localhost:8001
+npm run build    # → dist/
+npm test         # 72 Puppeteer tests
+```
 
-These show a lock icon and unlock with a tap (integrate with your payment system).
+## 📂 Structure
+
+```
+pasal-manager/
+├── index.html                # React entry (landing)
+├── pasal-manager.html        # Pasal Manager app (master)
+├── public/
+│   ├── app.html              # Synced from pasal-manager.html
+│   ├── share.html            # Printable QR poster
+│   ├── manifest.webmanifest  # PWA manifest
+│   ├── sw.js                 # Service worker
+│   ├── og-image.png          # Social share preview
+│   ├── sitemap.xml + robots.txt
+│   ├── logo-icon.svg + logo-full.svg
+│   ├── icons/                # PWA icons (72-1024px)
+│   └── tool-screens/         # Mobile screenshots
+├── src/
+│   ├── App.jsx · main.jsx · index.css
+│   ├── pages/Landing.jsx
+│   └── components/Landing-comp/  # 10 sections
+├── run-tests.js              # 72 tests
+├── vite.config.js · vercel.json
+└── README.md
+```
+
+## 📢 Marketing
+
+- [`SHARE-KIT.md`](./SHARE-KIT.md) — WhatsApp/SMS templates in English/Hindi/Nepali, QR codes
+- `pasal-qr.png` — Purple QR (social media)
+- `pasal-qr-print.png` — Black QR (printing)
+- [`/share`](https://pasal-manager.vercel.app/share) — Printable poster
+
+## 📊 QA Report
+
+See [`QA-REPORT.md`](./QA-REPORT.md) — 98.9% pass rate, security-audited, cross-browser tested, 375px/768px/1440px responsive.
+
+## 📄 License
+
+Free forever for individual shops. Use, share, modify — just don't sell as your own.
 
 ---
 
-Built for local shopkeepers who want to replace their katha copy with a digital tool.
+**🌐** https://pasal-manager.vercel.app
+**📦** https://github.com/San7122/Pasal-manager
+**📣** See [SHARE-KIT.md](./SHARE-KIT.md) to share with shopkeepers
