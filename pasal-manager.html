@@ -3947,8 +3947,10 @@ function renderKatha(){
   const tCost=filtered.reduce((a,s)=>a+(s.cost||0),0);
   const hasCost=filtered.some(s=>s.cost>0);
   const netSales=tSales-tReturns;
-  const grossProfit=netSales-tExp;
-  const netProfit=hasCost?netSales-tCost-tExp:null;
+  // FIX: True profit = Sales − Cost − Expenses (not just Sales − Expenses)
+  // When user tracks cost, show real profit. Otherwise fall back to Sales − Expenses.
+  const trueProfit=hasCost?(netSales-tCost-tExp):(netSales-tExp);
+  const netProfit=hasCost?(netSales-tCost-tExp):null;
   const combined=[...filtered.map(s=>({...s,_type:'sale'})),...expF.map(e=>({...e,_type:'exp'})),...retF.map(r=>({...r,_type:'return'}))].sort((a,b)=>(b.ts||0)-(a.ts||0));
   document.getElementById('page-katha').innerHTML=`
     <div class="sub-tabs">
@@ -3957,10 +3959,10 @@ function renderKatha(){
     <div class="stats-row">
       <div class="stat-card"><div class="stat-val" style="color:var(--color-success)">${fmt(netSales)}</div><div class="stat-label">${t('netSales')}</div></div>
       <div class="stat-card"><div class="stat-val" style="color:var(--color-danger)">${fmt(tExp)}</div><div class="stat-label">${t('expensesL')}</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:${grossProfit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(grossProfit)}</div><div class="stat-label">${t('profit')}</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${trueProfit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(trueProfit)}</div><div class="stat-label">${t('profit')}</div></div>
     </div>
     ${tReturns>0?`<div style="margin:0 12px 4px;background:var(--color-danger-light);border-radius:10px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--color-danger)">↩ ${t('totalReturns')}</span><span style="font-weight:700;color:var(--color-danger)">−${fmt(tReturns)}</span></div>`:''}
-    ${hasCost?`<div style="margin:0 12px 4px;background:var(--color-accent-light);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--color-text-secondary)">Cost / Investment</span><span style="font-weight:700;color:var(--color-accent)">${fmt(tCost)}</span></div><div style="margin:0 12px 8px;background:#F0FDF4;border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--color-text-secondary)">Actual Profit</span><span style="font-weight:700;color:${netProfit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(netProfit)}</span></div>`:''}
+    ${hasCost?`<div style="margin:0 12px 8px;background:var(--color-accent-light);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--color-text-secondary)">Cost / Investment</span><span style="font-weight:700;color:var(--color-accent)">${fmt(tCost)}</span></div>`:''}
     <div class="date-nav">
       <button class="date-nav-btn" onclick="kathaNav(-1)">&lt;</button>
       <div class="date-nav-label">${label}</div>
@@ -4148,7 +4150,8 @@ function generateDailyReport(dateStr){
   const netSalesAmt=totalAmt-totalRet;
   const totalExp=te.reduce((a,e)=>a+e.amt,0);
   const totalCost=ts.reduce((a,s)=>a+(s.cost||0),0);
-  const profit=netSalesAmt-totalExp;
+  // FIX: True profit = Sales − Cost − Expenses (not Sales − Expenses)
+  const profit=totalCost>0?(netSalesAmt-totalCost-totalExp):(netSalesAmt-totalExp);
   const shop=S.shopName||'Pasal Manager';
 
   // Date label
