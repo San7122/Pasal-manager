@@ -11,14 +11,6 @@
     document.head.appendChild(s);
   }
 </script>
-<script>
-  if (new URLSearchParams(location.search).get('guest')) {
-    document.documentElement.classList.add('auto-login');
-    const s = document.createElement('style');
-    s.textContent = '.auto-login #auth-page{display:none!important;}';
-    document.head.appendChild(s);
-  }
-</script>
 <title>Pasal Manager - Shop Book & Business Manager</title>
 <meta name="description" content="Complete business management app for shopkeepers. Track sales, expenses, udhaar (credit), stock, staff, EMI plans, loans. Works offline. Free for India & Nepal shops.">
 <meta name="keywords" content="pasal manager, shop manager, dukan manager, udhaar, khata book, sales tracker, expense tracker, stock manager, business app, nepal shop, india shop">
@@ -30,15 +22,15 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pasal Manager">
-<link rel="apple-touch-icon" href="logo-icon.svg">
-<link rel="apple-touch-icon" sizes="152x152" href="logo-icon.svg">
-<link rel="apple-touch-icon" sizes="180x180" href="logo-icon.svg">
-<link rel="apple-touch-icon" sizes="167x167" href="logo-icon.svg">
+<link rel="apple-touch-icon" href="icons/icon-180.png?v=2">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png?v=2">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-180.png?v=2">
 <!-- Favicon -->
-<link rel="icon" type="image/svg+xml" href="logo-icon.svg">
-<link rel="icon" type="image/png" sizes="192x192" href="logo-icon.svg">
+<link rel="icon" type="image/svg+xml" href="logo-icon.svg?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <!-- Apple Splash Screens (iPhone 14 Pro Max) -->
-<link rel="apple-touch-startup-image" href="icons/icon-1024.png">
+<link rel="apple-touch-startup-image" href="icons/icon-1024.png?v=2">
 <!-- Privacy Policy -->
 <link rel="privacy-policy" href="privacy.html">
 <!-- Open Graph (for sharing) -->
@@ -2867,21 +2859,38 @@ function cacheRead(){
 }
 
 // ===== BACKUP & RESTORE =====
-function backupData(){
+async function backupData(){
   const data={
     version:2, exportedAt:new Date().toISOString(), shopName:S.shopName,
     sales,expenses,udhaars,stock,suppliers,cashbookEntries,customers,
     staffList,staffEntries,gstBills,returns,branches,emiPlans,emiPayments,
     loans,loanPayments,kharidiEntries,dealers,dealerEntries,settings:S
   };
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const json=JSON.stringify(data,null,2);
+  const filename=`pasal-backup-${(S.shopName||'shop').replace(/[^a-z0-9]/gi,'_')}-${new Date().toISOString().slice(0,10)}.json`;
+  const blob=new Blob([json],{type:'application/json'});
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+
+  // iPhone: use Share Sheet so user can save to iCloud Drive / Files / Email
+  // (Apple wipes localStorage on PWA uninstall — the only safe place is OUTSIDE the app)
+  if(isIOS && navigator.canShare){
+    try{
+      const file=new File([blob],filename,{type:'application/json'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:'Pasal Manager Backup',text:'Pasal Manager — save this somewhere safe (iCloud, Email, WhatsApp)'});
+        localStorage.setItem('pm_last_backup',Date.now().toString());
+        _showToast('✓ Pick "Save to Files" or share via WhatsApp/Email');
+        return;
+      }
+    }catch(e){if(e.name==='AbortError') return;}
+  }
+  // Android / Desktop: native download
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;
-  a.download=`pasal-backup-${S.shopName||'shop'}-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
+  a.href=url; a.download=filename; a.click();
   URL.revokeObjectURL(url);
   localStorage.setItem('pm_last_backup',Date.now().toString());
+  _showToast('✓ Backup downloaded');
 }
 function restoreData(input){
   const file=input.files[0]; if(!file) return;
@@ -3468,8 +3477,36 @@ function _renderGuestBanner(){
   const banner=document.createElement('div');
   banner.id='guest-banner-el';
   banner.className='guest-banner';
-  banner.innerHTML=`<span>${t('guestBannerMsg')}</span><span class="guest-banner-link" onclick="startConvertGuest()">${t('guestBannerLink')} →</span>`;
+  banner.innerHTML=`<span>${t('guestBannerMsg')}</span><span class="guest-banner-link" onclick="backupData()">💾 Backup Now</span>`;
   topbar.after(banner);
+  _showIOSDataWarningOnce();
+}
+
+// One-time strong warning for iPhone users: PWA uninstall wipes data
+function _showIOSDataWarningOnce(){
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  if(!isIOS) return;
+  if(localStorage.getItem('pm_ios_data_warning_shown')) return;
+  // Wait for app to settle before showing
+  setTimeout(()=>{
+    localStorage.setItem('pm_ios_data_warning_shown','1');
+    const m=document.createElement('div');
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML=`
+      <div style="background:#fff;max-width:380px;width:100%;border-radius:18px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,0.3)">
+        <div style="font-size:34px;text-align:center;margin-bottom:8px">⚠️</div>
+        <div style="font-size:18px;font-weight:800;text-align:center;color:#1e1147;margin-bottom:12px">Important: Backup Your Data!</div>
+        <div style="font-size:14px;color:#475569;line-height:1.5;margin-bottom:14px">
+          On iPhone, if you <strong>uninstall this app, ALL your data will be lost</strong> (Apple's privacy rule).
+        </div>
+        <div style="background:#FEF3C7;border:1px solid #FBBF24;border-radius:10px;padding:10px 12px;font-size:13px;color:#92400E;margin-bottom:16px">
+          <strong>💡 Tip:</strong> Tap <strong>"💾 Backup Now"</strong> in the orange banner above every week. It saves all your data as a file you can restore later.
+        </div>
+        <button onclick="this.closest('div').parentNode.remove();backupData()" style="width:100%;background:#7c3aed;color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">💾 Backup Now (recommended)</button>
+        <button onclick="this.closest('div').parentNode.remove()" style="width:100%;background:transparent;color:#64748b;border:none;padding:10px;font-size:13px;cursor:pointer">I'll do it later</button>
+      </div>`;
+    document.body.appendChild(m);
+  },2500);
 }
 
 function _checkGuestNudge(){
@@ -4393,6 +4430,19 @@ function _zxingLoad(){
     document.head.appendChild(s);
   });
 }
+
+// html5-qrcode — best-in-class iOS support, handles iPhone Safari quirks
+let _html5QrScanner=null;
+function _html5QrLoad(){
+  return new Promise((res,rej)=>{
+    if(window.Html5Qrcode){res(window.Html5Qrcode);return;}
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    s.onload=()=>res(window.Html5Qrcode);
+    s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
 async function openScanner(target){
   scannerTarget=target;
   scannerActive=true;
@@ -4405,28 +4455,83 @@ async function openScanner(target){
   const actionsEl=document.getElementById('scanner-actions');
   if(actionsEl) actionsEl.style.display='flex';
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+
+  // iOS: use html5-qrcode (handles ALL iPhone Safari camera quirks internally)
+  if(isIOS){
+    try{
+      document.getElementById('scanner-status').textContent='Loading scanner…';
+      const Html5Qrcode=await _html5QrLoad();
+      // html5-qrcode manages its own video element; hide ours and use its container
+      const videoEl=document.getElementById('scanner-video');
+      if(videoEl) videoEl.style.display='none';
+      // Make sure there's a container div for html5-qrcode to render into
+      let qrContainer=document.getElementById('h5qr-container');
+      if(!qrContainer){
+        qrContainer=document.createElement('div');
+        qrContainer.id='h5qr-container';
+        qrContainer.style.cssText='position:absolute;inset:0;width:100%;height:100%;background:#000';
+        videoEl.parentNode.appendChild(qrContainer);
+      } else {
+        qrContainer.style.display='block';
+      }
+      _html5QrScanner=new Html5Qrcode('h5qr-container',{verbose:false});
+      const config={
+        fps:10,
+        qrbox:{width:260,height:160},
+        aspectRatio:1.333,
+        disableFlip:false,
+        formatsToSupport:[
+          0,  // QR_CODE
+          1,  // AZTEC
+          7,  // CODE_128
+          8,  // CODE_39
+          9,  // CODE_93
+          10, // CODABAR
+          11, // EAN_13
+          12, // EAN_8
+          14, // ITF
+          15, // UPC_A
+          16, // UPC_E
+        ],
+      };
+      await _html5QrScanner.start(
+        {facingMode:'environment'},
+        config,
+        (decodedText)=>{
+          if(scannerActive) _onBarcodeDetected(decodedText);
+        },
+        ()=>{} // ignore scan-frame errors
+      );
+      document.getElementById('scanner-status').textContent='Scanning…';
+    }catch(e){
+      console.error('html5-qrcode error:',e);
+      const msg=(e&&e.toString().includes('NotAllowedError'))
+        ? 'Camera permission denied. Enable: Settings → Safari → Camera'
+        : (e&&e.toString().includes('NotFoundError'))
+        ? 'No camera found'
+        : 'Scanner unavailable — enter code manually';
+      document.getElementById('scanner-status').textContent=msg;
+      document.getElementById('scanner-manual').style.display='block';
+      setTimeout(()=>document.getElementById('scanner-manual-input')?.focus(),100);
+    }
+    return;
+  }
+
+  // Android / Desktop path — original code
   try{
-    // iOS needs specific constraints — avoid 'ideal' resolution which can fail
-    const constraints=isIOS
-      ? {video:{facingMode:{ideal:'environment'}}}
-      : {video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}};
+    const constraints={video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}};
     scannerStream=await navigator.mediaDevices.getUserMedia(constraints);
     const video=document.getElementById('scanner-video');
-    // iOS-critical attributes (set programmatically to be safe)
+    video.style.display='block';
     video.setAttribute('playsinline','true');
-    video.setAttribute('webkit-playsinline','true');
-    video.muted=true;
-    video.autoplay=true;
+    video.muted=true; video.autoplay=true;
     video.srcObject=scannerStream;
-    // Wait for video to be ready (iOS needs this before scanning)
     await new Promise((resolve)=>{
       if(video.readyState>=2){resolve();}
       else video.onloadedmetadata=()=>resolve();
     });
-    try{await video.play();}catch(e){/* iOS may throw if not in user gesture — video still works */}
-
-    // iOS Safari doesn't have BarcodeDetector → always use ZXing on iOS
-    if(!isIOS && 'BarcodeDetector' in window){
+    try{await video.play();}catch(e){}
+    if('BarcodeDetector' in window){
       _runBarcodeDetector(video);
     } else {
       document.getElementById('scanner-status').textContent='Loading scanner…';
@@ -4435,7 +4540,7 @@ async function openScanner(target){
     }
   }catch(e){
     console.error('Scanner error:',e);
-    const msg=e.name==='NotAllowedError'?'Camera permission denied. Enable in Settings → Safari → Camera':
+    const msg=e.name==='NotAllowedError'?'Camera permission denied':
               e.name==='NotFoundError'?'No camera found':
               'Camera unavailable — enter code manually';
     document.getElementById('scanner-status').textContent=msg;
@@ -4506,15 +4611,22 @@ function _onBarcodeDetected(code){
   const manualEl=document.getElementById('scanner-manual');
   if(manualEl) manualEl.style.display='none';
   if(_zxingReader){try{_zxingReader.reset();}catch(e){}_zxingReader=null;}
+  if(_html5QrScanner){try{_html5QrScanner.stop().catch(()=>{});}catch(e){}}
   // Auto-process after brief flash of success — no manual click needed
   setTimeout(()=>_handleScannedCode(code),400);
 }
 function closeScanner(){
   scannerActive=false;
   if(_zxingReader){try{_zxingReader.reset();}catch(e){}_zxingReader=null;}
+  if(_html5QrScanner){
+    try{_html5QrScanner.stop().then(()=>{try{_html5QrScanner.clear();}catch(e){}}).catch(()=>{});}catch(e){}
+    _html5QrScanner=null;
+  }
+  const qrContainer=document.getElementById('h5qr-container');
+  if(qrContainer){qrContainer.style.display='none';qrContainer.innerHTML='';}
   if(scannerStream){scannerStream.getTracks().forEach(t=>t.stop());scannerStream=null;}
   const video=document.getElementById('scanner-video');
-  if(video){video.srcObject=null;}
+  if(video){video.srcObject=null;video.style.display='block';}
   document.getElementById('scanner-modal').classList.remove('open');
 }
 function scannerEnterManual(){

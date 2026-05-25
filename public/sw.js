@@ -1,5 +1,5 @@
 // Pasal Manager Service Worker — enables offline + PWA install
-const CACHE_VERSION = 'pm-v1';
+const CACHE_VERSION = 'pm-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -8,10 +8,11 @@ const CORE_ASSETS = [
   '/app.html',
   '/index.html',
   '/manifest.webmanifest',
-  '/logo-icon.svg',
+  '/logo-icon.svg?v=2',
   '/logo-full.svg',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  '/icons/icon-180.png?v=2',
+  '/icons/icon-192.png?v=2',
+  '/icons/icon-512.png?v=2',
 ];
 
 // Install — pre-cache core assets
