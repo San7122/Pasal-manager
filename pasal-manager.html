@@ -2144,16 +2144,22 @@ async function trackEvent(eventName, data){
 
 // Upsert the user's profile row whenever they log in / change shop name.
 // This is what powers the "Recent signups" + "Top shops" admin views.
+// IMPORTANT: never overwrite shop_name or country with an empty value —
+// otherwise a transient empty S (e.g. right after sign-out reset) would
+// wipe out the user's real shop name from the analytics_users row.
 async function _syncAnalyticsUser(){
   if(!currentUser || !currentUser.id) return;
+  const row = {
+    user_id: currentUser.id,
+    email: currentUser.email || '',
+    last_seen_at: new Date().toISOString(),
+  };
+  const shopName = ((S && S.shopName) || '').trim();
+  const country  = ((S && S.country)  || '').trim();
+  if (shopName) row.shop_name = shopName;
+  if (country)  row.country   = country;
   try {
-    await sb.from('analytics_users').upsert({
-      user_id: currentUser.id,
-      email: currentUser.email || '',
-      shop_name: (S?.shopName) || '',
-      country: (S?.country) || '',
-      last_seen_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
+    await sb.from('analytics_users').upsert(row, { onConflict: 'user_id' });
   } catch(_) {}
 }
 const UNLOCK_CODE = 'PASAL2025';
