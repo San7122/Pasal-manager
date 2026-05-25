@@ -2092,7 +2092,19 @@ body {
 // Supabase Dashboard → Project Settings → API
 const SUPABASE_URL = 'https://dmacgmvideuylcpkocmz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rN563RqZFLMUKgZjJICgvQ_oiornjGz';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage,
+    storageKey: 'pm_supabase_auth',
+    flowType: 'pkce',
+  },
+});
+// True only when the user clicks "Sign Out" — used to ignore spurious SIGNED_OUT events
+// (e.g. token-refresh failures on flaky mobile networks)
+let _userInitiatedSignout = false;
 const UNLOCK_CODE = 'PASAL2025';
 
 // ===== STATE =====
@@ -3231,7 +3243,21 @@ function renderAuthForm(mode){
     <button class="btn-block" id="auth-btn" onclick="${authMode==='login'?'doLogin()':'doSignup()'}" style="margin-top:8px">${authMode==='login'?'Login':'Create Account'}</button>
     ${authMode==='login'?`<div style="text-align:center;font-size:13px;color:#666;margin-top:4px">New here? <span style="color:var(--pm-purple);cursor:pointer;font-weight:600" onclick="renderAuthForm('signup')">Create account</span></div>`:`<div style="text-align:center;font-size:13px;color:#666;margin-top:4px">Already have account? <span style="color:var(--pm-purple);cursor:pointer;font-weight:600" onclick="renderAuthForm('login')">Login</span></div>`}
   `;
-  setTimeout(()=>{const e=document.getElementById('a-email');if(e)e.focus();},100);
+  setTimeout(()=>{
+    const e=document.getElementById('a-email');
+    if(!e) return;
+    // Pre-fill last-used email for returning users (set after a previous successful login)
+    try {
+      const lastEmail = localStorage.getItem('pm_last_login_email');
+      if(lastEmail && !e.value) {
+        e.value = lastEmail;
+        // Skip email focus → jump straight to password field
+        const p = document.getElementById('a-pass');
+        if(p) { p.focus(); return; }
+      }
+    } catch(_) {}
+    e.focus();
+  },100);
 }
 
 async function doLogin(){
@@ -3328,6 +3354,10 @@ function showAuthErr(msg){
 }
 
 async function afterLogin(){
+  // Cache email so we can pre-fill it if session ever expires (better UX)
+  if(currentUser && currentUser.email){
+    try { localStorage.setItem('pm_last_login_email', currentUser.email); } catch(e) {}
+  }
   // If a guest just created an account, migrate their local data first
   const wasGuest=isGuestMode && !!currentUser;
   if(wasGuest){
@@ -3378,7 +3408,10 @@ async function afterLogin(){
 }
 
 async function signOut(){
-  if(!isGuestMode) await sb.auth.signOut();
+  _userInitiatedSignout = true;
+  if(!isGuestMode) {
+    try { await sb.auth.signOut(); } catch(e) { /* best-effort */ }
+  }
   isGuestMode=false;
   currentUser=null;
   sales=[];expenses=[];udhaars=[];stock=[];suppliers=[];billItems=[];cashbookEntries=[];customers=[];staffList=[];staffEntries=[];gstBills=[];returns=[];
@@ -10582,25 +10615,44 @@ async function init(){
   if(_vp.has('verify')){showVerifyMode(_vp.get('verify'));return;}
   renderAuthForm('login');
 
+  // Resilient auth-state listener — handles token refresh failures gracefully on mobile
+  // Supabase emits SIGNED_OUT for token-refresh failures (network blip, phone sleeping,
+  // app backgrounding past 1h). We MUST NOT force-logout on those — only on real signouts.
+  sb.auth.onAuthStateChange((event, session)=>{
+    if (event === 'TOKEN_REFRESHED' && session) {
+      // Token successfully refreshed — keep the same user logged in
+      if (currentUser) currentUser = session.user;
+      return;
+    }
+    if (event === 'SIGNED_IN' && session) {
+      // Could be a fresh login or a recovery after refresh — sync user object
+      if (currentUser && currentUser.id === session.user.id) currentUser = session.user;
+      return;
+    }
+    if (event === 'SIGNED_OUT') {
+      // Only log out if THIS app initiated it. Refresh failures / token expiry should
+      // NOT kick the user out — they can keep using cached data and re-sync when network returns.
+      if (_userInitiatedSignout && currentUser) {
+        _userInitiatedSignout = false;
+        signOut();
+      }
+      // Otherwise: silently stay in the app. Sync will resume when network is back.
+      return;
+    }
+  });
+
   // FIX: Auto-restore returning guest session (skip the auth screen)
-  // If user previously started as guest, their settings are in localStorage.
-  // Don't make them re-enter shop name + lose access to saved settings.
   try {
     const savedGuestStart = localStorage.getItem(GUEST_DATE_KEY);
     const savedSettingsRaw = localStorage.getItem('local_settings');
     if (savedGuestStart && savedSettingsRaw) {
       const savedSettings = JSON.parse(savedSettingsRaw);
       if (savedSettings && savedSettings.shopName) {
-        // Returning guest — restore session silently
         isGuestMode = true;
         currentUser = null;
-        cacheRead(); // loads S from cacheKey('settings') = 'local_settings'
-        // Safety: if cacheRead missed anything, merge from local_settings
+        cacheRead();
         S = { ...S, ...savedSettings };
         await afterLogin();
-        sb.auth.onAuthStateChange((event)=>{
-          if(event==='SIGNED_OUT' && currentUser){signOut();}
-        });
         return;
       }
     }
@@ -10614,10 +10666,6 @@ async function init(){
       await afterLogin();
     }
   } catch(e) { /* offline / Supabase unreachable — stay on auth screen */ }
-
-  sb.auth.onAuthStateChange((event)=>{
-    if(event==='SIGNED_OUT' && currentUser){signOut();}
-  });
 }
 init();
 
