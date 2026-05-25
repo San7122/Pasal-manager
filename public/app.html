@@ -3041,22 +3041,66 @@ function _wqPush(op){const q=_wqLoad();q.push({...op,ts:Date.now()});_wqSave(q);
 async function _wqFlush(){
   if(!currentUser||!navigator.onLine) return;
   const q=_wqLoad();
-  if(!q.length) return;
+  if(!q.length){_updateOfflineBadge();return;}
   const remaining=[];
   for(const op of q){
     try{
-      if(op.type==='insert') await sb.from(op.table).insert(op.row);
-      else if(op.type==='delete') await sb.from(op.table).delete().eq('id',op.id).eq('user_id',currentUser.id);
-      else if(op.type==='update') await sb.from(op.table).update(op.fields).eq('id',op.id).eq('user_id',currentUser.id);
+      if(op.type==='insert')      { const {error} = await sb.from(op.table).insert(op.row); if(error) throw error; }
+      else if(op.type==='delete') { const {error} = await sb.from(op.table).delete().eq('id',op.id).eq('user_id',currentUser.id); if(error) throw error; }
+      else if(op.type==='update') { const {error} = await sb.from(op.table).update(op.fields).eq('id',op.id).eq('user_id',currentUser.id); if(error) throw error; }
+      else if(op.type==='upsert') { const {error} = await sb.from(op.table).upsert(op.row,{onConflict:op.onConflict||'id'}); if(error) throw error; }
     }catch(e){remaining.push(op);}
   }
   _wqSave(remaining);
-  if(q.length>remaining.length) console.log(`Synced ${q.length-remaining.length} offline writes`);
+  const synced = q.length - remaining.length;
+  _updateOfflineBadge();
+  if(synced > 0){
+    console.log(`Synced ${synced} offline writes`);
+    _showToast(`✓ Synced ${synced} offline ${synced===1?'change':'changes'} to cloud`);
+  }
 }
-// Retry when back online
-window.addEventListener('online',()=>{_wqFlush();});
+// Retry when back online + refresh data
+window.addEventListener('online',()=>{
+  _updateOfflineBadge();
+  _wqFlush().then(()=>{
+    // After successful flush, pull fresh data so user sees latest from any other device
+    if(currentUser && navigator.onLine && typeof loadAll === 'function'){
+      loadAll().then(()=>{
+        if(typeof renderTab === 'function') renderTab();
+      }).catch(()=>{});
+    }
+  });
+});
+window.addEventListener('offline',()=>{_updateOfflineBadge();});
 // Retry every 60s if queue has items
-setInterval(()=>{if(_wqLoad().length>0) _wqFlush();},60000);
+setInterval(()=>{if(_wqLoad().length>0) _wqFlush(); else _updateOfflineBadge();},60000);
+
+// ===== OFFLINE INDICATOR BADGE =====
+function _updateOfflineBadge(){
+  let el = document.getElementById('offline-badge');
+  const queued = _wqLoad().length;
+  const isOffline = !navigator.onLine;
+  // Only show if there's something to communicate (offline OR queue has items)
+  if(!isOffline && queued === 0){
+    if(el) el.remove();
+    return;
+  }
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'offline-badge';
+    el.style.cssText='position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;z-index:9998;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(0,0,0,0.25);cursor:default';
+    document.body.appendChild(el);
+  }
+  if(isOffline){
+    el.style.background='#dc2626';
+    el.innerHTML = queued
+      ? `📡 Offline · ${queued} waiting to sync`
+      : `📡 Offline — changes saved here`;
+  } else if(queued){
+    el.style.background='#f59e0b';
+    el.innerHTML = `🔄 Syncing ${queued}…`;
+  }
+}
 
 // ===== WEEKLY BACKUP REMINDER =====
 function _checkBackupReminder(){
@@ -3137,7 +3181,8 @@ async function loadAll(){
           billUnlocked   = billUnlocked   || !!d.bill_unlocked;
           exportUnlocked = exportUnlocked || !!d.export_unlocked;
         } else {
-          // Server is newer — merge but PRESERVE Nepal payment fields + respect user's manual country choice
+          // Server is newer — merge but RESPECT user's manual country choice
+          // Nepal payment IDs: prefer server (if synced) but fall back to local cache
           S={
             country:    d.country||_localCountry||'IN',
             language:   d.language||'en',
@@ -3148,10 +3193,9 @@ async function loadAll(){
             bizAddress: d.biz_address||'',
             bizState:   d.biz_state||'',
             upiId:      d.upi_id||S.upiId||'',
-            // CRITICAL: preserve Nepal payment IDs (cloud doesn't sync these)
-            npPaymentId:_localOnly.npPaymentId,
-            esewaId:    _localOnly.esewaId,
-            khaltiId:   _localOnly.khaltiId,
+            npPaymentId:d.np_payment_id||_localOnly.npPaymentId,
+            esewaId:    d.esewa_id||_localOnly.esewaId,
+            khaltiId:   d.khalti_id||_localOnly.khaltiId,
           };
           udhaarUnlocked=true;billUnlocked=true;exportUnlocked=true;
         }
@@ -3167,9 +3211,9 @@ async function loadAll(){
           bizAddress: d.biz_address||'',
           bizState:   d.biz_state||'',
           upiId:      d.upi_id||S.upiId||'',
-          npPaymentId:_localOnly.npPaymentId,
-          esewaId:    _localOnly.esewaId,
-          khaltiId:   _localOnly.khaltiId,
+          npPaymentId:d.np_payment_id||_localOnly.npPaymentId,
+          esewaId:    d.esewa_id||_localOnly.esewaId,
+          khaltiId:   d.khalti_id||_localOnly.khaltiId,
         };
         udhaarUnlocked=true;billUnlocked=true;exportUnlocked=true;
       }
@@ -3201,11 +3245,49 @@ async function saveSettings(){
     _showToast('Saved locally on this device');
     return;
   }
+  // NOTE: np_payment_id / esewa_id / khalti_id are optional columns. If your Supabase
+  // pm_settings table doesn't have them yet, the upsert will fail and these fields
+  // stay local-only (still in cacheWrite). Run the SQL migration in MIGRATIONS.md to enable.
+  const settingsRow = {
+    user_id:currentUser.id,
+    country:S.country,
+    language:S.language,
+    shop_name:S.shopName,
+    own_phone:S.ownPhone,
+    reminder_time:S.reminderTime,
+    gstin:S.gstin,
+    biz_address:S.bizAddress,
+    biz_state:S.bizState,
+    upi_id:S.upiId||'',
+    np_payment_id:S.npPaymentId||'',
+    esewa_id:S.esewaId||'',
+    khalti_id:S.khaltiId||'',
+    udhaar_unlocked:udhaarUnlocked,
+    bill_unlocked:billUnlocked,
+    export_unlocked:exportUnlocked,
+    updated_at:new Date().toISOString(),
+  };
   try{
-    await sb.from('pm_settings').upsert({user_id:currentUser.id,country:S.country,language:S.language,shop_name:S.shopName,own_phone:S.ownPhone,reminder_time:S.reminderTime,gstin:S.gstin,biz_address:S.bizAddress,biz_state:S.bizState,udhaar_unlocked:udhaarUnlocked,bill_unlocked:billUnlocked,export_unlocked:exportUnlocked,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+    let { error } = await sb.from('pm_settings').upsert(settingsRow,{onConflict:'user_id'});
+    if(error){
+      // Likely cause: optional Nepal columns don't exist on this Supabase project.
+      // Retry without them so the rest of the settings still sync.
+      const fallback = {...settingsRow};
+      delete fallback.np_payment_id;
+      delete fallback.esewa_id;
+      delete fallback.khalti_id;
+      delete fallback.upi_id;
+      const retry = await sb.from('pm_settings').upsert(fallback,{onConflict:'user_id'});
+      if(retry.error) throw retry.error;
+    }
     showSaved();
     _showToast(navigator.onLine ? 'Saved locally and on server' : 'Saved locally — will sync when online');
-  }catch(e){console.error('Settings save failed',e);_showToast('Saved locally; server sync failed');}
+  }catch(e){
+    console.error('Settings save failed — queuing for retry',e);
+    // Queue for retry when back online (upsert with onConflict user_id is idempotent)
+    _wqPush({type:'upsert',table:'pm_settings',row:settingsRow,onConflict:'user_id'});
+    _showToast('Saved locally — will sync when online');
+  }
 }
 
 async function dbAdd(table,row){
@@ -3406,6 +3488,7 @@ async function afterLogin(){
   setTimeout(checkOverdueNotification,1500);
   setTimeout(initReminderCheck,2000);
   setTimeout(_wqFlush,3000);       // Retry any queued offline writes
+  setTimeout(_updateOfflineBadge,3500); // Show offline badge if anything is queued
   setTimeout(_checkBackupReminder,5000); // Weekly backup reminder
   if(!isGuestMode) setTimeout(initMorningBriefing,3000);
   initVisibilityLock();
@@ -3602,27 +3685,104 @@ function startConvertGuest(){
 async function _migrateGuestData(){
   if(!currentUser) return;
   const uid=currentUser.id;
-  try{
-    // Read all local guest data
-    const gSales=JSON.parse(localStorage.getItem('local_sales')||'[]');
-    const gExp=JSON.parse(localStorage.getItem('local_expenses')||'[]');
-    const gUdhaars=JSON.parse(localStorage.getItem('local_udhaar')||'[]');
-    const gStock=JSON.parse(localStorage.getItem('local_stock')||'[]');
-    const inserts=[];
-    if(gSales.length) inserts.push(sb.from('pm_sales').insert(gSales.map(r=>({id:r.id,user_id:uid,date:r.date,ts:r.ts,amt:r.amt,cost:r.cost||0,note:r.note||'',pay_mode:r.payMode||'Cash',country:r.country||'IN'}))));
-    if(gExp.length) inserts.push(sb.from('pm_expenses').insert(gExp.map(r=>({id:r.id,user_id:uid,date:r.date,ts:r.ts,amt:r.amt,note:r.note||'',category:r.category||'Shop',country:r.country||'IN'}))));
-    if(gUdhaars.length) inserts.push(sb.from('pm_udhaar').insert(gUdhaars.map(r=>({id:r.id,user_id:uid,name:r.name,phone:r.phone||'',amt:r.amt,date:r.date,ts:r.ts,paid:!!r.paid,due_date:r.dueDate||'',country:r.country||'IN'}))));
-    if(gStock.length) inserts.push(sb.from('pm_stock').insert(gStock.map(r=>({id:r.id,user_id:uid,name:r.name,size:r.size||'',qty:r.qty,buy:r.buy,sell:r.sell,country:r.country||'IN',barcode:r.barcode||''}))));
-    await Promise.allSettled(inserts);
-    // Clear local guest data after migration
-    ['local_sales','local_expenses','local_udhaar','local_stock','local_settings',
-     'local_cashbook','local_customers','local_staffList','local_staffEntries',
-     'local_gstBills','local_returns','local_branches','local_emiPlans',
-     'local_emiPayments','local_loans','local_loanPayments','local_kharidiEntries',
-     'local_dealers','local_dealerEntries'].forEach(k=>localStorage.removeItem(k));
-    localStorage.removeItem(GUEST_DATE_KEY);
-    console.log('Guest data migrated successfully');
-  }catch(e){console.error('Guest migration partial failure',e);}
+  // Helper — read local guest data by key
+  const _g = (k) => { try{ return JSON.parse(localStorage.getItem('local_'+k)||'[]'); }catch(_){ return []; } };
+
+  // Read EVERY local cache the app uses
+  const gSales      = _g('sales');
+  const gExpenses   = _g('expenses');
+  const gUdhaars    = _g('udhaar');
+  const gStock      = _g('stock');
+  const gSuppliers  = _g('suppliers');
+  const gCustomers  = _g('customers');
+  const gStaff      = _g('staffList');
+  const gStaffEntr  = _g('staffEntries');
+  const gReturns    = _g('returns');
+  const gCashbook   = _g('cashbook');
+  const gKharidi    = _g('kharidiEntries');
+  const gDealers    = _g('dealers');
+  const gDealerEntr = _g('dealerEntries');
+  const gGstBills   = _g('gstBills');
+  const gBranches   = _g('branches');
+  const gEmiPlans   = _g('emiPlans');
+  const gEmiPays    = _g('emiPayments');
+  const gLoans      = _g('loans');
+  const gLoanPays   = _g('loanPayments');
+
+  // Per-table mappers from local-shape → Supabase-row-shape
+  const map = {
+    'pm_sales':         r => ({id:r.id,user_id:uid,date:r.date,ts:r.ts,amt:r.amt,cost:r.cost||0,note:r.note||'',pay_mode:r.payMode||'Cash',country:r.country||'IN'}),
+    'pm_expenses':      r => ({id:r.id,user_id:uid,date:r.date,ts:r.ts,amt:r.amt,note:r.note||'',category:r.category||'Shop',country:r.country||'IN'}),
+    'pm_udhaar':        r => ({id:r.id,user_id:uid,name:r.name,phone:r.phone||'',amt:r.amt,date:r.date,ts:r.ts,paid:!!r.paid,due_date:r.dueDate||'',country:r.country||'IN'}),
+    'pm_stock':         r => ({id:r.id,user_id:uid,name:r.name,size:r.size||'',qty:r.qty,buy:r.buy,sell:r.sell,country:r.country||'IN',barcode:r.barcode||''}),
+    'pm_suppliers':     r => ({id:r.id,user_id:uid,name:r.name,phone:r.phone||'',note:r.note||''}),
+    'pm_customers':     r => ({id:r.id,user_id:uid,name:r.name,phone:r.phone||'',address:r.address||'',note:r.note||'',ts:r.ts||Date.now()}),
+    'pm_staff':         r => ({id:r.id,user_id:uid,name:r.name,phone:r.phone||'',salary_type:r.salaryType||'daily',salary_amt:r.salaryAmt||0}),
+    'pm_staff_entries': r => ({id:r.id,user_id:uid,staff_name:r.staffName,date:r.date,type:r.type,value:r.value,note:r.note||''}),
+    'pm_returns':       r => ({id:r.id,user_id:uid,date:r.date,ts:r.ts,amt:r.amt,type:r.type,reason:r.reason||'Defective',note:r.note||'',ref_name:r.refName||'',country:r.country||'IN'}),
+    'pm_cashbook':      r => ({id:r.id,user_id:uid,date:r.date,opening:r.opening||0,expected:r.expected,actual:r.actual,difference:r.difference,note:r.note||''}),
+    'pm_kharidi':       r => ({id:r.id,user_id:uid,supplier_name:r.supplierName,date:r.date,ts:r.ts,amt:r.amt,type:r.type,note:r.note||'',country:r.country||'IN'}),
+    'pm_dealers':       r => ({id:r.id,user_id:uid,name:r.name,phone:r.phone||'',note:r.note||''}),
+    'pm_dealer_entries':r => ({id:r.id,user_id:uid,dealer_name:r.dealerName,date:r.date,ts:r.ts,amt:r.amt,type:r.type,note:r.note||'',country:r.country||'IN'}),
+    'pm_gst_bills':     r => ({id:r.id,user_id:uid,invoice_no:r.invoiceNo,date:r.date,buyer_name:r.buyerName||'',buyer_gstin:r.buyerGstin||'',buyer_address:r.buyerAddr||'',buyer_state:r.buyerState||'',items:r.items||[],taxable:r.taxable||0,cgst:r.cgst||0,sgst:r.sgst||0,igst:r.igst||0,total:r.total||0,is_interstate:!!r.isInterstate,note:r.note||''}),
+    'pm_branches':      r => ({id:r.id,user_id:uid,name:r.name,location:r.location||'',is_default:!!r.isDefault}),
+    'pm_emi_plans':     r => ({id:r.id,user_id:uid,customer_name:r.customerName,phone:r.phone||'',total_amt:r.totalAmt,down_payment:r.downPayment||0,installments:r.installments,frequency:r.frequency||'monthly',start_date:r.startDate,note:r.note||'',created_at:r.createdAt||new Date().toISOString()}),
+    'pm_emi_payments':  r => ({id:r.id,user_id:uid,plan_id:r.planId,due_date:r.dueDate,amt:r.amt,paid:!!r.paid,paid_date:r.paidDate||null}),
+    'pm_loans':         r => ({id:r.id,user_id:uid,lender:r.lender,loan_amt:r.loanAmt,interest_rate:r.interestRate||0,tenure:r.tenure,emi_amt:r.emiAmt,start_date:r.startDate,note:r.note||'',created_at:r.createdAt||new Date().toISOString()}),
+    'pm_loan_payments': r => ({id:r.id,user_id:uid,loan_id:r.loanId,due_date:r.dueDate,emi_amt:r.emiAmt,principal:r.principal||0,interest:r.interest||0,paid:!!r.paid,paid_date:r.paidDate||null}),
+  };
+
+  // Build all the upserts (upsert handles re-migration without dupes if it ever re-runs)
+  const tasks = [
+    ['pm_sales',         gSales],
+    ['pm_expenses',      gExpenses],
+    ['pm_udhaar',        gUdhaars],
+    ['pm_stock',         gStock],
+    ['pm_suppliers',     gSuppliers],
+    ['pm_customers',     gCustomers],
+    ['pm_staff',         gStaff],
+    ['pm_staff_entries', gStaffEntr],
+    ['pm_returns',       gReturns],
+    ['pm_cashbook',      gCashbook],
+    ['pm_kharidi',       gKharidi],
+    ['pm_dealers',       gDealers],
+    ['pm_dealer_entries',gDealerEntr],
+    ['pm_gst_bills',     gGstBills],
+    ['pm_branches',      gBranches],
+    ['pm_emi_plans',     gEmiPlans],
+    ['pm_emi_payments',  gEmiPays],
+    ['pm_loans',         gLoans],
+    ['pm_loan_payments', gLoanPays],
+  ];
+
+  let totalMigrated = 0;
+  for (const [table, rows] of tasks) {
+    if (!rows.length) continue;
+    const mapped = rows.map(map[table]);
+    try {
+      await sb.from(table).upsert(mapped, {onConflict:'id'});
+      totalMigrated += mapped.length;
+    } catch(e) {
+      // Queue each row individually so it retries when back online
+      console.warn(`Migration of ${table} deferred — will retry from queue`, e?.message);
+      mapped.forEach(row => _wqPush({type:'insert', table, row}));
+    }
+  }
+
+  // Also migrate settings (shop name, country, language, GSTIN, Nepal payment IDs)
+  try {
+    await saveSettings();
+  } catch(e) { /* saveSettings has its own queue now */ }
+
+  // Clear local guest data after migration (data is now in cloud or queued)
+  ['local_sales','local_expenses','local_udhaar','local_stock','local_settings',
+   'local_cashbook','local_customers','local_staffList','local_staffEntries',
+   'local_gstBills','local_returns','local_branches','local_emiPlans',
+   'local_emiPayments','local_loans','local_loanPayments','local_kharidiEntries',
+   'local_dealers','local_dealerEntries','local_suppliers'].forEach(k=>localStorage.removeItem(k));
+  localStorage.removeItem(GUEST_DATE_KEY);
+  console.log(`Guest data migrated: ${totalMigrated} rows across ${tasks.filter(([_,r])=>r.length).length} tables`);
+  if (totalMigrated > 0) _showToast(`✓ ${totalMigrated} guest records moved to your account`);
 }
 
 // ===== SIDEBAR =====
