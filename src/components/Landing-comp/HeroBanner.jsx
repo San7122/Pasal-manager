@@ -65,7 +65,7 @@ const HeroBanner = () => {
 
                     <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                         <HeroInstallButton />
-                        <a href="/app.html" className="text-white/90 font-semibold text-sm sm:text-base underline-offset-4 hover:underline inline-flex items-center gap-1.5 transition-all">
+                        <a href="/app.html" className="text-white/90 font-semibold text-sm sm:text-base underline-offset-4 hover:underline inline-flex items-center gap-1.5 transition-all py-3 px-1 min-h-[44px]">
                             or try in browser →
                         </a>
                     </div>
@@ -100,44 +100,44 @@ const HeroBanner = () => {
 
                                 {/* Metric 1 */}
                                 <div className="p-4 bg-[#f5f3ff] rounded-[24px] border border-[#ede9fe] flex flex-col justify-center transform hover:scale-105 transition-transform cursor-default">
-                                    <span className="text-[10px] font-black text-[#a78bfa] uppercase tracking-widest mb-1">Sales</span>
+                                    <span className="text-xs font-black text-[#a78bfa] uppercase tracking-widest mb-1">Sales</span>
                                     <h5 className="text-lg font-black text-gray-900 leading-none">Daily Entry</h5>
-                                    <p className="text-[10px] text-[#5b21b6] font-bold mt-2">3 seconds</p>
+                                    <p className="text-xs text-[#5b21b6] font-bold mt-2">3 seconds</p>
                                 </div>
 
                                 {/* Metric 2 */}
                                 <div className="p-4 bg-blue-50 rounded-[24px] border border-blue-100 flex flex-col justify-center transform hover:scale-105 transition-transform cursor-default">
-                                    <span className="text-[10px] font-black text-[#a78bfa] uppercase tracking-widest mb-1">Credit</span>
+                                    <span className="text-xs font-black text-[#a78bfa] uppercase tracking-widest mb-1">Credit</span>
                                     <h5 className="text-lg font-black text-gray-900 leading-none">Udhaar Book</h5>
-                                    <p className="text-[10px] text-[#5b21b6] font-bold mt-2">Never lose track</p>
+                                    <p className="text-xs text-[#5b21b6] font-bold mt-2">Never lose track</p>
                                 </div>
 
                                 {/* Metric 3 */}
                                 <div className="p-4 bg-emerald-50 rounded-[24px] border border-emerald-100 flex flex-col justify-center transform hover:scale-105 transition-transform cursor-default">
-                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Inventory</span>
+                                    <span className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-1">Inventory</span>
                                     <h5 className="text-lg font-black text-gray-900 leading-none">Stock Manager</h5>
-                                    <p className="text-[10px] text-emerald-600 font-bold mt-2">Low-stock alerts</p>
+                                    <p className="text-xs text-emerald-600 font-bold mt-2">Low-stock alerts</p>
                                 </div>
 
                                 {/* Metric 4 */}
                                 <div className="p-4 bg-orange-50 rounded-[24px] border border-[#f5f3ff] flex flex-col justify-center transform hover:scale-105 transition-transform cursor-default">
-                                    <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Expenses</span>
+                                    <span className="text-xs font-black text-orange-400 uppercase tracking-widest mb-1">Expenses</span>
                                     <h5 className="text-lg font-black text-gray-900 leading-none">Track Costs</h5>
-                                    <p className="text-[10px] text-orange-600 font-bold mt-2">Categorized</p>
+                                    <p className="text-xs text-orange-600 font-bold mt-2">Categorized</p>
                                 </div>
 
                                 {/* Metric 5 */}
                                 <div className="p-4 bg-[#f5f3ff] rounded-[24px] border border-[#ede9fe] flex flex-col justify-center transform hover:scale-105 transition-transform cursor-default">
-                                    <span className="text-[10px] font-black text-[#a78bfa] uppercase tracking-widest mb-1">Reports</span>
+                                    <span className="text-xs font-black text-[#a78bfa] uppercase tracking-widest mb-1">Reports</span>
                                     <h5 className="text-lg font-black text-gray-900 leading-none">P&L Report</h5>
-                                    <p className="text-[10px] text-[#5b21b6] font-bold mt-2">6-month view</p>
+                                    <p className="text-xs text-[#5b21b6] font-bold mt-2">6-month view</p>
                                 </div>
 
                                 {/* Metric 6 */}
                                 <div className="p-4 bg-[#f5f3ff] rounded-[24px] border border-[#ede9fe] flex flex-col justify-center transform hover:scale-105 transition-transform cursor-default">
-                                    <span className="text-[10px] font-black text-[#a78bfa] uppercase tracking-widest mb-1">Digital</span>
+                                    <span className="text-xs font-black text-[#a78bfa] uppercase tracking-widest mb-1">Digital</span>
                                     <h5 className="text-lg font-black text-gray-900 leading-none">Create Bills</h5>
-                                    <p className="text-[10px] text-[#5b21b6] font-bold mt-2">Share on WhatsApp</p>
+                                    <p className="text-xs text-[#5b21b6] font-bold mt-2">Share on WhatsApp</p>
                                 </div>
 
                             </div>

@@ -30,7 +30,7 @@ const PaymentApps = () => (
           >
             <div className="text-2xl mb-1">{app.emoji}</div>
             <div className={`font-black text-sm ${app.color}`}>{app.name}</div>
-            <div className="text-[10px] text-gray-500 font-semibold mt-0.5 uppercase tracking-wide">{app.sub}</div>
+            <div className="text-xs text-gray-500 font-semibold mt-0.5 uppercase tracking-wide">{app.sub}</div>
           </div>
         ))}
       </div>

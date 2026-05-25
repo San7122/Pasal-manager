@@ -21,22 +21,22 @@ const Footer = () => {
           {/* Quick Links */}
           <div>
             <h4 className="text-sm font-black uppercase tracking-widest text-gray-900 mb-6">Features</h4>
-            <ul className="space-y-4 text-gray-500 font-bold">
-              <li><a href="#" className="hover:text-black transition-colors">Daily Sales</a></li>
-              <li><a href="#" className="hover:text-black transition-colors">Udhaar Book</a></li>
-              <li><a href="#" className="hover:text-black transition-colors">Stock Manager</a></li>
-              <li><a href="#" className="hover:text-black transition-colors">P&L Reports</a></li>
+            <ul className="space-y-1 text-gray-500 font-bold">
+              <li><a href="#" className="block py-3 hover:text-black transition-colors min-h-[44px]">Daily Sales</a></li>
+              <li><a href="#" className="block py-3 hover:text-black transition-colors min-h-[44px]">Udhaar Book</a></li>
+              <li><a href="#" className="block py-3 hover:text-black transition-colors min-h-[44px]">Stock Manager</a></li>
+              <li><a href="#" className="block py-3 hover:text-black transition-colors min-h-[44px]">P&L Reports</a></li>
             </ul>
           </div>
 
           {/* Company */}
           <div>
             <h4 className="text-sm font-black uppercase tracking-widest text-gray-900 mb-6">Company</h4>
-            <ul className="space-y-4 text-gray-500 font-bold">
-              <li><a href="#" className="hover:text-black transition-colors">Mission</a></li>
-              <li><a href="#" className="hover:text-black transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-black transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-black transition-colors">Contact Us</a></li>
+            <ul className="space-y-1 text-gray-500 font-bold">
+              <li><a href="#" className="block py-3 hover:text-black transition-colors min-h-[44px]">Mission</a></li>
+              <li><a href="#" className="block py-3 hover:text-black transition-colors min-h-[44px]">Careers</a></li>
+              <li><a href="/privacy.html" className="block py-3 hover:text-black transition-colors min-h-[44px]">Privacy Policy</a></li>
+              <li><a href="#" className="block py-3 hover:text-black transition-colors min-h-[44px]">Contact Us</a></li>
             </ul>
           </div>
 

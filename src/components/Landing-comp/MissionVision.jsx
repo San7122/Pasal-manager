@@ -61,7 +61,7 @@ const MissionVision = () => {
                                 <Zap size={18} className="text-[#7c3aed]" fill="currentColor" />
                             </div>
                             <div>
-                                <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide">Speed</div>
+                                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Speed</div>
                                 <div className="text-sm font-black text-gray-900">3 sec entry</div>
                             </div>
                         </div>
@@ -69,7 +69,7 @@ const MissionVision = () => {
                         <div className="absolute -bottom-2 left-4 lg:left-12 bg-[#1e1147] text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 transform -rotate-2 z-30">
                             <Flame size={18} className="text-orange-400" />
                             <div>
-                                <div className="text-[10px] opacity-70 font-semibold uppercase tracking-wide">Trusted by</div>
+                                <div className="text-xs opacity-70 font-semibold uppercase tracking-wide">Trusted by</div>
                                 <div className="text-sm font-black">5,000+ shops</div>
                             </div>
                         </div>
@@ -163,7 +163,7 @@ const MissionVision = () => {
                                 <TrendingUp size={18} className="text-green-600" />
                             </div>
                             <div>
-                                <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide">Growth</div>
+                                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Growth</div>
                                 <div className="text-sm font-black text-gray-900">+34% this month</div>
                             </div>
                         </div>

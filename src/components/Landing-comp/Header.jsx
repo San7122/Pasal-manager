@@ -43,7 +43,8 @@ const Header = () => {
             <div className="relative">
               <button
                 onClick={() => setShowLanguageMenu(!showLanguageMenu)}
-                className="flex items-center gap-2 px-4 py-2 text-white hover:bg-white/10 rounded-full transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 min-h-[44px] text-white hover:bg-white/10 rounded-full transition-all"
+                aria-label="Change language"
               >
                 <Globe size={18} />
                 <span className="text-sm font-bold uppercase">{language}</span>
