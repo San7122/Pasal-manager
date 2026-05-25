@@ -145,3 +145,43 @@ Right now we don't restrict anything — anonymous users have the same
 permissions as email-signed-in users (their own data only, via existing
 `auth.uid() = user_id` policies).
 
+---
+
+## 2026-05-25 — Stock adjustment audit log
+
+Every time the shopkeeper increases or decreases stock, the app now records
+WHY (reason + optional note) and the running balance. This gives a complete
+audit trail per item — useful for proving losses, returns, damage etc.
+
+Without this table, the app falls back to localStorage-only adjustments
+(still works, just not cloud-synced and not viewable on other devices).
+
+```sql
+CREATE TABLE IF NOT EXISTS pm_stock_adjustments (
+  id text PRIMARY KEY,
+  user_id uuid NOT NULL,
+  stock_id text NOT NULL,
+  stock_name text,
+  qty_change int NOT NULL,             -- negative for removals, positive for additions
+  reason text,                          -- 'sold_offline', 'damaged', 'returned', etc.
+  note text DEFAULT '',
+  balance_after int,
+  ts bigint,                            -- millisecond timestamp
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stock_adj_user  ON pm_stock_adjustments(user_id, ts DESC);
+CREATE INDEX IF NOT EXISTS idx_stock_adj_stock ON pm_stock_adjustments(stock_id, ts DESC);
+
+ALTER TABLE pm_stock_adjustments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "stock_adj_owner" ON pm_stock_adjustments;
+CREATE POLICY "stock_adj_owner" ON pm_stock_adjustments FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
+After running, the History (📋) button next to each stock item will show
+every adjustment with reason, note, qty change, and the running balance.
+
+

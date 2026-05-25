@@ -74,6 +74,7 @@ async function installSupabaseMock(page) {
           const chain = {
             eq(col, val) { if(col==='user_id') filterUid = val; return chain; },
             order() { return chain; },
+            limit() { return chain; },
             maybeSingle: async () => {
               const r = await window.__cloudSelect(table, filterUid);
               return { data: r.data[0] || null, error: null };

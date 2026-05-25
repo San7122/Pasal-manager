@@ -245,16 +245,29 @@ const WARN  = `${C.yellow}${C.bold}⚠ WARN${C.reset}`;
     if (!html.includes('Maggi')) throw new Error('Item not in list');
   });
 
-  await uiTest('Stock: quantity +/- works', async () => {
+  await uiTest('Stock: quantity +/- opens audit modal', async () => {
     const id = await page.evaluate(() => {
       const item = stock.find(s => s.name === 'Maggi Noodles');
       return item ? item.id : null;
     });
     if (!id) throw new Error('Item not found');
-    await page.evaluate(id => updateQty(id, 5), id);
-    await new Promise(r => setTimeout(r, 300));
-    const qty = await page.evaluate(id => stock.find(s => s.id === id)?.qty, id);
-    if (qty !== 105) throw new Error(`Expected 105, got ${qty}`);
+    // updateQty now opens an audit-logged modal (not silent change).
+    // Trigger it, then drive the modal: set qty=5, click "Add".
+    const result = await page.evaluate(async (id) => {
+      updateQty(id, 1);
+      await new Promise(r => setTimeout(r, 200));
+      const modal = document.getElementById('stock-adjust-modal');
+      if (!modal) return { ok: false, err: 'modal did not open' };
+      document.getElementById('sa-qty').value = '5';
+      await _confirmStockAdjust(id, 1);
+      await new Promise(r => setTimeout(r, 200));
+      const item = stock.find(s => s.id === id);
+      const logged = stockAdjustments.some(a => a.stockId === id && a.qtyChange === 5);
+      return { ok: true, qty: item?.qty, logged };
+    }, id);
+    if (!result.ok) throw new Error(result.err);
+    if (result.qty !== 105) throw new Error(`Expected 105, got ${result.qty}`);
+    if (!result.logged) throw new Error('Adjustment was not logged in stockAdjustments');
   });
 
   await uiTest('Stock: search filter works', async () => {
