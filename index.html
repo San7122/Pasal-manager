@@ -76,5 +76,37 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- Lightweight landing-page visit tracking (owner-only readable via RLS) -->
+    <script type="module">
+      import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/+esm';
+      const sb = createClient(
+        'https://dmacgmvideuylcpkocmz.supabase.co',
+        'sb_publishable_rN563RqZFLMUKgZjJICgvQ_oiornjGz'
+      );
+      try {
+        const sid = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).substr(2));
+        const ua = navigator.userAgent;
+        const device = /iPad/i.test(ua) ? 'tablet' : /Mobi|Android/i.test(ua) ? 'mobile' : 'desktop';
+        const browser = /Edg/i.test(ua) ? 'Edge' : /Chrome/i.test(ua) ? 'Chrome' : /Firefox/i.test(ua) ? 'Firefox' : /Safari/i.test(ua) ? 'Safari' : 'Other';
+        const visitedAt = new Date().toISOString();
+        const startTime = Date.now();
+        const { data } = await sb.from('analytics_visits').insert({
+          session_id: sid, visited_at: visitedAt, device_type: device, browser,
+          referrer: document.referrer || 'direct',
+          screen_width: screen.width, screen_height: screen.height,
+          path: location.pathname, is_landing: true,
+        }).select('id').single();
+        const visitId = data?.id;
+        const recordLeave = async () => {
+          if (!visitId) return;
+          await sb.from('analytics_visits').update({
+            left_at: new Date().toISOString(),
+            duration_seconds: Math.round((Date.now() - startTime) / 1000)
+          }).eq('id', visitId);
+        };
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') recordLeave(); });
+        window.addEventListener('beforeunload', recordLeave);
+      } catch(e) { /* tracking must never break the page */ }
+    </script>
   </body>
 </html>

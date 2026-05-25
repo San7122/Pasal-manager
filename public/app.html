@@ -2112,6 +2112,50 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // True only when the user clicks "Sign Out" — used to ignore spurious SIGNED_OUT events
 // (e.g. token-refresh failures on flaky mobile networks)
 let _userInitiatedSignout = false;
+
+// ===== ANALYTICS / ADMIN DASHBOARD =====
+// Emails listed here see the Admin Dashboard (More → Admin) and have read
+// access to analytics_visits / analytics_users / analytics_events via RLS.
+// MUST match the email checks in the Supabase RLS policies (MIGRATIONS.md).
+const OWNER_EMAILS = ['sanjanathakur302@gmail.com'];
+function isOwner(){ return !!(currentUser && currentUser.email && OWNER_EMAILS.includes(currentUser.email)); }
+
+// Session-stable ID used to correlate visit ↔ events in the same tab
+window._pmSessionId = window._pmSessionId || (crypto.randomUUID
+  ? crypto.randomUUID()
+  : (Date.now().toString(36) + Math.random().toString(36).substr(2)));
+
+// Lightweight event tracker. Never blocks the UI; failures are silent.
+async function trackEvent(eventName, data){
+  try {
+    const ua = navigator.userAgent;
+    const device = /iPad/i.test(ua) ? 'tablet'
+                 : /Mobi|Android/i.test(ua) ? 'mobile' : 'desktop';
+    await sb.from('analytics_events').insert({
+      user_id: currentUser?.id || null,
+      session_id: window._pmSessionId,
+      event_name: eventName,
+      event_data: data || {},
+      device_type: device,
+      country: (typeof S !== 'undefined' && S?.country) || null,
+    });
+  } catch(_) { /* analytics must never break the app */ }
+}
+
+// Upsert the user's profile row whenever they log in / change shop name.
+// This is what powers the "Recent signups" + "Top shops" admin views.
+async function _syncAnalyticsUser(){
+  if(!currentUser || !currentUser.id) return;
+  try {
+    await sb.from('analytics_users').upsert({
+      user_id: currentUser.id,
+      email: currentUser.email || '',
+      shop_name: (S?.shopName) || '',
+      country: (S?.country) || '',
+      last_seen_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+  } catch(_) {}
+}
 const UNLOCK_CODE = 'PASAL2025';
 
 // ===== STATE =====
@@ -2879,6 +2923,7 @@ function cacheRead(){
 
 // ===== BACKUP & RESTORE =====
 async function backupData(){
+  trackEvent('backup_made',{records:sales.length+expenses.length+udhaars.length+stock.length});
   const data={
     version:2, exportedAt:new Date().toISOString(), shopName:S.shopName,
     sales,expenses,udhaars,stock,suppliers,cashbookEntries,customers,
@@ -3458,6 +3503,13 @@ async function afterLogin(){
   if(currentUser){
     try { localStorage.removeItem(GUEST_DATE_KEY); } catch(e) {}
   }
+  // Analytics: profile snapshot + login event (fire-and-forget)
+  if(currentUser){
+    _syncAnalyticsUser();
+    trackEvent(wasGuest ? 'signup' : 'login', { email: currentUser.email });
+  } else if(isGuestMode){
+    trackEvent('guest_start', { shopName: S?.shopName || '' });
+  }
 
   document.getElementById('auth-page').style.display='none';
   document.getElementById('app').style.display='flex';
@@ -3503,6 +3555,7 @@ async function afterLogin(){
 }
 
 async function signOut(){
+  trackEvent('sign_out',{wasGuest:isGuestMode});
   _userInitiatedSignout = true;
   if(!isGuestMode) {
     try { await sb.auth.signOut(); } catch(e) { /* best-effort */ }
@@ -4056,6 +4109,7 @@ async function addSale(){
     const sale={id:uid(),date:todayStr(),ts:Date.now(),amt,cost,note:noteWithQty,qty,payMode:selectedPay,country:S.country,customerId};
     sales.push(sale);
     await dbAdd('pm_sales',{id:sale.id,user_id:currentUser?.id,date:sale.date,ts:sale.ts,amt:sale.amt,cost:sale.cost,note:sale.note,pay_mode:sale.payMode,country:sale.country,customer_id:customerId});
+    trackEvent('sale_added',{amt,payMode:selectedPay,qty,hasCost:cost>0});
     renderToday();
   }finally{if(btn) btn.disabled=false;}
 }
@@ -4262,6 +4316,7 @@ async function addReturn(){
   const ret={id:uid(),date:todayStr(),ts:Date.now(),amt,type:selReturnType,reason:selReturnReason,note,refName,country:S.country};
   returns.push(ret);
   await dbAdd('pm_returns',{id:ret.id,user_id:currentUser?.id,date:ret.date,ts:ret.ts,amt:ret.amt,type:ret.type,reason:ret.reason,note:ret.note,ref_name:ret.refName,country:ret.country});
+  trackEvent('return_added',{amt,type:selReturnType,reason:selReturnReason});
   cacheWrite();
   renderToday();
 }
@@ -4436,6 +4491,7 @@ async function addUdhaar(){
     const u={id:uid(),name,phone,amt,date:todayStr(),ts:Date.now(),paid:false,dueDate,country:S.country};
     udhaars.push(u);
     await dbAdd('pm_udhaar',{id:u.id,user_id:currentUser?.id,name:u.name,phone:u.phone,amt:u.amt,date:u.date,ts:u.ts,paid:u.paid,due_date:dueDate,country:u.country});
+    trackEvent('udhaar_added',{amt,hasPhone:!!phone,hasDueDate:!!dueDate});
     _updateSupplierBadge();
     renderUdhaar();
     if(!isGuestMode && currentUser) showSahiPrompt(u.id, name);
@@ -4858,6 +4914,7 @@ function _runZXing(ZXing){
 function _onBarcodeDetected(code){
   if(!scannerActive) return;
   scannerActive=false;
+  trackEvent('scanner_success',{target:scannerTarget});
   const frame=document.getElementById('scanner-frame');
   frame.classList.add('scanner-found');
   // Replace buttons with a clean success message — user sees confirmation, not action buttons
@@ -5103,6 +5160,7 @@ async function addStock(){
     const item={id:uid(),name,size,qty,buy,sell,country:S.country,barcode};
     stock.push(item);
     await dbAdd('pm_stock',{id:item.id,user_id:currentUser?.id,name:item.name,size:item.size,qty:item.qty,buy:item.buy,sell:item.sell,country:item.country,barcode});
+    trackEvent('stock_added',{qty,buy,sell,hasBarcode:!!barcode});
     cacheWrite();renderStock();
     _showToast('Item added · barcode generated');
   }finally{if(btn) btn.disabled=false;}
@@ -5205,11 +5263,11 @@ async function delStock(id){
 // =============== MORE MENU ===============
 function renderMore(){
   const el=document.getElementById('page-more');
-  const pages={menu:renderMoreMenu,expense:renderExpense,supplier:renderSupplier,bill:renderBill,pl:renderPL,export:renderExport,settings:renderSettingsPage,kharidi:renderKharidi,kharidiDetail:renderKharidiDetail,dealer:renderDealerBook,dealerDetail:renderDealerDetail,dashboard:renderDashboard,cashbook:renderCashBook,customers:renderCustomers,customerDetail:renderCustomerDetail,staffBook:renderStaffBook,staffDetail:renderStaffDetail,branches:renderBranchesPage,emi:renderEmiPage,emiDetail:renderEmiDetail,loan:renderLoanPage,loanDetail:renderLoanDetail,score:renderScorePage,morning:renderMorningPage,'supplier-cal':renderSupplierCalPage,reminders:renderRemindersPage};
+  const pages={menu:renderMoreMenu,expense:renderExpense,supplier:renderSupplier,bill:renderBill,pl:renderPL,export:renderExport,settings:renderSettingsPage,kharidi:renderKharidi,kharidiDetail:renderKharidiDetail,dealer:renderDealerBook,dealerDetail:renderDealerDetail,dashboard:renderDashboard,cashbook:renderCashBook,customers:renderCustomers,customerDetail:renderCustomerDetail,staffBook:renderStaffBook,staffDetail:renderStaffDetail,branches:renderBranchesPage,emi:renderEmiPage,emiDetail:renderEmiDetail,loan:renderLoanPage,loanDetail:renderLoanDetail,score:renderScorePage,morning:renderMorningPage,'supplier-cal':renderSupplierCalPage,reminders:renderRemindersPage,admin:renderAdminDashboard};
   (pages[moreSubPage]||renderMoreMenu)(el);
   _renderIcons();
 }
-function goMore(page){if(moreSubPage==='dashboard') destroyCharts();if(page==='cashbook'&&moreSubPage!=='cashbook') cashbookViewDate=new Date();if(page==='customers'){custSearch='';custTab='all';}if(page==='staffBook'&&moreSubPage!=='staffBook'&&moreSubPage!=='staffDetail') staffViewDate=new Date();if(page==='menu'){currentEmiPlanId='';currentLoanId='';_scoreCache=null;}moreSubPage=page;document.getElementById('scroll-area').scrollTop=0;renderMore();}
+function goMore(page){if(moreSubPage==='dashboard') destroyCharts();if(moreSubPage==='admin') _adminDestroyCharts();if(page==='cashbook'&&moreSubPage!=='cashbook') cashbookViewDate=new Date();if(page==='customers'){custSearch='';custTab='all';}if(page==='staffBook'&&moreSubPage!=='staffBook'&&moreSubPage!=='staffDetail') staffViewDate=new Date();if(page==='menu'){currentEmiPlanId='';currentLoanId='';_scoreCache=null;}moreSubPage=page;document.getElementById('scroll-area').scrollTop=0;renderMore();}
 function backBtn(){return `<button class="back-btn" onclick="goMore('menu')">${licon('chevron-left',16)} ${t('back')}</button>`;}
 
 // =============== DASHBOARD ===============
@@ -5593,6 +5651,10 @@ function renderMoreMenu(el){
     {id:'settings',icon:'settings',color:'#64748B',label:t('settings'),desc:''},
     {id:'logout',icon:'log-out',color:'#DC2626',label:'Logout',desc:'Sign out of your account',action:'signOut()'}
   ];
+  // Owner-only Admin Dashboard menu item (hidden for normal users)
+  if(isOwner()){
+    basicItems.splice(1, 0, {id:'admin',icon:'shield',color:'#9333EA',label:'Admin Dashboard',desc:'Active users, signups, feature usage (owner only)'});
+  }
   const advancedItems=[
     {id:'kharidi',icon:'shopping-cart',color:'#EA580C',label:'Purchase Book',desc:'Track goods bought on credit from suppliers'},
     {id:'dealer',icon:'handshake',color:'#0891B2',label:'Dealer Book',desc:'Credit you give to wholesale dealers'},
@@ -5629,6 +5691,246 @@ function renderMoreMenu(el){
         <span style="font-size:10px;color:#7c6fba;font-style:italic">Divine Intelligence</span>
       </a>
     </div>`;
+}
+
+// =============== ADMIN DASHBOARD (owner-only) ===============
+let _adminCharts = [];
+function _adminDestroyCharts(){ _adminCharts.forEach(c=>{try{c.destroy();}catch(_){}}); _adminCharts=[]; }
+function _adminKpiCard(label, value, sub, color){
+  return `<div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:14px 16px;flex:1;min-width:140px">
+    <div style="font-size:11px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px">${label}</div>
+    <div style="font-size:26px;font-weight:900;color:${color||'var(--color-text-primary)'};margin-top:4px;line-height:1.1">${value}</div>
+    ${sub?`<div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">${sub}</div>`:''}
+  </div>`;
+}
+
+async function renderAdminDashboard(el){
+  el=el||document.getElementById('page-more');
+  if(!isOwner()){
+    el.innerHTML=`<div style="padding:24px 16px"><div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:12px;padding:16px;color:#991B1B">⚠️ Admin Dashboard is owner-only. You're signed in as <strong>${esc(currentUser?.email||'guest')}</strong>.</div></div>`;
+    return;
+  }
+  _adminDestroyCharts();
+  el.innerHTML=`
+    ${backBtn()}
+    <div style="padding:0 12px 100px">
+      <div style="display:flex;align-items:center;gap:8px;margin:8px 0 16px">
+        <div style="font-size:22px;font-weight:900">📊 Admin Dashboard</div>
+        <button onclick="renderAdminDashboard()" style="margin-left:auto;padding:6px 12px;background:var(--color-accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">↻ Refresh</button>
+      </div>
+      <div id="admin-loading" style="text-align:center;padding:40px 0;color:var(--color-text-secondary)">Loading metrics…</div>
+      <div id="admin-content" style="display:none">
+        <!-- KPI cards -->
+        <div id="admin-kpis" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px"></div>
+        <!-- Charts row 1: Daily signups + Daily active -->
+        <div style="display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px">
+          <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:8px">Daily Signups (last 30 days)</div>
+            <div style="height:200px"><canvas id="admin-chart-signups"></canvas></div>
+          </div>
+          <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:8px">Daily Active Users (last 30 days)</div>
+            <div style="height:200px"><canvas id="admin-chart-dau"></canvas></div>
+          </div>
+        </div>
+        <!-- Charts row 2: Device + Country pies -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:8px">Devices</div>
+            <div style="height:180px"><canvas id="admin-chart-device"></canvas></div>
+          </div>
+          <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:8px">Countries</div>
+            <div style="height:180px"><canvas id="admin-chart-country"></canvas></div>
+          </div>
+        </div>
+        <!-- Top features -->
+        <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px">Most-used Features (last 30 days)</div>
+          <div style="height:240px"><canvas id="admin-chart-events"></canvas></div>
+        </div>
+        <!-- Recent signups table -->
+        <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px">Recent Signups (last 20)</div>
+          <div id="admin-recent-signups" style="font-size:13px"></div>
+        </div>
+        <!-- Top active shops -->
+        <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px">Most Active Shops (last 7 days)</div>
+          <div id="admin-top-shops" style="font-size:13px"></div>
+        </div>
+        <!-- Activity feed -->
+        <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px">Live Activity Feed (last 50 events)</div>
+          <div id="admin-activity-feed" style="font-size:13px;max-height:400px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+  `;
+  try {
+    await _renderAdminMetrics();
+    document.getElementById('admin-loading').style.display='none';
+    document.getElementById('admin-content').style.display='block';
+  } catch(e) {
+    console.error('Admin load failed:', e);
+    document.getElementById('admin-loading').innerHTML = `<div style="color:#DC2626">⚠️ Failed to load: ${esc(e.message||'unknown error')}<br><small style="color:var(--color-text-secondary);margin-top:8px;display:block">Have you run the analytics SQL migration? See MIGRATIONS.md</small></div>`;
+  }
+}
+
+async function _renderAdminMetrics(){
+  const now=new Date();
+  const _iso=(d)=>d.toISOString();
+  const day=86400000;
+  const t1=new Date(now-1*day),  t7=new Date(now-7*day),  t30=new Date(now-30*day);
+
+  // ===== Fetch in parallel =====
+  const [users, events7d, events30d, visits30d, recentSignups] = await Promise.all([
+    sb.from('analytics_users').select('user_id,email,shop_name,country,signed_up_at,last_seen_at').order('signed_up_at',{ascending:false}),
+    sb.from('analytics_events').select('user_id,event_name,ts,device_type,country').gte('ts',_iso(t7)),
+    sb.from('analytics_events').select('event_name,ts').gte('ts',_iso(t30)),
+    sb.from('analytics_visits').select('user_id,device_type,country,visited_at,is_landing').gte('visited_at',_iso(t30)),
+    sb.from('analytics_users').select('user_id,email,shop_name,country,signed_up_at,last_seen_at').order('signed_up_at',{ascending:false}).limit(20),
+  ]);
+
+  const allUsers       = users.data || [];
+  const ev7             = events7d.data || [];
+  const ev30            = events30d.data || [];
+  const vis30           = visits30d.data || [];
+  const signups20       = recentSignups.data || [];
+
+  // ===== KPIs =====
+  const totalUsers = allUsers.length;
+  const signed30   = allUsers.filter(u=>new Date(u.signed_up_at)>=t30).length;
+  const signed7    = allUsers.filter(u=>new Date(u.signed_up_at)>=t7).length;
+  const dau = new Set(ev7.filter(e=>new Date(e.ts)>=t1 && e.user_id).map(e=>e.user_id)).size;
+  const wau = new Set(ev7.filter(e=>e.user_id).map(e=>e.user_id)).size;
+  const mauUsers = new Set(ev30.filter(e=>e.user_id).map(e=>e.user_id));
+  // ev30 doesn't have user_id (we excluded it for size), need separate query for MAU. Approximate via WAU.
+  const mau = wau; // good enough for now; can split into separate query later if needed
+  const landingVisits7 = vis30.filter(v=>v.is_landing && new Date(v.visited_at)>=t7).length;
+  const landingVisits30 = vis30.filter(v=>v.is_landing).length;
+  const signupConversion = landingVisits30 > 0 ? ((signed30 / landingVisits30) * 100).toFixed(1) : '0.0';
+
+  document.getElementById('admin-kpis').innerHTML = [
+    _adminKpiCard('Total Shops',     totalUsers, `+${signed30} in 30d`, '#7c3aed'),
+    _adminKpiCard('Active Today',    dau,        'unique users', '#10b981'),
+    _adminKpiCard('Active 7-day',    wau,        'unique users', '#0EA5E9'),
+    _adminKpiCard('Signed up 7d',    signed7,    'new shops', '#f59e0b'),
+    _adminKpiCard('Landing visits 7d', landingVisits7, 'unique sessions', '#64748b'),
+    _adminKpiCard('Signup rate',     signupConversion+'%', '30-day conversion', '#DC2626'),
+  ].join('');
+
+  // ===== Daily signups chart (last 30d) =====
+  const signupByDay = {};
+  for(let i=0;i<30;i++){
+    const d=new Date(now-i*day).toISOString().slice(0,10);
+    signupByDay[d]=0;
+  }
+  for(const u of allUsers){
+    const d=(u.signed_up_at||'').slice(0,10);
+    if(signupByDay[d]!==undefined) signupByDay[d]++;
+  }
+  const dayLabels = Object.keys(signupByDay).reverse();
+  const signupData = dayLabels.map(d=>signupByDay[d]);
+
+  const ctxSign = document.getElementById('admin-chart-signups').getContext('2d');
+  _adminCharts.push(new Chart(ctxSign,{type:'bar',data:{labels:dayLabels.map(d=>d.slice(5)),datasets:[{label:'Signups',data:signupData,backgroundColor:'#a855f7'}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}}));
+
+  // ===== Daily active users (last 30d, by day) =====
+  // Re-fetch events30 with user_id for DAU chart
+  const ev30u = (await sb.from('analytics_events').select('user_id,ts').gte('ts',_iso(t30))).data || [];
+  const dauByDay = {};
+  for(let i=0;i<30;i++){ dauByDay[new Date(now-i*day).toISOString().slice(0,10)] = new Set(); }
+  for(const e of ev30u){
+    if(!e.user_id) continue;
+    const d=(e.ts||'').slice(0,10);
+    if(dauByDay[d]) dauByDay[d].add(e.user_id);
+  }
+  const dauData = dayLabels.map(d=>dauByDay[d]?dauByDay[d].size:0);
+  const ctxDau = document.getElementById('admin-chart-dau').getContext('2d');
+  _adminCharts.push(new Chart(ctxDau,{type:'line',data:{labels:dayLabels.map(d=>d.slice(5)),datasets:[{label:'Active users',data:dauData,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.1)',fill:true,tension:0.3}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}}));
+
+  // ===== Device breakdown (visits) =====
+  const devCounts={mobile:0,tablet:0,desktop:0};
+  vis30.forEach(v=>{ if(devCounts[v.device_type]!==undefined) devCounts[v.device_type]++; });
+  const ctxDev=document.getElementById('admin-chart-device').getContext('2d');
+  _adminCharts.push(new Chart(ctxDev,{type:'doughnut',data:{labels:['Mobile','Tablet','Desktop'],datasets:[{data:[devCounts.mobile,devCounts.tablet,devCounts.desktop],backgroundColor:['#7c3aed','#0ea5e9','#f59e0b']}]},options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}}));
+
+  // ===== Country breakdown =====
+  const countryCounts={IN:0,NP:0,Other:0};
+  allUsers.forEach(u=>{ if(u.country==='IN') countryCounts.IN++; else if(u.country==='NP') countryCounts.NP++; else countryCounts.Other++; });
+  const ctxC=document.getElementById('admin-chart-country').getContext('2d');
+  _adminCharts.push(new Chart(ctxC,{type:'doughnut',data:{labels:['India 🇮🇳','Nepal 🇳🇵','Other'],datasets:[{data:[countryCounts.IN,countryCounts.NP,countryCounts.Other],backgroundColor:['#FF9933','#DC143C','#94a3b8']}]},options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}}));
+
+  // ===== Top features (last 30d) =====
+  const evCounts={};
+  ev30.forEach(e=>{ evCounts[e.event_name]=(evCounts[e.event_name]||0)+1; });
+  const sortedFeatures = Object.entries(evCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const ctxEv=document.getElementById('admin-chart-events').getContext('2d');
+  _adminCharts.push(new Chart(ctxEv,{type:'bar',data:{labels:sortedFeatures.map(f=>f[0]),datasets:[{label:'Count',data:sortedFeatures.map(f=>f[1]),backgroundColor:'#0ea5e9'}]},options:{maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}}}}));
+
+  // ===== Recent signups table =====
+  const fmtRel=(iso)=>{
+    if(!iso) return '—';
+    const diff=Date.now()-new Date(iso).getTime();
+    const m=Math.floor(diff/60000), h=Math.floor(diff/3600000), d=Math.floor(diff/86400000);
+    if(d>0) return d+'d ago';
+    if(h>0) return h+'h ago';
+    if(m>0) return m+'m ago';
+    return 'just now';
+  };
+  document.getElementById('admin-recent-signups').innerHTML = signups20.length
+    ? signups20.map(u=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-border-tertiary)">
+          <div style="min-width:0;flex:1">
+            <div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.shop_name||'(no name)')}</div>
+            <div style="font-size:11px;color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.email||'—')} · ${u.country==='NP'?'🇳🇵':u.country==='IN'?'🇮🇳':'🌐'}</div>
+          </div>
+          <div style="text-align:right;font-size:11px;color:var(--color-text-secondary);margin-left:8px;white-space:nowrap">
+            <div>${fmtRel(u.signed_up_at)}</div>
+            <div style="color:#10b981">last seen ${fmtRel(u.last_seen_at)}</div>
+          </div>
+        </div>`).join('')
+    : '<div style="color:var(--color-text-secondary);padding:8px 0">No signups yet</div>';
+
+  // ===== Top active shops (last 7d) =====
+  const shopActivity={};
+  ev7.forEach(e=>{ if(e.user_id) shopActivity[e.user_id]=(shopActivity[e.user_id]||0)+1; });
+  const userById={}; allUsers.forEach(u=>userById[u.user_id]=u);
+  const topShops=Object.entries(shopActivity).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('admin-top-shops').innerHTML = topShops.length
+    ? topShops.map(([uid,count])=>{
+        const u=userById[uid]||{};
+        return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--color-border-tertiary)">
+          <div style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.shop_name||u.email||uid.slice(0,8))}</div>
+          <div style="font-weight:700;color:var(--color-accent);margin-left:8px">${count} actions</div>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--color-text-secondary);padding:8px 0">No activity yet</div>';
+
+  // ===== Activity feed =====
+  const feedRes = await sb.from('analytics_events').select('event_name,event_data,ts,user_id,device_type,country').order('ts',{ascending:false}).limit(50);
+  const feed = feedRes.data || [];
+  const emojiFor = (name) => ({
+    signup:'✨', login:'🔑', sign_out:'👋', guest_start:'👤',
+    sale_added:'💰', udhaar_added:'📒', stock_added:'📦', return_added:'↩️',
+    bill_generated:'🧾', scanner_success:'📷', backup_made:'💾',
+  }[name] || '•');
+  document.getElementById('admin-activity-feed').innerHTML = feed.length
+    ? feed.map(e=>{
+        const u=userById[e.user_id]||{};
+        const who = u.shop_name || u.email || (e.user_id ? e.user_id.slice(0,8) : 'anonymous');
+        const data = e.event_data && Object.keys(e.event_data).length ? ' · '+Object.entries(e.event_data).slice(0,2).map(([k,v])=>`${k}=${v}`).join(' ') : '';
+        return `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border-tertiary)">
+          <div style="font-size:16px">${emojiFor(e.event_name)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.event_name)} <span style="color:var(--color-text-secondary);font-weight:400">${esc(data)}</span></div>
+            <div style="font-size:11px;color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(who)} · ${e.country||'?'} · ${e.device_type||'?'}</div>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-secondary);white-space:nowrap;margin-left:4px">${fmtRel(e.ts)}</div>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--color-text-secondary);padding:8px 0">No events yet</div>';
 }
 
 // =============== CUSTOMERS ===============
@@ -6582,6 +6884,7 @@ function _buildBillPDF(){
 async function downloadBillPDF(){
   const result=_buildBillPDF();
   if(!result)return;
+  trackEvent('bill_generated',{items:(typeof billItems!=='undefined'?billItems.length:0)});
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
   // iOS: use Web Share API so user can "Save to Files" properly
   // (Apple ignores the download attribute — would just open PDF in new tab otherwise)
@@ -10936,15 +11239,20 @@ init();
 // ===== ANALYTICS TRACKING =====
 async function trackVisit() {
   try {
-    const sessionId = (crypto.randomUUID ? crypto.randomUUID()
+    // Reuse the same session id used by trackEvent so visits ↔ events join
+    const sessionId = window._pmSessionId || (crypto.randomUUID
+      ? crypto.randomUUID()
       : Date.now().toString(36) + Math.random().toString(36).substr(2));
+    window._pmSessionId = sessionId;
     const ua = navigator.userAgent;
-    const device = /Mobi|Android/i.test(ua) ? 'mobile'
-      : /Tablet|iPad/i.test(ua) ? 'tablet' : 'desktop';
+    const device = /iPad/i.test(ua) ? 'tablet'
+      : /Mobi|Android/i.test(ua) ? 'mobile' : 'desktop';
     const browser = /Edg/i.test(ua) ? 'Edge'
       : /Chrome/i.test(ua) ? 'Chrome'
       : /Firefox/i.test(ua) ? 'Firefox'
       : /Safari/i.test(ua) ? 'Safari' : 'Other';
+    const path = location.pathname || '/';
+    const isLanding = path === '/' || path === '/index.html';
     const { data, error } = await sb.from('analytics_visits').insert({
       session_id: sessionId,
       visited_at: new Date().toISOString(),
@@ -10952,7 +11260,11 @@ async function trackVisit() {
       browser,
       referrer: document.referrer || 'direct',
       screen_width: screen.width,
-      screen_height: screen.height
+      screen_height: screen.height,
+      user_id: (typeof currentUser !== 'undefined' && currentUser?.id) || null,
+      path,
+      country: (typeof S !== 'undefined' && S?.country) || null,
+      is_landing: isLanding,
     }).select('id').single();
     if (error || !data) return;
     const visitRowId = data.id;
