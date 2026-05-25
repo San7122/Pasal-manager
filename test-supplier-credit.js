@@ -68,6 +68,48 @@ const test = (name, pass, info = '') => {
   test('Banner uses yellow accent (warning/suggestion color)',
     /fef9c3|fef3c7|facc15/.test(html));
 
+  console.log('\n\x1b[36m━━━ Static: PDF supplier statement ━━━\x1b[0m');
+  test('_buildSupplierStatementPDF function exists',
+    /function _buildSupplierStatementPDF\(supplierName\)/.test(html));
+  test('PDF uses A4 portrait format',
+    /_buildSupplierStatementPDF[\s\S]{0,1500}?format:\s*['"]a4['"][\s\S]{0,200}?orientation:\s*['"]portrait['"]/.test(html));
+  test('PDF has Dr/Cr/Balance columns',
+    /Dr \(Purchase\)/.test(html) && /Cr \(Payment\)/.test(html) && /BALANCE/.test(html));
+  test('PDF shows running balance (Dr/Cr suffix) per row',
+    /balLabel[\s\S]{0,200}?Dr['"]/.test(html) && /balLabel[\s\S]{0,200}?Cr['"]/.test(html));
+  test('PDF has total row at bottom',
+    /TOTAL[\s\S]{0,300}?fmt\(totalDr\)/.test(html));
+  test('PDF has plain-language summary line',
+    /owes\s+\$\{supplierName\}/.test(html));
+  test('PDF has signature lines',
+    /Please verify this statement/.test(html));
+  test('downloadSupplierStatement uses Share Sheet on iOS',
+    /downloadSupplierStatement[\s\S]{0,800}?navigator\.canShare[\s\S]{0,200}?navigator\.share/.test(html));
+  test('downloadSupplierStatement falls back to doc.save on Android/Desktop',
+    /downloadSupplierStatement[\s\S]{0,1200}?result\.doc\.save\(result\.filename\)/.test(html));
+  test('PDF generation tracked as analytics event',
+    /trackEvent\(['"]supplier_statement_generated['"]/.test(html));
+
+  console.log('\n\x1b[36m━━━ Static: WhatsApp supplier statement ━━━\x1b[0m');
+  test('shareSupplierStatementWhatsApp function exists',
+    /function shareSupplierStatementWhatsApp\(supplierName\)/.test(html));
+  test('WhatsApp message includes total purchased',
+    /shareSupplierStatementWhatsApp[\s\S]{0,1500}?Total Purchased/.test(html));
+  test('WhatsApp message includes total paid',
+    /shareSupplierStatementWhatsApp[\s\S]{0,1500}?Total Paid/.test(html));
+  test('WhatsApp message handles I owe / they owe / settled',
+    /shareSupplierStatementWhatsApp[\s\S]{0,1500}?I owe you[\s\S]{0,400}?You owe me[\s\S]{0,400}?fully settled/.test(html));
+  test('WhatsApp opens wa.me URL with prefilled message',
+    /shareSupplierStatementWhatsApp[\s\S]{0,1500}?wa\.me/.test(html));
+  test('WhatsApp share tracked as analytics event',
+    /trackEvent\(['"]supplier_statement_shared_wa['"]/.test(html));
+
+  console.log('\n\x1b[36m━━━ Static: PDF/WhatsApp buttons in Purchase Book detail ━━━\x1b[0m');
+  test('"📄 PDF" button calls downloadSupplierStatement',
+    /downloadSupplierStatement\(/.test(html) && /📄 PDF/.test(html));
+  test('"💬 Share" button calls shareSupplierStatementWhatsApp',
+    /shareSupplierStatementWhatsApp\(/.test(html) && /💬 Share/.test(html));
+
   console.log('\n\x1b[36m━━━ Static: Responsive grid for 5 cards ━━━\x1b[0m');
   test('Grid: 2 cols mobile',
     /\.summary-card-grid\s*\{[\s\S]{0,200}?grid-template-columns:\s*repeat\(2,\s*1fr\)/.test(html));
@@ -246,6 +288,71 @@ const test = (name, pass, info = '') => {
       return !/Smart suggestion/.test(document.getElementById('page-more')?.innerText || '');
     });
     test('Smart suggestion HIDDEN when no weekly sales', noSuggestionNoSales);
+
+    console.log('\n\x1b[36m━━━ Runtime: PDF + WhatsApp generation ━━━\x1b[0m');
+    // Wait for jsPDF script to load (it has defer attribute)
+    await page.evaluate(() => new Promise(r => {
+      if (window.jspdf?.jsPDF) return r();
+      const check = setInterval(()=>{ if(window.jspdf?.jsPDF){clearInterval(check);r();} }, 80);
+      setTimeout(()=>{clearInterval(check);r();}, 4000);
+    }));
+
+    const pdfTest = await page.evaluate(() => {
+      kharidiEntries = [
+        {id:'k1', supplierName:'Atri Das', date:'2026-01-05', ts:1, amt:15000, type:'purchase', note:'Initial stock', country:'IN'},
+        {id:'k2', supplierName:'Atri Das', date:'2026-01-15', ts:2, amt:5000,  type:'payment',  note:'Weekly',        country:'IN'},
+        {id:'k3', supplierName:'Atri Das', date:'2026-02-01', ts:3, amt:8000,  type:'purchase', note:'Festival',      country:'IN'},
+        {id:'k4', supplierName:'Atri Das', date:'2026-02-15', ts:4, amt:10000, type:'payment',  note:'Monthly',       country:'IN'},
+      ];
+      suppliers = [{id:'sup1', name:'Atri Das', phone:'9800000001', note:''}];
+      const result = _buildSupplierStatementPDF('Atri Das');
+      if (!result) return { ok: false };
+      // jsPDF outputs a blob of the PDF; just check it's >1KB
+      const blob = result.doc.output('blob');
+      return {
+        ok: true,
+        filename: result.filename,
+        size: blob.size,
+        startsWithPDF: blob.size > 1000,
+      };
+    });
+    test('PDF generated successfully', pdfTest.ok === true);
+    test('PDF filename has correct format', /^Statement_Atri_Das_/.test(pdfTest.filename || ''));
+    test('PDF blob size > 1KB (real content)', pdfTest.size > 1000,
+      `size=${pdfTest.size}`);
+
+    const pdfEmpty = await page.evaluate(() => {
+      kharidiEntries = [];
+      const result = _buildSupplierStatementPDF('Nobody');
+      return result === null;
+    });
+    test('PDF returns null when supplier has no entries', pdfEmpty);
+
+    // WhatsApp test: capture window.open() target URL
+    const waTest = await page.evaluate(() => {
+      kharidiEntries = [
+        {id:'k1', supplierName:'Atri Das', date:'2026-01-05', ts:1, amt:15000, type:'purchase', note:'', country:'IN'},
+        {id:'k2', supplierName:'Atri Das', date:'2026-01-15', ts:2, amt:5000,  type:'payment',  note:'', country:'IN'},
+      ];
+      suppliers = [{id:'sup1', name:'Atri Das', phone:'9800000001', note:''}];
+      S.country = 'NP';
+      let openedUrl = '';
+      const origOpen = window.open;
+      window.open = (url) => { openedUrl = url; return null; };
+      shareSupplierStatementWhatsApp('Atri Das');
+      window.open = origOpen;
+      return {
+        openedUrl,
+        hasWaMe: openedUrl.includes('wa.me/'),
+        hasNepalCode: openedUrl.includes('977'),
+        hasMessage: openedUrl.includes('Atri%20Das') || decodeURIComponent(openedUrl).includes('Atri Das'),
+        hasOwedAmount: decodeURIComponent(openedUrl).includes('10,000') || decodeURIComponent(openedUrl).includes('Rs 10,000'),
+      };
+    });
+    test('WhatsApp share opens wa.me URL', waTest.hasWaMe);
+    test('WhatsApp share prepends country code (NP → 977)', waTest.hasNepalCode);
+    test('WhatsApp message includes supplier name', waTest.hasMessage);
+    test('WhatsApp message includes correct net balance (₹10,000 owed)', waTest.hasOwedAmount);
 
   } finally {
     await browser.close();

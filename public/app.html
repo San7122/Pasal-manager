@@ -7048,6 +7048,205 @@ function _buildBillPDF(){
   return {doc,filename:`Bill_${billNo}_${todayStr()}.pdf`};
 }
 
+// ============= SUPPLIER STATEMENT PDF =============
+// Builds a professional Dr/Cr ledger PDF for one supplier — exactly what
+// shopkeepers traditionally maintain in a "khata" notebook. The brother
+// can share this PDF directly with his suppliers to confirm balances.
+function _buildSupplierStatementPDF(supplierName){
+  if(!window.jspdf||!window.jspdf.jsPDF){alert('PDF library still loading. Try again in a moment.');return null;}
+  const entries=kharidiEntries
+    .filter(e=>e.supplierName===supplierName)
+    .sort((a,b)=>(a.ts||0)-(b.ts||0)); // oldest → newest for running balance
+  if(entries.length===0){_showToast('No entries to print yet');return null;}
+
+  const shop=S.shopName||'Pasal Manager';
+  const totalDr=entries.filter(e=>e.type==='purchase').reduce((a,e)=>a+e.amt,0);
+  const totalCr=entries.filter(e=>e.type==='payment').reduce((a,e)=>a+e.amt,0);
+  const netBalance=totalDr-totalCr;
+  const periodStart=entries[0].date;
+  const periodEnd=entries[entries.length-1].date;
+  const today=fmtDate(todayStr());
+
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+  const W=210; // A4 width
+  const M=15;  // margin
+  // Column positions
+  const colDate     = M;
+  const colNarration= M + 30;
+  const colDr       = M + 110;
+  const colCr       = M + 140;
+  const colBal      = W  - M;
+
+  let y=18;
+  // Shop header
+  doc.setFont('helvetica','bold');doc.setFontSize(20);
+  doc.text(shop,W/2,y,{align:'center'});y+=7;
+  doc.setFont('helvetica','italic');doc.setFontSize(10);doc.setTextColor(120);
+  doc.text('Smart Business. Better Growth.',W/2,y,{align:'center'});y+=8;
+  doc.setTextColor(0);
+  doc.setLineWidth(0.5);doc.line(M,y,W-M,y);y+=8;
+
+  // Statement title + supplier
+  doc.setFont('helvetica','bold');doc.setFontSize(14);
+  doc.text('SUPPLIER STATEMENT',W/2,y,{align:'center'});y+=9;
+  doc.setFont('helvetica','bold');doc.setFontSize(12);
+  doc.text(`Party: ${supplierName}`,M,y);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);
+  doc.text(`Generated: ${today}`,W-M,y,{align:'right'});y+=6;
+  doc.setFont('helvetica','normal');doc.setFontSize(10);
+  doc.text(`Period: ${fmtDate(periodStart)}  to  ${fmtDate(periodEnd)}`,M,y);
+  doc.text(`${entries.length} entries`,W-M,y,{align:'right'});y+=8;
+
+  // Table header
+  doc.setFillColor(124,58,237); // brand purple
+  doc.rect(M,y-5,W-2*M,8,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255);
+  doc.text('DATE',colDate,y);
+  doc.text('PARTICULARS',colNarration,y);
+  doc.text('Dr (Purchase)',colDr,y,{align:'right'});
+  doc.text('Cr (Payment)',colCr,y,{align:'right'});
+  doc.text('BALANCE',colBal,y,{align:'right'});
+  y+=8;
+  doc.setTextColor(0);
+  doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+
+  // Rows with running balance
+  let running=0;
+  entries.forEach((e,i)=>{
+    if(y > 270){ // new page
+      doc.addPage();
+      y=20;
+      doc.setFillColor(124,58,237);
+      doc.rect(M,y-5,W-2*M,8,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255);
+      doc.text('DATE',colDate,y);
+      doc.text('PARTICULARS',colNarration,y);
+      doc.text('Dr (Purchase)',colDr,y,{align:'right'});
+      doc.text('Cr (Payment)',colCr,y,{align:'right'});
+      doc.text('BALANCE',colBal,y,{align:'right'});
+      y+=8;
+      doc.setTextColor(0);doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+    }
+    running += (e.type==='purchase' ? e.amt : -e.amt);
+    if(i%2===1){doc.setFillColor(248,250,252);doc.rect(M,y-4,W-2*M,7,'F');}
+    doc.text(fmtDate(e.date),colDate,y);
+    const note=(e.note||(e.type==='purchase'?'Goods received':'Payment made')).substring(0,42);
+    doc.text(note,colNarration,y);
+    if(e.type==='purchase'){
+      doc.text(fmt(e.amt).replace('₹','Rs '),colDr,y,{align:'right'});
+      doc.text('-',colCr,y,{align:'right'});
+    } else {
+      doc.text('-',colDr,y,{align:'right'});
+      doc.text(fmt(e.amt).replace('₹','Rs '),colCr,y,{align:'right'});
+    }
+    const balLabel = running>0 ? fmt(Math.abs(running)).replace('₹','Rs ')+' Dr'
+                  : running<0 ? fmt(Math.abs(running)).replace('₹','Rs ')+' Cr'
+                  : '0';
+    doc.text(balLabel,colBal,y,{align:'right'});
+    y+=7;
+  });
+
+  // Bottom totals row
+  y+=2;
+  doc.setLineWidth(0.5);doc.line(M,y,W-M,y);y+=6;
+  doc.setFillColor(243,244,246);
+  doc.rect(M,y-5,W-2*M,9,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.text('TOTAL',colNarration,y);
+  doc.text(fmt(totalDr).replace('₹','Rs '),colDr,y,{align:'right'});
+  doc.text(fmt(totalCr).replace('₹','Rs '),colCr,y,{align:'right'});
+  const netLabel = netBalance > 0 ? fmt(netBalance).replace('₹','Rs ')+' Dr'
+                : netBalance < 0 ? fmt(Math.abs(netBalance)).replace('₹','Rs ')+' Cr'
+                : 'NIL';
+  doc.text(netLabel,colBal,y,{align:'right'});
+  y+=12;
+
+  // Plain-language net balance line
+  doc.setFont('helvetica','normal');doc.setFontSize(11);
+  const summary = netBalance > 0
+    ? `${shop} owes ${supplierName}: ${fmt(netBalance).replace('₹','Rs ')}`
+    : netBalance < 0
+    ? `${supplierName} owes ${shop}: ${fmt(Math.abs(netBalance)).replace('₹','Rs ')} (advance)`
+    : 'Account is fully settled — no balance due.';
+  doc.text(summary,M,y);y+=12;
+
+  // Signature line
+  doc.setFontSize(9);doc.setTextColor(120);
+  doc.text('Please verify this statement and report any discrepancies.',M,y);y+=6;
+  y+=10;
+  doc.line(M+5,y,M+60,y);
+  doc.line(W-M-60,y,W-M-5,y);y+=4;
+  doc.setFontSize(8);
+  doc.text(supplierName,M+32,y,{align:'center'});
+  doc.text('For '+shop,W-M-32,y,{align:'center'});
+
+  // Brand footer
+  doc.setFontSize(7);doc.setTextColor(150);
+  doc.text('Generated by Pasal Manager · pasal-manager.vercel.app',W/2,290,{align:'center'});
+
+  const cleanName = supplierName.replace(/[^a-z0-9]/gi,'_');
+  return {doc, filename:`Statement_${cleanName}_${todayStr()}.pdf`};
+}
+
+async function downloadSupplierStatement(supplierName){
+  const result=_buildSupplierStatementPDF(supplierName);
+  if(!result)return;
+  trackEvent('supplier_statement_generated',{supplier:supplierName});
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  if(isIOS && navigator.canShare){
+    try{
+      const blob=result.doc.output('blob');
+      const file=new File([blob],result.filename,{type:'application/pdf'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:'Supplier Statement',text:`Statement for ${supplierName}`});
+        _showToast('✓ Saved/shared');
+        return;
+      }
+    }catch(e){if(e.name==='AbortError')return;}
+  }
+  // Desktop / Android: native download
+  result.doc.save(result.filename);
+  _showToast('✓ Statement downloaded');
+}
+
+// Share a one-tap text summary to the supplier directly via WhatsApp
+function shareSupplierStatementWhatsApp(supplierName){
+  const entries=kharidiEntries.filter(e=>e.supplierName===supplierName);
+  if(entries.length===0){_showToast('No entries yet');return;}
+  const totalDr=entries.filter(e=>e.type==='purchase').reduce((a,e)=>a+e.amt,0);
+  const totalCr=entries.filter(e=>e.type==='payment').reduce((a,e)=>a+e.amt,0);
+  const net=totalDr-totalCr;
+  const supplier=suppliers.find(s=>s.name===supplierName);
+  const phone=(supplier?.phone||'').replace(/[^0-9]/g,'');
+  const shop=S.shopName||'My Shop';
+
+  const lines=[
+    `*${shop}* — Statement for *${supplierName}*`,
+    ``,
+    `Period: ${entries.length} entries`,
+    `Total Purchased: ${fmt(totalDr).replace('₹','Rs ')}`,
+    `Total Paid:      ${fmt(totalCr).replace('₹','Rs ')}`,
+    `---------------------------------`,
+    net > 0 ? `*I owe you:* ${fmt(net).replace('₹','Rs ')}`
+           : net < 0 ? `*You owe me (advance):* ${fmt(Math.abs(net)).replace('₹','Rs ')}`
+           : `*Account is fully settled* — no balance due.`,
+    ``,
+    `Please confirm if this matches your records.`,
+    ``,
+    `_Sent via Pasal Manager_`,
+  ];
+  const msg=encodeURIComponent(lines.join('\n'));
+  // If we have a phone number, send direct. Else open WhatsApp picker.
+  let waNum=phone;
+  if(waNum && waNum.length===10) waNum=(S.country==='NP'?'977':'91')+waNum;
+  const url = waNum
+    ? `https://wa.me/${waNum}?text=${msg}`
+    : `https://wa.me/?text=${msg}`;
+  window.open(url,'_blank');
+  trackEvent('supplier_statement_shared_wa',{supplier:supplierName});
+}
+
 async function downloadBillPDF(){
   const result=_buildBillPDF();
   if(!result)return;
@@ -8108,8 +8307,14 @@ function renderKharidiDetail(el){
 
   el.innerHTML=`<div class="back-btn" onclick="goMore('kharidi')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Kharidi Book</div>
     <div style="padding:14px 16px;background:${balance>0?'var(--color-danger-light)':'var(--color-success-light)'};border-bottom:1px solid var(--color-border-tertiary)">
-      <div style="font-size:16px;font-weight:800">${esc(name)}</div>
-      <div style="display:flex;justify-content:space-between;margin-top:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="font-size:16px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
+        ${entries.length>0?`<div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="downloadSupplierStatement('${esc(name).replace(/'/g,"\\'")}')" title="Download PDF statement" style="background:#fff;border:1.5px solid var(--color-border-tertiary);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px">📄 PDF</button>
+          <button onclick="shareSupplierStatementWhatsApp('${esc(name).replace(/'/g,"\\'")}')" title="Send via WhatsApp" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px">💬 Share</button>
+        </div>`:''}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:10px">
         <div style="text-align:center"><div style="font-size:15px;font-weight:700;color:var(--color-danger)">${fmt(totalPurchase)}</div><div style="font-size:11px;color:var(--color-text-secondary)">Purchased</div></div>
         <div style="text-align:center"><div style="font-size:15px;font-weight:700;color:var(--color-success)">${fmt(totalPayment)}</div><div style="font-size:11px;color:var(--color-text-secondary)">Paid</div></div>
         <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:${balance>0?'var(--color-danger)':'var(--color-success)'}">${fmt(Math.abs(balance))}</div><div style="font-size:11px;color:var(--color-text-secondary)">${balance>0?'Balance Due':'Advance'}</div></div>
