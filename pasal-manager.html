@@ -5344,42 +5344,44 @@ function renderDashboard(el){
       </div>
     </div>
 
-    <!-- 4 KPI cards -->
-    <div class="summary-card-grid">
-      <div class="summary-card accent" style="position:relative;overflow:hidden">
-        <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.1)"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;position:relative">
-          <div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center">${licon('trending-up',16,'color:#fff;')}</div>
-          <span style="font-size:10px;font-weight:800;opacity:0.85;letter-spacing:0.8px;text-transform:uppercase">Today</span>
+    <!-- 4 KPI cards — monochrome by default. Color only when data is meaningful. -->
+    ${(()=>{
+      // Smart-color helpers: neutral when value is 0, semantic when meaningful.
+      const NEUTRAL_ICON_BG = '#F1F5F9';
+      const NEUTRAL_ICON_FG = '#64748B';
+      const NEUTRAL_VALUE   = 'var(--color-text-primary)';
+      const profitColor = monthProfit > 0 ? '#059669' : monthProfit < 0 ? '#E11D48' : NEUTRAL_VALUE;
+      const profitIconBg = monthProfit > 0 ? '#ECFDF5' : monthProfit < 0 ? '#FFF1F2' : NEUTRAL_ICON_BG;
+      const profitIconFg = monthProfit > 0 ? '#059669' : monthProfit < 0 ? '#E11D48' : NEUTRAL_ICON_FG;
+      const udhaarColor  = udhaarPending > 0 ? '#D97706' : NEUTRAL_VALUE;
+      const udhaarIconBg = udhaarPending > 0 ? '#FFFBEB' : NEUTRAL_ICON_BG;
+      const udhaarIconFg = udhaarPending > 0 ? '#D97706' : NEUTRAL_ICON_FG;
+      const sub = 'font-size:10px;font-weight:800;color:var(--color-text-secondary);letter-spacing:0.8px;text-transform:uppercase';
+      const iconBox = (bg, fg, icon) => `<div style="width:32px;height:32px;border-radius:10px;background:${bg};display:flex;align-items:center;justify-content:center">${licon(icon,16,`color:${fg};`)}</div>`;
+      const card = (iconBg, iconFg, icon, label, value, sub_text, valueColor) => `
+        <div class="summary-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            ${iconBox(iconBg, iconFg, icon)}
+            <span style="${sub}">${label}</span>
+          </div>
+          <div class="summary-card-value" style="color:${valueColor};font-size:24px">${value}</div>
+          <div class="summary-card-sub">${sub_text}</div>
+        </div>`;
+      return `<div class="summary-card-grid">
+        <!-- TODAY: stays the subtle hero with a soft purple tint -->
+        <div class="summary-card" style="background:linear-gradient(135deg,#faf5ff 0%,#ffffff 100%);border-color:#ede9fe">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            ${iconBox('#ede9fe', '#7c3aed', 'trending-up')}
+            <span style="${sub}">Today</span>
+          </div>
+          <div class="summary-card-value" style="color:#5b21b6;font-size:24px">${fmt(todayAmt)}</div>
+          <div class="summary-card-sub">${sales.filter(s=>s.date===todayS).length} entries today</div>
         </div>
-        <div class="summary-card-value" style="font-size:24px">${fmt(todayAmt)}</div>
-        <div class="summary-card-sub">${sales.filter(s=>s.date===todayS).length} entries today</div>
-      </div>
-      <div class="summary-card" style="border-left:3px solid #0EA5E9">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="width:32px;height:32px;border-radius:10px;background:#E0F2FE;display:flex;align-items:center;justify-content:center">${licon('calendar-days',16,'color:#0EA5E9;')}</div>
-          <span style="font-size:10px;font-weight:800;color:var(--color-text-secondary);letter-spacing:0.8px;text-transform:uppercase">Week</span>
-        </div>
-        <div class="summary-card-value" style="color:#0369A1;font-size:24px">${fmt(weekAmt)}</div>
-        <div class="summary-card-sub">Last 7 days</div>
-      </div>
-      <div class="summary-card" style="border-left:3px solid ${monthProfit>=0?'var(--color-success)':'var(--color-danger)'}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="width:32px;height:32px;border-radius:10px;background:${monthProfit>=0?'#ECFDF5':'#FFF1F2'};display:flex;align-items:center;justify-content:center">${licon('bar-chart-2',16,`color:${monthProfit>=0?'var(--color-success)':'var(--color-danger)'};`)}</div>
-          <span style="font-size:10px;font-weight:800;color:var(--color-text-secondary);letter-spacing:0.8px;text-transform:uppercase">Profit</span>
-        </div>
-        <div class="summary-card-value" style="color:${monthProfit>=0?'var(--color-success)':'var(--color-danger)'};font-size:24px">${monthProfit>=0?'':'-'}${fmt(Math.abs(monthProfit))}</div>
-        <div class="summary-card-sub">Sales − Exp this month</div>
-      </div>
-      <div class="summary-card" style="border-left:3px solid var(--color-warning)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="width:32px;height:32px;border-radius:10px;background:#FFFBEB;display:flex;align-items:center;justify-content:center">${licon('alert-circle',16,'color:var(--color-warning);')}</div>
-          <span style="font-size:10px;font-weight:800;color:var(--color-text-secondary);letter-spacing:0.8px;text-transform:uppercase">Udhaar</span>
-        </div>
-        <div class="summary-card-value" style="color:var(--color-warning);font-size:24px">${fmt(udhaarPending)}</div>
-        <div class="summary-card-sub">${udhaars.filter(u=>!u.paid).length} customers pending</div>
-      </div>
-    </div>
+        ${card(NEUTRAL_ICON_BG, NEUTRAL_ICON_FG, 'calendar-days', 'Week', fmt(weekAmt), 'Last 7 days', NEUTRAL_VALUE)}
+        ${card(profitIconBg, profitIconFg, 'bar-chart-2', 'Profit', `${monthProfit<0?'-':''}${fmt(Math.abs(monthProfit))}`, 'Sales − Exp this month', profitColor)}
+        ${card(udhaarIconBg, udhaarIconFg, 'alert-circle', 'Udhaar', fmt(udhaarPending), `${udhaars.filter(u=>!u.paid).length} customers pending`, udhaarColor)}
+      </div>`;
+    })()}
 
     <!-- 7-day bar chart -->
     <div class="chart-card">
