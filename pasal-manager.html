@@ -3340,6 +3340,8 @@ async function saveSettings(){
     _wqPush({type:'upsert',table:'pm_settings',row:settingsRow,onConflict:'user_id'});
     _showToast('Saved locally — will sync when online');
   }
+  // Push the latest shop_name / country snapshot to the admin dashboard
+  if(currentUser) _syncAnalyticsUser();
 }
 
 async function dbAdd(table,row){
@@ -3503,9 +3505,8 @@ async function afterLogin(){
   if(currentUser){
     try { localStorage.removeItem(GUEST_DATE_KEY); } catch(e) {}
   }
-  // Analytics: profile snapshot + login event (fire-and-forget)
+  // Analytics: fire the login/signup event immediately (before loadAll)
   if(currentUser){
-    _syncAnalyticsUser();
     trackEvent(wasGuest ? 'signup' : 'login', { email: currentUser.email });
   } else if(isGuestMode){
     trackEvent('guest_start', { shopName: S?.shopName || '' });
@@ -3521,6 +3522,9 @@ async function afterLogin(){
   if(skEl){skEl.style.display='flex';} if(scrollEl){scrollEl.style.display='none';}
   await loadAll();
   if(skEl){skEl.style.display='none';} if(scrollEl){scrollEl.style.display='';}
+  // Analytics profile sync — runs AFTER loadAll so S.shopName is populated.
+  // Without this delay, every user would show as "(no name)" in the dashboard.
+  if(currentUser) _syncAnalyticsUser();
   updateTopbar();updateNavLabels();renderToday();
   _renderIcons();
   updateUdhaarBadge();
@@ -5778,6 +5782,11 @@ async function renderAdminDashboard(el){
 }
 
 async function _renderAdminMetrics(){
+  // Auto-backfill: if the owner's own profile is missing shop name but we
+  // have one locally, push the current snapshot before fetching the dashboard
+  if(currentUser && (S?.shopName || S?.country)){
+    try { await _syncAnalyticsUser(); } catch(_) {}
+  }
   const now=new Date();
   const _iso=(d)=>d.toISOString();
   const day=86400000;
