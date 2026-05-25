@@ -2074,6 +2074,13 @@ body {
       <button onclick="scannerEnterManual()" style="flex:1;padding:13px;background:#1F2937;color:#D1D5DB;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer">✏ Enter Code</button>
       <button onclick="closeScanner()" style="flex:1;padding:13px;background:#374151;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer">✕ Cancel</button>
     </div>
+    <!-- iOS-only fallback: take a photo of the barcode if live scan fails -->
+    <div id="scanner-fallback" style="display:none;gap:10px;flex-direction:column">
+      <label for="scanner-photo-input" style="display:block;width:100%;padding:13px;background:#7c3aed;color:#fff;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;text-align:center">
+        📷 Take Photo of Barcode
+      </label>
+      <input id="scanner-photo-input" type="file" accept="image/*" capture="environment" onchange="scannerDecodePhoto(event)" style="display:none">
+    </div>
     <div id="scanner-manual" style="display:none">
       <input id="scanner-manual-input" type="text" placeholder="Type barcode number…" style="width:100%;padding:11px 12px;border-radius:10px;border:none;font-size:15px;outline:none;margin-bottom:8px">
       <button onclick="scannerSubmitManual()" style="width:100%;padding:12px;background:var(--color-accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Use This Code</button>
@@ -4653,64 +4660,116 @@ async function openScanner(target){
   const actionsEl=document.getElementById('scanner-actions');
   if(actionsEl) actionsEl.style.display='flex';
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  // iOS: always show the "Take Photo" fallback alongside live scan (in case it fails)
+  const fbEl=document.getElementById('scanner-fallback');
+  if(fbEl) fbEl.style.display = isIOS ? 'flex' : 'none';
 
-  // iOS: use html5-qrcode (handles ALL iPhone Safari camera quirks internally)
+  // iOS: html5-qrcode with iPhone-specific workarounds
+  // KEY INSIGHTS from real-world iOS Safari debugging:
+  //   1. facingMode:'environment' is unreliable — must use deviceId from getCameras()
+  //   2. getCameras() requires prior camera permission — must getUserMedia first
+  //   3. The user-gesture context is preserved across awaits IF the first await
+  //      is the getUserMedia call (the gesture activates camera permission)
+  //   4. qrbox larger than the video frame causes silent failure → use a small one
+  //   5. PWAs installed to home screen have SEPARATE camera permission from Safari
   if(isIOS){
+    const statusEl=document.getElementById('scanner-status');
+    const setStatus=(msg)=>{statusEl.textContent=msg;console.log('[scanner]',msg);};
+    const showFallback=(msg)=>{
+      setStatus(msg);
+      // Always show both manual entry AND photo-capture fallbacks
+      const fb=document.getElementById('scanner-fallback');
+      if(fb) fb.style.display='flex';
+      document.getElementById('scanner-manual').style.display='block';
+      setTimeout(()=>document.getElementById('scanner-manual-input')?.focus(),100);
+    };
     try{
-      document.getElementById('scanner-status').textContent='Loading scanner…';
+      setStatus('Requesting camera…');
+      // STEP 1: Pre-grant camera permission with a minimal getUserMedia call.
+      // This is the trick — calling getUserMedia FIRST (in the user-gesture context
+      // of the scan button click) makes iOS Safari actually show the permission prompt,
+      // and primes html5-qrcode's later .start() call to succeed.
+      let warmupStream;
+      try{
+        warmupStream = await navigator.mediaDevices.getUserMedia({
+          video:{facingMode:{ideal:'environment'}},
+          audio:false,
+        });
+      }catch(permErr){
+        if(permErr.name==='NotAllowedError'){
+          showFallback('Camera blocked. iOS: Settings → Safari → Camera → Allow. PWA: long-press app icon → Settings → Camera → Allow.');
+        } else if(permErr.name==='NotFoundError'){
+          showFallback('No camera found on this device.');
+        } else {
+          showFallback('Camera unavailable: '+permErr.name+'. Use Enter Code or Take Photo.');
+        }
+        return;
+      }
+
+      setStatus('Starting scanner…');
       const Html5Qrcode=await _html5QrLoad();
-      // html5-qrcode manages its own video element; hide ours and use its container
+
+      // STEP 2: Find the BACK camera by enumerating devices (now permitted)
+      let cameraIdOrConfig;
+      try{
+        const cameras=await Html5Qrcode.getCameras();
+        if(cameras && cameras.length){
+          // Prefer back camera; iOS labels are localized so check multiple keywords
+          const back = cameras.find(c=>/back|rear|environment|trasera|arrière|hinten/i.test(c.label||''))
+                    || cameras[cameras.length-1]; // last is typically back on iOS
+          cameraIdOrConfig = back.id;
+        }
+      }catch(_){/* getCameras can fail — fall through to facingMode */}
+      // Stop the warmup stream NOW (before html5-qrcode tries to open its own)
+      try{warmupStream.getTracks().forEach(t=>t.stop());}catch(_){}
+      if(!cameraIdOrConfig) cameraIdOrConfig = {facingMode:{ideal:'environment'}};
+
+      // STEP 3: Set up html5-qrcode's container element
       const videoEl=document.getElementById('scanner-video');
       if(videoEl) videoEl.style.display='none';
-      // Make sure there's a container div for html5-qrcode to render into
       let qrContainer=document.getElementById('h5qr-container');
       if(!qrContainer){
         qrContainer=document.createElement('div');
         qrContainer.id='h5qr-container';
-        qrContainer.style.cssText='position:absolute;inset:0;width:100%;height:100%;background:#000';
+        qrContainer.style.cssText='position:absolute;inset:0;width:100%;height:100%;background:#000;overflow:hidden';
         videoEl.parentNode.appendChild(qrContainer);
       } else {
         qrContainer.style.display='block';
+        qrContainer.innerHTML=''; // clear any leftover state
       }
       _html5QrScanner=new Html5Qrcode('h5qr-container',{verbose:false});
+
+      // STEP 4: Conservative config — qrbox sized to fit any iPhone viewport
+      const vw = Math.min(window.innerWidth, qrContainer.clientWidth||window.innerWidth);
+      const qbW = Math.min(220, Math.floor(vw * 0.7));
+      const qbH = Math.floor(qbW * 0.55); // EAN/CODE128 are wider than tall
       const config={
         fps:10,
-        qrbox:{width:260,height:160},
-        aspectRatio:1.333,
+        qrbox:{width:qbW, height:qbH},
         disableFlip:false,
-        formatsToSupport:[
-          0,  // QR_CODE
-          1,  // AZTEC
-          7,  // CODE_128
-          8,  // CODE_39
-          9,  // CODE_93
-          10, // CODABAR
-          11, // EAN_13
-          12, // EAN_8
-          14, // ITF
-          15, // UPC_A
-          16, // UPC_E
-        ],
+        videoConstraints:{facingMode:{ideal:'environment'}}, // hint for html5-qrcode
       };
+
       await _html5QrScanner.start(
-        {facingMode:'environment'},
+        cameraIdOrConfig,
         config,
-        (decodedText)=>{
-          if(scannerActive) _onBarcodeDetected(decodedText);
-        },
-        ()=>{} // ignore scan-frame errors
+        (decodedText)=>{ if(scannerActive) _onBarcodeDetected(decodedText); },
+        ()=>{} // per-frame decode errors are noise; ignore
       );
-      document.getElementById('scanner-status').textContent='Scanning…';
+      setStatus('Scanning…');
     }catch(e){
-      console.error('html5-qrcode error:',e);
-      const msg=(e&&e.toString().includes('NotAllowedError'))
-        ? 'Camera permission denied. Enable: Settings → Safari → Camera'
-        : (e&&e.toString().includes('NotFoundError'))
-        ? 'No camera found'
-        : 'Scanner unavailable — enter code manually';
-      document.getElementById('scanner-status').textContent=msg;
-      document.getElementById('scanner-manual').style.display='block';
-      setTimeout(()=>document.getElementById('scanner-manual-input')?.focus(),100);
+      console.error('Scanner failed:',e);
+      const errName = e?.name || '';
+      const errMsg = String(e?.message || e);
+      if(errName==='NotAllowedError' || /permission/i.test(errMsg)){
+        showFallback('Camera permission needed. Settings → Safari → Camera → Allow.');
+      } else if(errName==='NotFoundError'){
+        showFallback('No camera found.');
+      } else if(/NotReadable|TrackStart|busy/i.test(errName+errMsg)){
+        showFallback('Camera busy. Close other apps using camera, then retry.');
+      } else {
+        showFallback('Scanner failed. Use Enter Code or Take Photo instead.');
+      }
     }
     return;
   }
@@ -4825,6 +4884,10 @@ function closeScanner(){
   if(scannerStream){scannerStream.getTracks().forEach(t=>t.stop());scannerStream=null;}
   const video=document.getElementById('scanner-video');
   if(video){video.srcObject=null;video.style.display='block';}
+  const fb=document.getElementById('scanner-fallback');
+  if(fb) fb.style.display='none';
+  const photoInput=document.getElementById('scanner-photo-input');
+  if(photoInput) photoInput.value='';
   document.getElementById('scanner-modal').classList.remove('open');
 }
 function scannerEnterManual(){
@@ -4837,6 +4900,35 @@ function scannerSubmitManual(){
   document.getElementById('scanner-manual-input').value='';
   closeScanner();
   _handleScannedCode(code);
+}
+// iOS fallback: user takes a photo of the barcode, html5-qrcode decodes the image
+async function scannerDecodePhoto(event){
+  const file=event.target.files&&event.target.files[0];
+  if(!file) return;
+  const statusEl=document.getElementById('scanner-status');
+  statusEl.textContent='Decoding photo…';
+  // Ensure a container element exists for html5-qrcode's file API
+  let tmpId='h5qr-file-tmp';
+  let tmp=document.getElementById(tmpId);
+  if(!tmp){
+    tmp=document.createElement('div');
+    tmp.id=tmpId;
+    tmp.style.cssText='position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden';
+    document.body.appendChild(tmp);
+  }
+  try{
+    const Html5Qrcode=await _html5QrLoad();
+    const decoder=new Html5Qrcode(tmpId, false);
+    const result=await decoder.scanFile(file, /*showImage*/false);
+    event.target.value='';
+    try{await decoder.clear();}catch(_){}
+    closeScanner();
+    _handleScannedCode(result);
+  }catch(e){
+    console.error('Photo decode failed:',e);
+    statusEl.textContent='Couldn\'t read barcode in that photo. Try closer/clearer, or use Enter Code.';
+    event.target.value='';
+  }
 }
 function _handleScannedCode(code){
   const found=stock.find(i=>i.barcode&&i.barcode===code);
