@@ -3364,6 +3364,11 @@ async function afterLogin(){
     isGuestMode=false;
     await _migrateGuestData();
   }
+  // Once a real user is logged in, ensure no stale guest marker is left behind —
+  // otherwise next reload's auto-restore could re-flip them to guest mode.
+  if(currentUser){
+    try { localStorage.removeItem(GUEST_DATE_KEY); } catch(e) {}
+  }
 
   document.getElementById('auth-page').style.display='none';
   document.getElementById('app').style.display='flex';
@@ -10641,7 +10646,23 @@ async function init(){
     }
   });
 
-  // FIX: Auto-restore returning guest session (skip the auth screen)
+  // PRIORITY 1: Supabase signed-in user (always wins over local guest cache)
+  // If the user has ever logged in with email, their session here is the source of truth.
+  try {
+    const {data:{session}} = await sb.auth.getSession();
+    if(session && session.user){
+      currentUser = session.user;
+      isGuestMode = false;
+      // Clear any stale guest markers from a previous guest session
+      // (so next reload doesn't get confused). Don't clear local_* data —
+      // afterLogin → loadAll() will fetch fresh data from cloud anyway.
+      localStorage.removeItem(GUEST_DATE_KEY);
+      await afterLogin();
+      return;
+    }
+  } catch(e) { /* offline / Supabase unreachable — fall through to guest restore */ }
+
+  // PRIORITY 2: Auto-restore returning guest session (no Supabase session found)
   try {
     const savedGuestStart = localStorage.getItem(GUEST_DATE_KEY);
     const savedSettingsRaw = localStorage.getItem('local_settings');
@@ -10657,15 +10678,6 @@ async function init(){
       }
     }
   } catch(e) { console.warn('Guest session restore failed:', e); }
-
-  // No saved guest session — try Supabase signed-in user
-  try {
-    const {data:{session}} = await sb.auth.getSession();
-    if(session){
-      currentUser = session.user;
-      await afterLogin();
-    }
-  } catch(e) { /* offline / Supabase unreachable — stay on auth screen */ }
 }
 init();
 
