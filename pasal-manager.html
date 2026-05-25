@@ -1741,8 +1741,8 @@ body {
 </div><!-- /.app-shell -->
 
 <!-- ===== SCROLL TO TOP ===== -->
-<button id="scroll-top-btn" onclick="document.getElementById('scroll-area').scrollTo({top:0,behavior:'smooth'})" style="display:none;position:fixed;bottom:76px;left:50%;transform:translateX(-50%);z-index:500;background:rgba(15,23,42,0.75);color:#fff;border:none;border-radius:20px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);gap:6px;align-items:center">
-  <i data-lucide="arrow-up" style="width:13px;height:13px"></i> Top
+<button id="scroll-top-btn" onclick="document.getElementById('scroll-area').scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll to top" style="display:none;position:fixed;bottom:84px;right:18px;z-index:500;width:40px;height:40px;background:rgba(15,23,42,0.78);color:#fff;border:none;border-radius:50%;font-size:14px;font-weight:700;cursor:pointer;backdrop-filter:blur(8px);align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,0.18)">
+  <i data-lucide="arrow-up" style="width:18px;height:18px"></i>
 </button>
 
 <!-- ===== UNLOCK MODAL ===== -->
@@ -5355,12 +5355,12 @@ function renderDashboard(el){
         <div class="summary-card-value" style="font-size:24px">${fmt(todayAmt)}</div>
         <div class="summary-card-sub">${sales.filter(s=>s.date===todayS).length} entries today</div>
       </div>
-      <div class="summary-card" style="border-left:3px solid var(--color-success)">
+      <div class="summary-card" style="border-left:3px solid #0EA5E9">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="width:32px;height:32px;border-radius:10px;background:#ECFDF5;display:flex;align-items:center;justify-content:center">${licon('calendar-days',16,'color:var(--color-success);')}</div>
+          <div style="width:32px;height:32px;border-radius:10px;background:#E0F2FE;display:flex;align-items:center;justify-content:center">${licon('calendar-days',16,'color:#0EA5E9;')}</div>
           <span style="font-size:10px;font-weight:800;color:var(--color-text-secondary);letter-spacing:0.8px;text-transform:uppercase">Week</span>
         </div>
-        <div class="summary-card-value" style="color:var(--color-success);font-size:24px">${fmt(weekAmt)}</div>
+        <div class="summary-card-value" style="color:#0369A1;font-size:24px">${fmt(weekAmt)}</div>
         <div class="summary-card-sub">Last 7 days</div>
       </div>
       <div class="summary-card" style="border-left:3px solid ${monthProfit>=0?'var(--color-success)':'var(--color-danger)'}">
@@ -5524,7 +5524,7 @@ function renderDashboard(el){
         ]},
         options:{
           animation:false,
-          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ₹${fmt(ctx.raw)}`}}},
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmt(ctx.raw)}`}}},
           scales:{...commonScales},
           responsive:true,maintainAspectRatio:false
         }
@@ -5544,7 +5544,7 @@ function renderDashboard(el){
         ]},
         options:{
           animation:false,
-          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ₹${fmt(ctx.raw)}`}}},
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmt(ctx.raw)}`}}},
           scales:{...commonScales},
           responsive:true,maintainAspectRatio:false
         }
@@ -5613,7 +5613,7 @@ function renderDashboard(el){
       _charts.push(new Chart(c3,{
         type:'doughnut',
         data:{labels:payLabels,datasets:[{data:payVals,backgroundColor:COLORS,borderWidth:3,borderColor:'#fff',hoverOffset:4}]},
-        options:{animation:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ₹${fmt(ctx.raw)} (${Math.round(ctx.raw/total*100)}%)`}}},cutout:'60%',responsive:false,maintainAspectRatio:false}
+        options:{animation:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmt(ctx.raw)} (${Math.round(ctx.raw/total*100)}%)`}}},cutout:'60%',responsive:false,maintainAspectRatio:false}
       }));
       const leg=document.getElementById('pay-legend');
       if(leg) leg.innerHTML=payLabels.map((l,i)=>`
@@ -5623,7 +5623,7 @@ function renderDashboard(el){
             <span style="font-size:13px;color:var(--color-text-secondary)">${l}</span>
           </div>
           <div style="text-align:right">
-            <div style="font-size:13px;font-weight:700;color:var(--color-text-primary)">₹${fmt(payVals[i])}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--color-text-primary)">${fmt(payVals[i])}</div>
             <div style="font-size:11px;color:var(--color-text-secondary)">${Math.round(payVals[i]/total*100)}%</div>
           </div>
         </div>`).join('');
