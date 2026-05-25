@@ -107,3 +107,41 @@ with `sanjanathakur302@gmail.com`. No other user sees it.
 **To add more owner emails** (e.g. for a teammate): edit the three RLS
 policy expressions above and the `OWNER_EMAILS` array in `pasal-manager.html`.
 
+---
+
+## 2026-05-25 — Anonymous auth (guests become real Supabase users)
+
+This makes every "Start as Guest" user automatically get a Supabase
+account (no email/password required) so their data flows to the cloud
+from the very first sale. You see all guests in the Admin Dashboard
+immediately instead of waiting for them to sign up.
+
+### Step 1 — Enable in Supabase Dashboard
+
+There's no SQL for this. Do it in the UI:
+
+1. Open https://supabase.com/dashboard/project/dmacgmvideuylcpkocmz/auth/sign-in-up
+2. Find the **"Allow anonymous sign-ins"** toggle (under "User Sign Ups" section)
+3. Toggle it **ON**
+4. Click **Save**
+
+That's it. The app's guest button will start using `sb.auth.signInAnonymously()`
+automatically once this is enabled. If you leave it disabled, the app
+falls back to the old localStorage-only guest behavior — no breakage.
+
+### Step 2 — (Optional) RLS check for anonymous users
+
+If you ever want to do something different for anonymous users in SQL,
+you can detect them via `auth.jwt() ->> 'is_anonymous' = 'true'`.
+Example — block anonymous users from generating large bills:
+
+```sql
+-- (NOT applied — example only)
+CREATE POLICY "no_anon_bulk" ON pm_gst_bills
+  FOR INSERT WITH CHECK (auth.jwt() ->> 'is_anonymous' = 'false');
+```
+
+Right now we don't restrict anything — anonymous users have the same
+permissions as email-signed-in users (their own data only, via existing
+`auth.uid() = user_id` policies).
+

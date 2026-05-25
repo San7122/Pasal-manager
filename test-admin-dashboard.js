@@ -37,8 +37,10 @@ const test = (name, pass, info = '') => {
 
   console.log('\n\x1b[36m━━━ Static: Event tracking points ━━━\x1b[0m');
   const events = [
-    {name: 'signup',          re: /trackEvent\(wasGuest\s*\?\s*['"]signup['"]/},
-    {name: 'login',           re: /trackEvent\(wasGuest\s*\?\s*['"]signup['"]\s*:\s*['"]login['"]/},
+    // Signup is now fired in 2 places: from afterLogin (after _migrateGuestData)
+    // AND from the anonymous-upgrade path. Login is fired via the ternary in afterLogin.
+    {name: 'signup',          re: /trackEvent\(['"]signup['"][\s\S]{0,200}?anon_upgrade|wasGuest\s*\?\s*['"]signup['"]/},
+    {name: 'login',           re: /wasGuest\s*\?\s*['"]signup['"]\s*:\s*['"]login['"]/},
     {name: 'guest_start',     re: /trackEvent\(['"]guest_start['"]/},
     {name: 'sale_added',      re: /trackEvent\(['"]sale_added['"]/},
     {name: 'udhaar_added',    re: /trackEvent\(['"]udhaar_added['"]/},

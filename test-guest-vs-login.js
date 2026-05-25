@@ -23,10 +23,12 @@ const test = (name, pass, info = '') => {
     /sb\.auth\.getSession[\s\S]{0,1500}?GUEST_DATE_KEY/.test(html));
   test('init(): When Supabase session found, GUEST_DATE_KEY cleared',
     /sb\.auth\.getSession[\s\S]{0,800}?localStorage\.removeItem\(GUEST_DATE_KEY\)/.test(html));
-  test('init(): When Supabase session found, isGuestMode set to false',
-    /sb\.auth\.getSession[\s\S]{0,600}?isGuestMode\s*=\s*false/.test(html));
-  test('afterLogin(): Clears GUEST_DATE_KEY for any authenticated user',
-    /async function afterLogin[\s\S]{0,1500}?if\s*\(currentUser\)\s*\{[\s\S]{0,200}?localStorage\.removeItem\(GUEST_DATE_KEY\)/.test(html));
+  // After anonymous-auth refactor: isGuestMode = false ONLY for email users.
+  // Anonymous Supabase users keep isGuestMode=true so the upgrade banner shows.
+  test('init(): When email Supabase session found, isGuestMode set to false',
+    /sb\.auth\.getSession[\s\S]{0,1200}?if\s*\(!isAnon\)[\s\S]{0,200}?localStorage\.removeItem\(GUEST_DATE_KEY\)/.test(html));
+  test('afterLogin(): Clears GUEST_DATE_KEY for email-verified user (not anonymous)',
+    /async function afterLogin[\s\S]{0,2000}?if\s*\(currentUser\s*&&\s*!isAnon\)\s*\{[\s\S]{0,200}?localStorage\.removeItem\(GUEST_DATE_KEY\)/.test(html));
 
   console.log('\n\x1b[36m━━━ Scenario C: Supabase session + stale guest cache → user wins ━━━\x1b[0m');
 

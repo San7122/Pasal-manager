@@ -2113,6 +2113,13 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // (e.g. token-refresh failures on flaky mobile networks)
 let _userInitiatedSignout = false;
 
+// True when currentUser is a Supabase anonymous user (created via signInAnonymously).
+// Such users have a real user_id but no email — they get all the data-sync benefits
+// of a logged-in user but still see the "guest" UX (banner, upgrade nudge).
+function isAnonymousUser(){
+  return !!(currentUser && (currentUser.is_anonymous === true || (currentUser.email === '' || currentUser.email === undefined)) && currentUser.id);
+}
+
 // ===== ANALYTICS / ADMIN DASHBOARD =====
 // Emails listed here see the Admin Dashboard (More → Admin) and have read
 // access to analytics_visits / analytics_users / analytics_events via RLS.
@@ -3455,6 +3462,32 @@ async function doSignup(){
   btn.innerHTML='<span class="btn-spinner"></span>Creating...';btn.disabled=true;
 
   try {
+    // SMART PATH: If user is currently an anonymous Supabase user, UPGRADE
+    // their existing account (preserves user_id + all data) instead of
+    // creating a new one. updateUser({email, password}) links credentials.
+    if (isAnonymousUser()) {
+      const { data, error } = await sb.auth.updateUser({ email, password: pass });
+      if (error) throw error;
+      // Successful upgrade — user_id stays the same, account now has email+password
+      currentUser = data.user;
+      if (name) {
+        S.shopName = name;
+        await saveSettings(); // push the name to pm_settings under existing user_id
+      }
+      // Refresh UI without re-running migration (data is already in cloud)
+      const banner = document.getElementById('guest-banner-el');
+      if (banner) banner.remove();
+      isGuestMode = false; // no longer "anonymous" — they have an email now
+      _syncAnalyticsUser(); // refresh their analytics_users row with the new email
+      trackEvent('signup', { email, anon_upgrade: true });
+      _showToast('✓ Your data is now safe in the cloud!');
+      // Make sure the app screen is showing (in case we got here from auth page)
+      document.getElementById('auth-page').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      updateTopbar();
+      return;
+    }
+    // Normal new-account signup (offline guest or never-was-a-guest)
     const{data,error}=await sb.auth.signUp({email,password:pass});
     if(error) throw error;
     currentUser=data.user;
@@ -3500,22 +3533,29 @@ async function afterLogin(){
   if(currentUser && currentUser.email){
     try { localStorage.setItem('pm_last_login_email', currentUser.email); } catch(e) {}
   }
-  // If a guest just created an account, migrate their local data first
-  const wasGuest=isGuestMode && !!currentUser;
+  // Detect "guest upgrading to email account" — only run data migration in
+  // that case. Anonymous-Supabase users don't need migration (their data is
+  // already in the cloud under their anonymous user_id), so skip migration
+  // for them or it would create duplicate rows.
+  const isAnon = isAnonymousUser();
+  const wasGuest = isGuestMode && !!currentUser && !isAnon;
   if(wasGuest){
-    isGuestMode=false;
+    isGuestMode = false;
     await _migrateGuestData();
   }
-  // Once a real user is logged in, ensure no stale guest marker is left behind —
-  // otherwise next reload's auto-restore could re-flip them to guest mode.
-  if(currentUser){
+  // Once an EMAIL-VERIFIED user is signed in (not anonymous), clear the
+  // guest marker so next reload doesn't try to restore guest mode.
+  // Anonymous users keep the guest marker so the upgrade nudge keeps showing.
+  if(currentUser && !isAnon){
     try { localStorage.removeItem(GUEST_DATE_KEY); } catch(e) {}
   }
-  // Analytics: fire the login/signup event immediately (before loadAll)
+  // Analytics: pick the right event name
   if(currentUser){
-    trackEvent(wasGuest ? 'signup' : 'login', { email: currentUser.email });
+    const eventName = isAnon ? 'guest_start' : (wasGuest ? 'signup' : 'login');
+    trackEvent(eventName, { email: currentUser.email || '', shopName: S?.shopName || '', anon: isAnon });
   } else if(isGuestMode){
-    trackEvent('guest_start', { shopName: S?.shopName || '' });
+    // Pure offline guest (no Supabase user) — log it
+    trackEvent('guest_start', { shopName: S?.shopName || '', offline: true });
   }
 
   document.getElementById('auth-page').style.display='none';
@@ -3627,6 +3667,24 @@ async function confirmGuest(){
   isGuestMode=true;
   currentUser=null;
 
+  // NEW: Try anonymous Supabase sign-in so the user gets a real user_id and
+  // their data flows to the cloud from the first sale. If anonymous auth is
+  // disabled in Supabase (or offline), fall back silently to the old
+  // localStorage-only guest mode — the rest of the app handles both cases.
+  try {
+    if (navigator.onLine) {
+      const { data, error } = await sb.auth.signInAnonymously();
+      if (!error && data?.user) {
+        currentUser = data.user;
+        // Keep isGuestMode=true so all the existing "guest" UX still applies
+        // (banner, upgrade nudges, conversion flow). The difference: currentUser
+        // is now a real Supabase user with a permanent user_id.
+      }
+    }
+  } catch (e) {
+    console.warn('Anonymous sign-in unavailable — falling back to local-only guest:', e?.message);
+  }
+
   // FIX: Load existing saved settings FIRST (country, Nepal payment IDs, etc.)
   // BEFORE setting shopName, so we don't wipe what the user previously saved.
   cacheRead();
@@ -3668,7 +3726,17 @@ function _renderGuestBanner(){
   const banner=document.createElement('div');
   banner.id='guest-banner-el';
   banner.className='guest-banner';
-  banner.innerHTML=`<span>${t('guestBannerMsg')}</span><span class="guest-banner-link" onclick="backupData()">💾 Backup Now</span>`;
+  // Different message depending on whether they're anon-Supabase or true-offline
+  const anon = isAnonymousUser();
+  const msg = anon
+    ? '☁️ Guest Mode — your data is auto-syncing'
+    : t('guestBannerMsg');
+  // Primary CTA: upgrade to email (preserves user_id for anon users, full signup for offline)
+  banner.innerHTML = `
+    <span>${msg}</span>
+    <span class="guest-banner-link" onclick="startConvertGuest()" style="font-weight:700">📧 Save with email →</span>
+    <span class="guest-banner-link" onclick="backupData()" style="opacity:0.85">💾 Backup</span>
+  `;
   topbar.after(banner);
   _showIOSDataWarningOnce();
 }
@@ -3737,18 +3805,72 @@ function _dismissGuestNudge(){
 }
 
 function startConvertGuest(){
-  // Hide nudge + banner
   _dismissGuestNudge();
-  // Show auth page with signup tab
+  // Anonymous user → in-app upgrade modal (preserves their user_id + all data)
+  if (isAnonymousUser()) {
+    _showUpgradeModal();
+    return;
+  }
+  // Offline / true-guest → full signup flow (with _migrateGuestData on success)
   document.getElementById('app').style.display='none';
   document.getElementById('auth-page').style.display='flex';
   hideGuestSetup();
   renderAuthForm('signup');
-  // Pre-fill their shop name so it carries over
   setTimeout(()=>{
     const nameEl=document.getElementById('a-name');
     if(nameEl) nameEl.value=S.shopName||'';
   },150);
+}
+
+// In-app modal for anonymous users to add email + password.
+// Uses sb.auth.updateUser() so their existing user_id (and all data) stays.
+function _showUpgradeModal(){
+  if(document.getElementById('upgrade-modal')) return;
+  const m=document.createElement('div');
+  m.id='upgrade-modal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99998;display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML=`
+    <div style="background:#fff;max-width:400px;width:100%;border-radius:18px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,0.3)">
+      <div style="font-size:34px;text-align:center;margin-bottom:8px">☁️</div>
+      <div style="font-size:18px;font-weight:800;text-align:center;color:#1e1147;margin-bottom:6px">Save your data forever</div>
+      <div style="font-size:13px;color:#475569;text-align:center;line-height:1.5;margin-bottom:18px">
+        Add your email so you can open <strong>${esc(S.shopName||'your shop')}</strong> on any device. All your existing sales, stock and udhaar will be kept.
+      </div>
+      <input id="up-email" type="email" placeholder="Your email" autocomplete="email" style="width:100%;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:8px;outline:none">
+      <input id="up-pass"  type="password" placeholder="Choose a password (min 6 chars)" autocomplete="new-password" style="width:100%;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:6px;outline:none">
+      <div id="up-err" style="color:#dc2626;font-size:12px;display:none;margin-bottom:6px"></div>
+      <button id="up-go" onclick="_doUpgradeToEmail()" style="width:100%;background:#7c3aed;color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px">✓ Save my data</button>
+      <button onclick="document.getElementById('upgrade-modal').remove()" style="width:100%;background:transparent;color:#64748b;border:none;padding:10px;font-size:13px;cursor:pointer;margin-top:4px">Maybe later</button>
+    </div>`;
+  document.body.appendChild(m);
+  setTimeout(()=>document.getElementById('up-email')?.focus(),120);
+}
+
+async function _doUpgradeToEmail(){
+  const errEl=document.getElementById('up-err');
+  const btn=document.getElementById('up-go');
+  const email=(document.getElementById('up-email')?.value||'').trim();
+  const pass=(document.getElementById('up-pass')?.value||'');
+  const show=(msg)=>{ if(errEl){errEl.textContent=msg;errEl.style.display='block';} };
+  if(!email||!pass) return show('Please enter both email and password.');
+  if(pass.length<6) return show('Password must be at least 6 characters.');
+  if(!isAnonymousUser()) return show('Session expired. Please try again.');
+  btn.disabled=true; btn.innerHTML='<span class="btn-spinner"></span>Saving...';
+  try {
+    const { data, error } = await sb.auth.updateUser({ email, password: pass });
+    if (error) throw error;
+    currentUser = data.user;
+    isGuestMode = false;
+    try { localStorage.setItem('pm_last_login_email', email); } catch(_) {}
+    document.getElementById('upgrade-modal')?.remove();
+    const banner=document.getElementById('guest-banner-el');if(banner) banner.remove();
+    _syncAnalyticsUser();
+    trackEvent('signup', { email, anon_upgrade: true });
+    _showToast('✓ Saved! Your data is now in the cloud.');
+  } catch(e) {
+    btn.disabled=false; btn.innerHTML='✓ Save my data';
+    show(e?.message || 'Could not save. Try again.');
+  }
 }
 
 // Migrate guest local data to Supabase after account creation
@@ -11219,16 +11341,19 @@ async function init(){
   });
 
   // PRIORITY 1: Supabase signed-in user (always wins over local guest cache)
-  // If the user has ever logged in with email, their session here is the source of truth.
+  // Works for BOTH email users AND anonymous-Supabase users (created via
+  // signInAnonymously). Anonymous users keep isGuestMode=true so the upgrade
+  // banner stays visible; email users have isGuestMode=false.
   try {
     const {data:{session}} = await sb.auth.getSession();
     if(session && session.user){
       currentUser = session.user;
-      isGuestMode = false;
-      // Clear any stale guest markers from a previous guest session
-      // (so next reload doesn't get confused). Don't clear local_* data —
-      // afterLogin → loadAll() will fetch fresh data from cloud anyway.
-      localStorage.removeItem(GUEST_DATE_KEY);
+      const isAnon = !!(session.user.is_anonymous) || !session.user.email;
+      isGuestMode = isAnon; // anonymous → stay in guest UX; email → full user UX
+      if (!isAnon) {
+        // Email user — clear stale guest markers (anonymous keeps them for the upgrade nudge)
+        localStorage.removeItem(GUEST_DATE_KEY);
+      }
       await afterLogin();
       return;
     }
