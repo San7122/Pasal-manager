@@ -5446,7 +5446,7 @@ function renderDashboard(el){
       if(!cats.length) return '';
       return `<div class="chart-card">
         <div class="chart-card-title" style="margin-bottom:14px">Expenses by Category — This Month</div>
-        <canvas id="chart-exp-cat" height="150"></canvas>
+        <div style="position:relative;height:220px"><canvas id="chart-exp-cat"></canvas></div>
       </div>`;
     })()}
 
@@ -5462,7 +5462,7 @@ function renderDashboard(el){
       const topNames=top.map(([id,amt])=>{const c=customers.find(x=>x.id===id);return{name:c?c.name:'Unknown',amt};});
       return `<div class="chart-card">
         <div class="chart-card-title" style="margin-bottom:14px">Top 5 Customers — All Time</div>
-        <canvas id="chart-top-cust" height="150"></canvas>
+        <div style="position:relative;height:220px"><canvas id="chart-top-cust"></canvas></div>
         <div id="chart-top-cust-data" style="display:none">${encodeURIComponent(JSON.stringify(topNames))}</div>
       </div>`;
     })()}
@@ -5475,7 +5475,7 @@ function renderDashboard(el){
       if(!hasHour) return '';
       return `<div class="chart-card">
         <div class="chart-card-title" style="margin-bottom:14px">Sales by Hour of Day</div>
-        <canvas id="chart-hour" height="130"></canvas>
+        <div style="position:relative;height:200px"><canvas id="chart-hour"></canvas></div>
         <div id="chart-hour-data" style="display:none">${encodeURIComponent(JSON.stringify(hourMap))}</div>
       </div>`;
     })()}
