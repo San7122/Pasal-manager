@@ -435,7 +435,10 @@ body {
   gap: 10px; padding: 12px;
 }
 @media (min-width: 600px) {
-  .summary-card-grid { grid-template-columns: repeat(4, 1fr); }
+  .summary-card-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 900px) {
+  .summary-card-grid { grid-template-columns: repeat(5, 1fr); }
 }
 .summary-card {
   background: #fff; border-radius: 14px;
@@ -5448,6 +5451,10 @@ function renderDashboard(el){
   const monthExp=expenses.filter(e=>e.date.substring(0,7)===mk).reduce((a,e)=>a+e.amt,0);
   const monthProfit=monthAmt-monthExp;
   const udhaarPending=udhaars.filter(u=>!u.paid).reduce((a,u)=>a+u.amt,0);
+  // Supplier debt = total purchases (credit taken) − total payments made, summed across all suppliers
+  const supplierOwed = (typeof kharidiEntries !== 'undefined' && kharidiEntries.length)
+    ? kharidiEntries.reduce((a,e) => a + (e.type === 'purchase' ? e.amt : -e.amt), 0)
+    : 0;
 
   const branchLabel=branches.length===0?'':(currentBranchId==='__all__'?t('allBranches'):(branches.find(b=>b.id===currentBranchId)?.name||''));
 
@@ -5484,6 +5491,9 @@ function renderDashboard(el){
       const udhaarColor  = udhaarPending > 0 ? '#D97706' : NEUTRAL_VALUE;
       const udhaarIconBg = udhaarPending > 0 ? '#FFFBEB' : NEUTRAL_ICON_BG;
       const udhaarIconFg = udhaarPending > 0 ? '#D97706' : NEUTRAL_ICON_FG;
+      const supplierColor  = supplierOwed > 0 ? '#DC2626' : NEUTRAL_VALUE;
+      const supplierIconBg = supplierOwed > 0 ? '#FEF2F2' : NEUTRAL_ICON_BG;
+      const supplierIconFg = supplierOwed > 0 ? '#DC2626' : NEUTRAL_ICON_FG;
       const sub = 'font-size:10px;font-weight:800;color:var(--color-text-secondary);letter-spacing:0.8px;text-transform:uppercase';
       const iconBox = (bg, fg, icon) => `<div style="width:32px;height:32px;border-radius:10px;background:${bg};display:flex;align-items:center;justify-content:center">${licon(icon,16,`color:${fg};`)}</div>`;
       const card = (iconBg, iconFg, icon, label, value, sub_text, valueColor) => `
@@ -5507,7 +5517,25 @@ function renderDashboard(el){
         </div>
         ${card(NEUTRAL_ICON_BG, NEUTRAL_ICON_FG, 'calendar-days', 'Week', fmt(weekAmt), 'Last 7 days', NEUTRAL_VALUE)}
         ${card(profitIconBg, profitIconFg, 'bar-chart-2', 'Profit', `${monthProfit<0?'-':''}${fmt(Math.abs(monthProfit))}`, 'Sales − Exp this month', profitColor)}
-        ${card(udhaarIconBg, udhaarIconFg, 'alert-circle', 'Udhaar', fmt(udhaarPending), `${udhaars.filter(u=>!u.paid).length} customers pending`, udhaarColor)}
+        ${card(udhaarIconBg, udhaarIconFg, 'arrow-down-left', 'To Collect', fmt(udhaarPending), `${udhaars.filter(u=>!u.paid).length} customers · udhaar`, udhaarColor)}
+        ${card(supplierIconBg, supplierIconFg, 'arrow-up-right', 'I Owe', fmt(supplierOwed), `to suppliers · ${supplierOwed>0?'tap Purchase Book':'all clear'}`, supplierColor)}
+      </div>`;
+    })()}
+
+    <!-- Smart suggestion: when this week's sales are healthy and supplier debt exists,
+         suggest a partial payment so the user doesn't have to mentally calculate it. -->
+    ${(()=>{
+      if (supplierOwed <= 0 || weekAmt <= 0) return '';
+      // Suggest paying ~30% of weekly sales toward suppliers (rough rule of thumb)
+      // Capped to actual amount owed.
+      const suggested = Math.min(Math.round(weekAmt * 0.30), supplierOwed);
+      if (suggested < 100) return '';
+      return `<div style="margin:6px 12px 14px;padding:14px 16px;background:linear-gradient(135deg,#fef9c3,#fef3c7);border:1.5px solid #facc15;border-radius:14px;display:flex;align-items:center;gap:12px">
+        <div style="font-size:22px;line-height:1">💡</div>
+        <div style="flex:1;font-size:13px;color:#713f12;line-height:1.4">
+          <strong>Smart suggestion:</strong> You earned ${fmt(weekAmt)} this week. Consider paying <strong>${fmt(suggested)}</strong> toward your ${fmt(supplierOwed)} supplier balance to stay in good standing.
+        </div>
+        <button onclick="goMore('kharidi')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Pay now →</button>
       </div>`;
     })()}
 
@@ -5774,6 +5802,7 @@ function renderMoreMenu(el){
     {id:'cashbook',icon:'book-open',color:'#0D9488',label:'Cash Book',desc:'Daily cash in & out record'},
     {id:'expense',icon:'receipt',color:'#E11D48',label:'Expenses',desc:'Record shop expenses'},
     {id:'supplier',icon:'truck',color:'#8B5CF6',label:'Suppliers',desc:'Your wholesale contacts'},
+    {id:'kharidi',icon:'shopping-cart',color:'#EA580C',label:'Purchase Book',desc:'Track what you owe each supplier · auto-balance after every payment'},
     {id:'bill',icon:'file-text',color:'#0EA5E9',label:'Digital Bill',desc:'Make & share customer bills'},
     {id:'staffBook',icon:'clipboard-list',color:'#D97706',label:t('staffBook'),desc:'Attendance, salary & advances'},
     {id:'score',icon:'star',color:'#7C3AED',label:t('scoreTitle'),desc:'Financial health score & bank loan certificate'},
@@ -5790,7 +5819,6 @@ function renderMoreMenu(el){
     basicItems.splice(1, 0, {id:'admin',icon:'shield',color:'#9333EA',label:'Admin Dashboard',desc:'Active users, signups, feature usage (owner only)'});
   }
   const advancedItems=[
-    {id:'kharidi',icon:'shopping-cart',color:'#EA580C',label:'Purchase Book',desc:'Track goods bought on credit from suppliers'},
     {id:'dealer',icon:'handshake',color:'#0891B2',label:'Dealer Book',desc:'Credit you give to wholesale dealers'},
     {id:'emi',icon:'credit-card',color:'#059669',label:'EMI Tracker',desc:'Installment plans for high-value items sold'},
     {id:'loan',icon:'banknote',color:'#DC2626',label:'Loan Manager',desc:'Track bank loans & monthly repayments'},
@@ -8067,6 +8095,17 @@ function renderKharidiDetail(el){
   const totalPayment=entries.filter(e=>e.type==='payment').reduce((a,e)=>a+e.amt,0);
   const balance=totalPurchase-totalPayment;
 
+  // Calculate the RUNNING BALANCE after every entry (oldest to newest, then map back).
+  // This way the shopkeeper never has to mentally calculate "how much is left" —
+  // every line shows exactly the balance owed AFTER that transaction.
+  const entriesOldFirst = [...entries].sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const runningBalances = {};
+  let running = 0;
+  for (const e of entriesOldFirst) {
+    running += (e.type === 'purchase' ? e.amt : -e.amt);
+    runningBalances[e.id] = running;
+  }
+
   el.innerHTML=`<div class="back-btn" onclick="goMore('kharidi')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Kharidi Book</div>
     <div style="padding:14px 16px;background:${balance>0?'var(--color-danger-light)':'var(--color-success-light)'};border-bottom:1px solid var(--color-border-tertiary)">
       <div style="font-size:16px;font-weight:800">${esc(name)}</div>
@@ -8089,18 +8128,24 @@ function renderKharidiDetail(el){
     </div>
     <div class="section-header"><span>Ledger</span><span>${entries.length} entries</span></div>
     ${entries.length===0?`<div class="empty-state">No entries yet.<br>Add a purchase or payment above.</div>`:
-      entries.map(e=>`<div class="list-item">
-        <div class="list-item-left">
-          <div class="list-item-meta">${fmtDate(e.date)} · ${fmtTime(e.ts)}</div>
-          ${e.date?`<div class="bs-date">${bsDateStr(new Date(e.date))}</div>`:''}
-          ${e.note?`<div class="list-item-meta">${esc(e.note)}</div>`:''}
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:16px;font-weight:800;color:${e.type==='purchase'?'var(--color-danger)':'var(--color-success)'}">${e.type==='purchase'?'+':'-'}${fmt(e.amt)}</div>
-          <div style="font-size:11px;color:var(--color-text-secondary)">${e.type==='purchase'?'Purchase':'Payment'}</div>
-        </div>
-        <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="delKharidiEntry('${e.id}')">✕</button>
-      </div>`).join('')}`;
+      entries.map(e=>{
+        const bal = runningBalances[e.id] || 0;
+        const balColor = bal > 0 ? 'var(--color-danger)' : bal < 0 ? 'var(--color-success)' : 'var(--color-text-secondary)';
+        const balLabel = bal > 0 ? 'still owed' : bal < 0 ? 'advance paid' : 'settled';
+        return `<div class="list-item">
+          <div class="list-item-left">
+            <div class="list-item-meta">${fmtDate(e.date)} · ${fmtTime(e.ts)}</div>
+            ${e.date?`<div class="bs-date">${bsDateStr(new Date(e.date))}</div>`:''}
+            ${e.note?`<div class="list-item-meta">${esc(e.note)}</div>`:''}
+            <div style="font-size:11px;color:${balColor};font-weight:700;margin-top:3px">Balance after: ${fmt(Math.abs(bal))} ${balLabel}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:16px;font-weight:800;color:${e.type==='purchase'?'var(--color-danger)':'var(--color-success)'}">${e.type==='purchase'?'+':'-'}${fmt(e.amt)}</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">${e.type==='purchase'?'Purchase':'Payment'}</div>
+          </div>
+          <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="delKharidiEntry('${e.id}')">✕</button>
+        </div>`;
+      }).join('')}`;
 }
 
 async function addKharidiEntry(supplierName){
@@ -8166,6 +8211,15 @@ function renderDealerDetail(el){
   const totalReceived=entries.filter(e=>e.type==='received').reduce((a,e)=>a+e.amt,0);
   const balance=totalGiven-totalReceived;
 
+  // Running balance after every entry — so the shopkeeper never calculates manually
+  const entriesOldFirst = [...entries].sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const runningBalances = {};
+  let running = 0;
+  for (const e of entriesOldFirst) {
+    running += (e.type === 'given' ? e.amt : -e.amt);
+    runningBalances[e.id] = running;
+  }
+
   el.innerHTML=`<div class="back-btn" onclick="goMore('dealer')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Dealer Book</div>
     <div style="padding:14px 16px;background:${balance>0?'var(--color-success-light)':'var(--color-danger-light)'};border-bottom:1px solid var(--color-border-tertiary)">
       <div style="font-size:16px;font-weight:800">${esc(name)}</div>
@@ -8188,18 +8242,24 @@ function renderDealerDetail(el){
     </div>
     <div class="section-header"><span>Ledger</span><span>${entries.length} entries</span></div>
     ${entries.length===0?`<div class="empty-state">No entries yet.<br>Add goods given or payment received above.</div>`:
-      entries.map(e=>`<div class="list-item">
-        <div class="list-item-left">
-          <div class="list-item-meta">${fmtDate(e.date)} · ${fmtTime(e.ts)}</div>
-          ${e.date?`<div class="bs-date">${bsDateStr(new Date(e.date))}</div>`:''}
-          ${e.note?`<div class="list-item-meta">${esc(e.note)}</div>`:''}
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:16px;font-weight:800;color:${e.type==='given'?'var(--color-danger)':'var(--color-success)'}">${e.type==='given'?'+':'-'}${fmt(e.amt)}</div>
-          <div style="font-size:11px;color:var(--color-text-secondary)">${e.type==='given'?'Given':'Received'}</div>
-        </div>
-        <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="delDealerEntry('${e.id}')">✕</button>
-      </div>`).join('')}`;
+      entries.map(e=>{
+        const bal = runningBalances[e.id] || 0;
+        const balColor = bal > 0 ? 'var(--color-success)' : bal < 0 ? 'var(--color-danger)' : 'var(--color-text-secondary)';
+        const balLabel = bal > 0 ? 'still receivable' : bal < 0 ? 'overpaid' : 'settled';
+        return `<div class="list-item">
+          <div class="list-item-left">
+            <div class="list-item-meta">${fmtDate(e.date)} · ${fmtTime(e.ts)}</div>
+            ${e.date?`<div class="bs-date">${bsDateStr(new Date(e.date))}</div>`:''}
+            ${e.note?`<div class="list-item-meta">${esc(e.note)}</div>`:''}
+            <div style="font-size:11px;color:${balColor};font-weight:700;margin-top:3px">Balance after: ${fmt(Math.abs(bal))} ${balLabel}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:16px;font-weight:800;color:${e.type==='given'?'var(--color-danger)':'var(--color-success)'}">${e.type==='given'?'+':'-'}${fmt(e.amt)}</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">${e.type==='given'?'Given':'Received'}</div>
+          </div>
+          <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="delDealerEntry('${e.id}')">✕</button>
+        </div>`;
+      }).join('')}`;
 }
 
 async function addDealer(){
