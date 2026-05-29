@@ -3606,6 +3606,7 @@ async function afterLogin(){
   setTimeout(initReminderCheck,2000);
   setTimeout(_wqFlush,3000);       // Retry any queued offline writes
   setTimeout(_updateOfflineBadge,3500); // Show offline badge if anything is queued
+  setTimeout(() => { if (_shouldShowEveningSummary()) showEveningSummary(); }, 4000);
   setTimeout(_checkBackupReminder,5000); // Weekly backup reminder
   if(!isGuestMode) setTimeout(initMorningBriefing,3000);
   initVisibilityLock();
@@ -4718,6 +4719,92 @@ function checkOverdueNotification(){
 }
 
 // =============== DAILY REPORT ===============
+// =============== SMART INSIGHTS ===============
+// Mines the user's data for non-obvious patterns to surface in the daily
+// summary. All insights are derived from existing local state, no extra
+// queries needed.
+function _generateSmartInsights(td) {
+  const insights = [];
+  const today = new Date(td + 'T00:00:00');
+  const day28Ago = new Date(today); day28Ago.setDate(today.getDate() - 28);
+  const day14Ago = new Date(today); day14Ago.setDate(today.getDate() - 14);
+  const day7Ago  = new Date(today); day7Ago.setDate(today.getDate() - 7);
+  const ymdStr = d => d.toISOString().slice(0,10);
+
+  // Best day of week (past 28 days)
+  const dowTotals = [0,0,0,0,0,0,0];
+  const dowNames  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  sales.filter(s => s.date >= ymdStr(day28Ago) && s.date <= td).forEach(s => {
+    const d = new Date(s.date + 'T00:00:00');
+    dowTotals[d.getDay()] += s.amt;
+  });
+  const maxDow = dowTotals.indexOf(Math.max(...dowTotals));
+  if (dowTotals[maxDow] > 0) {
+    const avgOther = (dowTotals.reduce((a,v)=>a+v,0) - dowTotals[maxDow]) / 6;
+    if (avgOther > 0 && dowTotals[maxDow] > avgOther * 1.2) {
+      const pctMore = Math.round(((dowTotals[maxDow] / avgOther) - 1) * 100);
+      insights.push(`📈 Best day: ${dowNames[maxDow]}s (+${pctMore}% vs other days)`);
+    }
+  }
+
+  // Top-selling item (past 7 days, by frequency of item-name appearances in notes)
+  const itemFreq = {};
+  sales.filter(s => s.date >= ymdStr(day7Ago) && s.date <= td && s.note).forEach(s => {
+    // Strip leading "N × " quantity prefix used by addSale
+    const item = s.note.replace(/^\d+\s*×\s*/, '').trim().toLowerCase();
+    if (item.length > 1) itemFreq[item] = (itemFreq[item] || 0) + 1;
+  });
+  const topItem = Object.entries(itemFreq).sort((a,b) => b[1] - a[1])[0];
+  if (topItem && topItem[1] >= 2) {
+    const cap = topItem[0].charAt(0).toUpperCase() + topItem[0].slice(1);
+    insights.push(`🏆 Top item this week: ${cap} (sold ${topItem[1]} times)`);
+  }
+
+  // Profit comparison: last 7 days vs previous 7 days
+  const profitInRange = (from, to) => {
+    const ss = sales.filter(s => s.date >= from && s.date <= to);
+    const ee = expenses.filter(e => e.date >= from && e.date <= to);
+    const totalAmt = ss.reduce((a,s)=>a+s.amt, 0);
+    const totalCost = ss.reduce((a,s)=>a+(s.cost||0), 0);
+    const totalExp = ee.reduce((a,e)=>a+e.amt, 0);
+    return totalCost > 0 ? (totalAmt - totalCost - totalExp) : (totalAmt - totalExp);
+  };
+  const thisWeek = profitInRange(ymdStr(day7Ago), td);
+  const lastWeek = profitInRange(ymdStr(day14Ago), ymdStr(new Date(day7Ago.getTime() - 86400000)));
+  if (lastWeek > 0 && thisWeek > 0) {
+    const pctChange = Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
+    if (pctChange >= 10) insights.push(`🎉 Profit up ${pctChange}% vs last week`);
+    else if (pctChange <= -10) insights.push(`⚠️ Profit down ${Math.abs(pctChange)}% vs last week — review costs`);
+  }
+
+  // Oldest overdue udhaar (whom to chase TODAY)
+  const overdue = udhaars
+    .filter(u => !u.paid && u.dueDate && u.dueDate <= td)
+    .sort((a,b) => (a.dueDate||'').localeCompare(b.dueDate||''));
+  if (overdue.length > 0) {
+    const o = overdue[0];
+    const daysOver = Math.round((today - new Date(o.dueDate + 'T00:00:00')) / 86400000);
+    if (daysOver > 7) {
+      insights.push(`📞 Call ${o.name}: ${fmt(o.amt)} overdue ${daysOver} days`);
+    }
+  }
+
+  // Supplier debt awareness (do they have cash to pay anyone today?)
+  const supplierDebt = (typeof kharidiEntries !== 'undefined' && kharidiEntries.length)
+    ? kharidiEntries.reduce((a,e) => a + (e.type === 'purchase' ? e.amt : -e.amt), 0)
+    : 0;
+  const todayCash = sales.filter(s => s.date === td && (s.payMode||'').toLowerCase() === 'cash')
+    .reduce((a,s) => a + s.amt, 0);
+  if (supplierDebt > 0 && todayCash >= 500) {
+    const suggested = Math.min(Math.round(todayCash * 0.3), supplierDebt);
+    if (suggested >= 100) {
+      insights.push(`💡 Pay ${fmt(suggested)} toward suppliers (₹${fmt(supplierDebt)} total due)`);
+    }
+  }
+
+  return insights;
+}
+
 function generateDailyReport(dateStr){
   const td=dateStr||todayStr();
   const ts=sales.filter(s=>s.date===td);
@@ -4782,6 +4869,11 @@ function generateDailyReport(dateStr){
   if(modeLines) msg+=`\n💳 Payment Modes:\n${modeLines}\n`;
   if(top3.length) msg+=`\n🏆 Top Sales:\n${topLines}\n`;
   if(overdue.length) msg+=`\n⚠ Overdue Udhaar:\n${udhaarLines}\n`;
+  // Smart insights — actionable patterns derived from past data
+  const insights = _generateSmartInsights(td);
+  if (insights.length) {
+    msg += `\n💡 *Insights:*\n${insights.map(i => '  ' + i).join('\n')}\n`;
+  }
   msg+=`\n— Pasal Manager`;
   return msg;
 }
@@ -4791,6 +4883,80 @@ function sendDailyWA(dateStr){
   if(num.length===10) num=(S.country==='NP'?'977':'91')+num;
   const url='https://wa.me/'+(num||'')+`?text=${encodeURIComponent(msg)}`;
   window.open(url,'_blank');
+  trackEvent('daily_summary_sent_wa', { mode: dateStr ? 'past' : 'today' });
+}
+
+// =============== EVENING SUMMARY AUTO-SHOW ===============
+// When the user opens the app in the evening (8pm-midnight) and hasn't seen
+// today's summary yet, surface a calm modal with stats + insights + a single
+// "Send via WhatsApp" tap. The user can dismiss with "Maybe later". Opt-out
+// available in Settings (S.dailySummaryEnabled = false).
+function _shouldShowEveningSummary(){
+  if (S.dailySummaryEnabled === false) return false;
+  const hour = new Date().getHours();
+  if (hour < 20 || hour >= 24) return false; // 8pm - midnight window
+  const td = todayStr();
+  if (localStorage.getItem('pm_summary_shown_' + td)) return false;
+  // Don't pester if there's nothing to report
+  const todaysSales = sales.filter(s => s.date === td);
+  if (todaysSales.length === 0) return false;
+  return true;
+}
+
+function showEveningSummary(){
+  if (document.getElementById('evening-summary-modal')) return;
+  const td = todayStr();
+  const ts = sales.filter(s => s.date === td);
+  const te = expenses.filter(e => e.date === td);
+  const totalAmt  = ts.reduce((a,s) => a + s.amt, 0);
+  const totalCost = ts.reduce((a,s) => a + (s.cost||0), 0);
+  const totalExp  = te.reduce((a,e) => a + e.amt, 0);
+  const profit    = totalCost > 0 ? (totalAmt - totalCost - totalExp) : (totalAmt - totalExp);
+  const overdue   = udhaars.filter(u => !u.paid && u.dueDate && u.dueDate <= td);
+  const insights  = _generateSmartInsights(td);
+
+  localStorage.setItem('pm_summary_shown_' + td, '1');
+  trackEvent('daily_summary_shown', { sales: ts.length, profit, overdueCount: overdue.length });
+
+  const m = document.createElement('div');
+  m.id = 'evening-summary-modal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99998;display:flex;align-items:flex-end;justify-content:center';
+  m.innerHTML = `
+    <div style="background:#fff;max-width:460px;width:100%;border-radius:20px 20px 0 0;padding:22px 20px 24px;box-shadow:0 -10px 40px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto">
+      <div style="width:42px;height:4px;background:#cbd5e1;border-radius:2px;margin:-6px auto 14px"></div>
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:32px;line-height:1;margin-bottom:6px">🌙</div>
+        <div style="font-size:18px;font-weight:800;color:#1e1147">Today's Wrap-up</div>
+        <div style="font-size:12px;color:#64748b">${esc(S.shopName || 'Your shop')} · ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="padding:12px;background:#f5f3ff;border-radius:12px;text-align:center">
+          <div style="font-size:11px;color:#5b21b6;font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Sales</div>
+          <div style="font-size:22px;font-weight:800;color:#5b21b6;margin-top:2px">${fmt(totalAmt)}</div>
+          <div style="font-size:11px;color:#7c3aed;margin-top:2px">${ts.length} ${ts.length === 1 ? 'entry' : 'entries'}</div>
+        </div>
+        <div style="padding:12px;background:${profit >= 0 ? '#ECFDF5' : '#FEF2F2'};border-radius:12px;text-align:center">
+          <div style="font-size:11px;color:${profit >= 0 ? '#059669' : '#DC2626'};font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Profit</div>
+          <div style="font-size:22px;font-weight:800;color:${profit >= 0 ? '#059669' : '#DC2626'};margin-top:2px">${profit < 0 ? '−' : ''}${fmt(Math.abs(profit))}</div>
+          <div style="font-size:11px;color:${profit >= 0 ? '#10b981' : '#ef4444'};margin-top:2px">${profit >= 0 ? 'Net positive ✓' : 'Net loss'}</div>
+        </div>
+      </div>
+      ${overdue.length > 0 ? `
+        <div style="padding:10px 12px;background:#fef3c7;border:1px solid #fbbf24;border-radius:10px;margin-bottom:12px">
+          <div style="font-size:12px;color:#92400e;font-weight:700">⚠ ${overdue.length} overdue udhaar · ${fmt(overdue.reduce((a,u)=>a+u.amt, 0))}</div>
+        </div>` : ''}
+      ${insights.length > 0 ? `
+        <div style="background:#f8fafc;border-radius:12px;padding:12px;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">💡 Smart Insights</div>
+          ${insights.map(i => `<div style="font-size:13px;color:#1e1147;line-height:1.5;padding:3px 0">${esc(i)}</div>`).join('')}
+        </div>` : ''}
+      <button onclick="sendDailyWA();document.getElementById('evening-summary-modal').remove()" style="width:100%;background:#25D366;color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">💬 Send via WhatsApp</button>
+      <button onclick="document.getElementById('evening-summary-modal').remove()" style="width:100%;background:transparent;color:#64748b;border:none;padding:10px;font-size:13px;cursor:pointer">Maybe later</button>
+      <div style="text-align:center;margin-top:6px">
+        <button onclick="S.dailySummaryEnabled=false;saveSettings();document.getElementById('evening-summary-modal').remove();_showToast('Daily summary turned off. Re-enable in Settings.')" style="background:none;border:none;color:#94a3b8;font-size:11px;cursor:pointer;text-decoration:underline">Don't show again</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
 }
 async function saveReminderSettings(){
   const ph=(document.getElementById('s-own-phone')?.value||'').trim();
@@ -5728,6 +5894,12 @@ function renderDashboard(el){
         <button onclick="goMore('kharidi')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Pay now →</button>
       </div>`;
     })()}
+
+    <!-- One-tap daily summary share -->
+    <div style="margin:6px 12px 14px;display:flex;gap:8px">
+      <button onclick="showEveningSummary()" style="flex:1;padding:11px;background:#fff;border:1.5px solid var(--color-border-tertiary);border-radius:12px;font-size:13px;font-weight:700;color:#1e1147;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">📊 View Today's Summary</button>
+      <button onclick="sendDailyWA()" style="flex:1;padding:11px;background:#25D366;border:none;border-radius:12px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">💬 Send via WhatsApp</button>
+    </div>
 
     <!-- 7-day bar chart -->
     <div class="chart-card">
@@ -8209,6 +8381,15 @@ function renderSettingsPage(el){
         ${licon('bell',16,'color:#fff;')} ${t('setReminder')}
       </button>
       <div class="settings-info" style="display:flex;align-items:center;gap:5px;margin-top:6px">${licon('info',12,'color:var(--color-text-secondary);')} ${t('reminderInfo')}</div>
+
+      <!-- Evening summary auto-show toggle -->
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;padding:10px 12px;background:#f8fafc;border-radius:10px;cursor:pointer">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:var(--color-text-primary)">🌙 Evening summary auto-show</div>
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">When you open the app between 8 PM–midnight, show today's wrap-up automatically.</div>
+        </div>
+        <input type="checkbox" id="s-daily-summary" ${S.dailySummaryEnabled !== false ? 'checked' : ''} onchange="S.dailySummaryEnabled=this.checked;saveSettings();_showToast(this.checked?'Auto-summary ON':'Auto-summary OFF')" style="width:18px;height:18px;cursor:pointer;flex-shrink:0">
+      </label>
     </div>
 
     <!-- Collect Payment Setup -->
