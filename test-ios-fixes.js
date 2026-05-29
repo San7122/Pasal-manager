@@ -13,7 +13,7 @@ const ANDROID_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 
 const results = [];
 const test = (name, pass, info = '') => {
   results.push({ name, pass, info });
-  console.log((pass ? '\x1b[32m✅' : '\x1b[31m❌') + '\x1b[0m ' + name + (info ? ' \x1b[90m— ' + info + '\x1b[0m' : ''));
+  console.log((pass ? '\x1b[32m' : '\x1b[31m') + '\x1b[0m ' + name + (info ? ' \x1b[90m— ' + info + '\x1b[0m' : ''));
 };
 
 (async () => {
@@ -165,12 +165,19 @@ const test = (name, pass, info = '') => {
     test('Runtime: icon-180.png?v=2 is PNG content-type',
       (manifestRes.ct || '').includes('image/png'), `content-type=${manifestRes.ct}`);
 
-    // Trigger warning + verify state (function uses setTimeout 2500ms before showing modal)
+    // Trigger warning + verify state (function uses setTimeout 2500ms before showing modal).
+    // NEW: Engagement gate — modal only fires when user has 3+ records or 24h+ of use.
+    // The gate prevents a scary first impression for brand-new iPhone guests.
     const warning = await page.evaluate(() => {
       localStorage.removeItem('pm_ios_data_warning_shown');
+      // Seed the engagement gate: 3 sales is the threshold to trigger the warning
+      sales = [
+        { id: 's1', amt: 100, date: '2026-05-25', ts: 1 },
+        { id: 's2', amt: 200, date: '2026-05-25', ts: 2 },
+        { id: 's3', amt: 300, date: '2026-05-25', ts: 3 },
+      ];
       _showIOSDataWarningOnce();
       return new Promise(r => setTimeout(() => {
-        // Browsers normalize cssText — check for the modal text instead
         const modals = Array.from(document.querySelectorAll('div'));
         const modalShown = modals.some(d => /Important: Backup Your Data!/i.test(d.innerHTML || ''));
         r({
@@ -179,8 +186,26 @@ const test = (name, pass, info = '') => {
         });
       }, 2800));
     });
-    test('Runtime: warning modal renders for iPhone users', warning.modalShown);
+    test('Runtime: warning modal renders for iPhone users with 3+ records (engagement gate)', warning.modalShown);
     test('Runtime: warning marks pm_ios_data_warning_shown=1', warning.marked);
+
+    // NEW: Verify the gate actually blocks the warning for fresh users (0 records)
+    const noWarningForFresh = await page.evaluate(() => {
+      localStorage.removeItem('pm_ios_data_warning_shown');
+      localStorage.removeItem('pm_guest_start');
+      // Remove the modal from previous test
+      document.querySelectorAll('div').forEach(d => {
+        if (/Important: Backup Your Data!/i.test(d.innerHTML || '')) d.remove();
+      });
+      sales = []; udhaars = []; stock = [];
+      _showIOSDataWarningOnce();
+      return new Promise(r => setTimeout(() => {
+        const modals = Array.from(document.querySelectorAll('div'));
+        const modalShown = modals.some(d => /Important: Backup Your Data!/i.test(d.innerHTML || ''));
+        r(modalShown);
+      }, 2800));
+    });
+    test('Engagement gate: warning is SUPPRESSED for fresh users with 0 records', !noWarningForFresh);
 
     // Switch to Android UA — verify Android path uses native BarcodeDetector OR ZXing fallback
     console.log('\n\x1b[36m━━━ Regression: Android scanner path untouched ━━━\x1b[0m');

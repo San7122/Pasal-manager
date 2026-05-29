@@ -1,0 +1,149 @@
+{
+  "critical": [],
+  "ux": [
+    {
+      "area": "PurchaseBook",
+      "msg": "\"Balance after\" not shown on entry",
+      "screenshot": ""
+    },
+    {
+      "area": "PurchaseBook",
+      "msg": "PDF or WhatsApp share button missing",
+      "screenshot": ""
+    },
+    {
+      "area": "A11y",
+      "msg": "2 touch targets smaller than 40×40px",
+      "screenshot": ""
+    },
+    {
+      "area": "A11y",
+      "msg": "21 unique text elements smaller than 12px",
+      "screenshot": ""
+    }
+  ],
+  "polish": [
+    {
+      "area": "A11y-detail",
+      "msg": "Small button: \"Print receipt\" — 36×36px",
+      "screenshot": ""
+    },
+    {
+      "area": "A11y-detail",
+      "msg": "Small button: \"✕\" — 36×36px",
+      "screenshot": ""
+    },
+    {
+      "area": "A11y-detail",
+      "msg": "Tiny text: \"Powered by\" — 11.0px",
+      "screenshot": ""
+    },
+    {
+      "area": "A11y-detail",
+      "msg": "Tiny text: \"ABC\" — 8.0px",
+      "screenshot": ""
+    },
+    {
+      "area": "A11y-detail",
+      "msg": "Tiny text: \"DEF\" — 8.0px",
+      "screenshot": ""
+    },
+    {
+      "area": "A11y-detail",
+      "msg": "Tiny text: \"GHI\" — 8.0px",
+      "screenshot": ""
+    },
+    {
+      "area": "A11y-detail",
+      "msg": "Tiny text: \"JKL\" — 8.0px",
+      "screenshot": ""
+    }
+  ],
+  "works_well": [
+    {
+      "area": "Auth",
+      "msg": "Auth page renders correctly with logo, tabs, and guest option",
+      "screenshot": ""
+    },
+    {
+      "area": "Guest",
+      "msg": "\"Save with email\" CTA prominent in banner",
+      "screenshot": ""
+    },
+    {
+      "area": "Guest",
+      "msg": "Shop name displayed in topbar correctly",
+      "screenshot": ""
+    },
+    {
+      "area": "Nav",
+      "msg": "All 5 bottom-nav tabs switch correctly",
+      "screenshot": ""
+    },
+    {
+      "area": "StockAudit",
+      "msg": "Modal renders with reason chips + qty input",
+      "screenshot": ""
+    },
+    {
+      "area": "StockAudit",
+      "msg": "Adjustment correctly logged",
+      "screenshot": ""
+    },
+    {
+      "area": "History",
+      "msg": "History shows reason + balance after each entry",
+      "screenshot": ""
+    },
+    {
+      "area": "Udhaar",
+      "msg": "Udhaar added and visible in list",
+      "screenshot": ""
+    },
+    {
+      "area": "Dashboard",
+      "msg": "All key elements present",
+      "screenshot": ""
+    },
+    {
+      "area": "EveningSummary",
+      "msg": "Modal shows stats + WhatsApp button",
+      "screenshot": ""
+    },
+    {
+      "area": "PurchaseBook",
+      "msg": "Empty state shows helpful instructions",
+      "screenshot": ""
+    },
+    {
+      "area": "Settings",
+      "msg": "Key settings + new toggle all present",
+      "screenshot": ""
+    },
+    {
+      "area": "MoreMenu",
+      "msg": "More menu has 16 items, Purchase Book visible",
+      "screenshot": ""
+    },
+    {
+      "area": "SignOut",
+      "msg": "Signout cleared state + returned to auth",
+      "screenshot": ""
+    },
+    {
+      "area": "Desktop",
+      "msg": "Sidebar present on desktop",
+      "screenshot": ""
+    },
+    {
+      "area": "Landing",
+      "msg": "Landing page renders correctly with hero + install button",
+      "screenshot": ""
+    },
+    {
+      "area": "Performance",
+      "msg": "Page loaded in 61ms",
+      "screenshot": ""
+    }
+  ]
+}
