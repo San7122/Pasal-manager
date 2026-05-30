@@ -54,8 +54,11 @@ const test = (name, pass, info = '') => {
   test('_wqFlush handles upsert op type', /op\.type==='upsert'/.test(wqFlush));
   const onlineHandler = html.match(/window\.addEventListener\('online'[\s\S]+?\}\);/)?.[0] || '';
   test('online event triggers _wqFlush', /_wqFlush\(\)/.test(onlineHandler));
-  test('online event triggers loadAll for fresh data',
-    /loadAll\(\)/.test(onlineHandler) && /renderTab\(\)/.test(onlineHandler));
+  // PRIOR BEHAVIOR: online event also called loadAll() — REMOVED because it caused
+  // disappearing sales (Supabase read-after-write race overwrote fresh local writes).
+  // Cross-device sync still works via afterLogin/tab-switch reloads.
+  test('online event does NOT auto-loadAll (avoids overwriting fresh local writes)',
+    !/loadAll\(\)/.test(onlineHandler));
   test('offline event also wired',
     /window\.addEventListener\('offline'/.test(html));
 

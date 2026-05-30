@@ -2884,7 +2884,30 @@ function _emptyState(iconName,title,sub,ctaText,ctaAction){
 
 // ===== OFFLINE CACHE =====
 function cacheKey(k){ return (currentUser?.id||'local')+'_'+k; }
+// Debounce cacheWrite so the heavy JSON.stringify of all arrays doesn't run on
+// every keystroke / rapid action. We delay 600ms — if a new write comes in
+// during that window, we restart the timer. The user's data is never at risk:
+// the in-memory arrays already have the latest, and cloud writes are unbatched.
+let _cacheWriteTimer = null;
 function cacheWrite(){
+  if (_cacheWriteTimer) clearTimeout(_cacheWriteTimer);
+  _cacheWriteTimer = setTimeout(_cacheWriteNow, 600);
+}
+// Force-flush before things like beforeunload / sign-out / backup, where we
+// can't risk losing the most recent state in the debounce window.
+function cacheWriteFlush(){
+  if (_cacheWriteTimer) { clearTimeout(_cacheWriteTimer); _cacheWriteTimer = null; }
+  _cacheWriteNow();
+}
+// Safety net: flush pending writes before tab close / app background
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => { try { cacheWriteFlush(); } catch(_) {} });
+  window.addEventListener('pagehide',     () => { try { cacheWriteFlush(); } catch(_) {} });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { try { cacheWriteFlush(); } catch(_) {} }
+  });
+}
+function _cacheWriteNow(){
   try{
     localStorage.setItem(cacheKey('sales'),JSON.stringify(sales));
     localStorage.setItem(cacheKey('expenses'),JSON.stringify(expenses));
@@ -2943,6 +2966,7 @@ function cacheRead(){
 
 // ===== BACKUP & RESTORE =====
 async function backupData(){
+  cacheWriteFlush(); // ensure backup includes the most recent in-memory changes
   trackEvent('backup_made',{records:sales.length+expenses.length+udhaars.length+stock.length});
   const data={
     version:2, exportedAt:new Date().toISOString(), shopName:S.shopName,
@@ -3131,17 +3155,14 @@ async function _wqFlush(){
     _showToast(`✓ Synced ${synced} offline ${synced===1?'change':'changes'} to cloud`);
   }
 }
-// Retry when back online + refresh data
+// Retry queued writes when back online. Do NOT auto-loadAll — that was
+// causing fresh local sales to vanish when the cloud response arrived
+// before Supabase had indexed the just-inserted row (read-after-write race).
+// Users still get cross-device sync naturally: any tab-switch reload or
+// app re-open calls loadAll fresh.
 window.addEventListener('online',()=>{
   _updateOfflineBadge();
-  _wqFlush().then(()=>{
-    // After successful flush, pull fresh data so user sees latest from any other device
-    if(currentUser && navigator.onLine && typeof loadAll === 'function'){
-      loadAll().then(()=>{
-        if(typeof renderTab === 'function') renderTab();
-      }).catch(()=>{});
-    }
-  });
+  _wqFlush();
 });
 window.addEventListener('offline',()=>{_updateOfflineBadge();});
 // Retry every 60s if queue has items
@@ -3641,6 +3662,7 @@ function confirmSignOut(){
 }
 
 async function signOut(){
+  cacheWriteFlush(); // make sure no pending writes are lost
   trackEvent('sign_out',{wasGuest:isGuestMode});
   _userInitiatedSignout = true;
   if(!isGuestMode) {
@@ -4284,15 +4306,20 @@ async function addSale(){
         await dbUpdate('pm_stock',stockItem.id,{qty:stockItem.qty});
       }
     }
-    const sale={id:uid(),date:todayStr(),ts:Date.now(),amt,cost,note:noteWithQty,qty,payMode:selectedPay,country:S.country,customerId};
+    const sale={id:uid(),date:todayStr(),ts:Date.now(),amt,cost,note:noteWithQty,qty,payMode:selectedPay,country:S.country,customerId,branchId:currentBranchId||null};
+    // CRITICAL: write to BOTH arrays or applyBranchFilter (called by loadAll on
+    // 'online' event etc.) will silently wipe the just-added sale from view.
     sales.push(sale);
+    _rawSales.unshift(sale);
     await dbAdd('pm_sales',{id:sale.id,user_id:currentUser?.id,date:sale.date,ts:sale.ts,amt:sale.amt,cost:sale.cost,note:sale.note,pay_mode:sale.payMode,country:sale.country,customer_id:customerId});
     trackEvent('sale_added',{amt,payMode:selectedPay,qty,hasCost:cost>0});
     renderToday();
   }finally{if(btn) btn.disabled=false;}
 }
 async function delSale(id){
-  sales=sales.filter(s=>s.id!==id);confirmId=null;
+  sales=sales.filter(s=>s.id!==id);
+  _rawSales=_rawSales.filter(s=>s.id!==id);
+  confirmId=null;
   await dbDel('pm_sales',id);
   renderToday();
 }
@@ -7134,14 +7161,18 @@ async function addExp(){
     const amt=Math.round(parseFloat(inp.value));
     if(!amt||amt<=0||isNaN(amt)){inp.focus();return;}
     const note=document.getElementById('e-note').value.trim();
-    const exp={id:uid(),date:todayStr(),ts:Date.now(),amt,note,category:selectedExpCat,country:S.country};
+    const exp={id:uid(),date:todayStr(),ts:Date.now(),amt,note,category:selectedExpCat,country:S.country,branchId:currentBranchId||null};
+    // Same fix as addSale: keep _rawExpenses in sync so applyBranchFilter doesn't wipe it
     expenses.push(exp);
+    _rawExpenses.unshift(exp);
     await dbAdd('pm_expenses',{id:exp.id,user_id:currentUser?.id,date:exp.date,ts:exp.ts,amt:exp.amt,note:exp.note,category:exp.category,country:exp.country});
     goMore('expense');
   }finally{if(btn) btn.disabled=false;}
 }
 async function delExp(id){
-  expenses=expenses.filter(e=>e.id!==id);confirmId=null;
+  expenses=expenses.filter(e=>e.id!==id);
+  _rawExpenses=_rawExpenses.filter(e=>e.id!==id);
+  confirmId=null;
   await dbDel('pm_expenses',id);
   goMore('expense');
 }
@@ -11889,8 +11920,8 @@ async function photoKhataConfirm(){
   }
   if(_pkSelectedType==='expense'){
     // Pre-fill expense form and save directly
-    const exp={id:uid(),date:todayStr(),ts:Date.now(),amt,note:'Photo Khata',category:selectedExpCat,country:S.country};
-    expenses.push(exp);
+    const exp={id:uid(),date:todayStr(),ts:Date.now(),amt,note:'Photo Khata',category:selectedExpCat,country:S.country,branchId:currentBranchId||null};
+    expenses.push(exp); _rawExpenses.unshift(exp);
     if(!isGuestMode&&currentUser){
       await dbAdd('pm_expenses',{id:exp.id,user_id:currentUser.id,date:exp.date,ts:exp.ts,amt:exp.amt,note:exp.note,category:exp.category,country:exp.country});
     }
