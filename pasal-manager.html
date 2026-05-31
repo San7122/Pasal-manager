@@ -3251,19 +3251,45 @@ async function loadAll(){
       sb.from('sahi_chhap').select('udhaar_id,tx_signature,hash,anchored_at').eq('user_id',uid),
       sb.from('pm_stock_adjustments').select('*').eq('user_id',uid).order('ts',{ascending:false}).limit(500)
     ]);
+    // MERGE strategy: cloud data is authoritative for rows it has, but local
+    // rows the cloud doesn't yet have (just-added, network slow, queued in _wq)
+    // are KEPT. This prevents disappearing-sales when iOS PWA reloads after a
+    // user adds a sale that hasn't fully propagated to Supabase yet.
+    const _mergeKeepLocal = (cloudArr, localArr) => {
+      const cloudIds = new Set(cloudArr.map(x => x.id));
+      const localOnly = (localArr || []).filter(x => x && x.id && !cloudIds.has(x.id));
+      return [...cloudArr, ...localOnly];
+    };
+
     if(brr.data){
-      branches=brr.data.map(r=>({id:r.id,name:r.name,location:r.location||'',isDefault:!!r.is_default}));
+      const cloudBranches = brr.data.map(r=>({id:r.id,name:r.name,location:r.location||'',isDefault:!!r.is_default}));
+      branches = _mergeKeepLocal(cloudBranches, branches);
       if(branches.length>0&&!currentBranchId){
         const def=branches.find(b=>b.isDefault)||branches[0];
         currentBranchId=def.id;
       }
     }
-    if(sr.data) _rawSales=sr.data.map(r=>({id:r.id,date:r.date,ts:r.ts,amt:r.amt,cost:r.cost||0,note:r.note||'',payMode:r.pay_mode||'Cash',country:r.country||'IN',customerId:r.customer_id||null,branchId:r.branch_id||null}));
-    if(er.data) _rawExpenses=er.data.map(r=>({id:r.id,date:r.date,ts:r.ts,amt:r.amt,note:r.note||'',category:r.category||'Shop',country:r.country||'IN',branchId:r.branch_id||null}));
+    if(sr.data) {
+      const cloudSales = sr.data.map(r=>({id:r.id,date:r.date,ts:r.ts,amt:r.amt,cost:r.cost||0,note:r.note||'',payMode:r.pay_mode||'Cash',country:r.country||'IN',customerId:r.customer_id||null,branchId:r.branch_id||null}));
+      _rawSales = _mergeKeepLocal(cloudSales, _rawSales);
+    }
+    if(er.data) {
+      const cloudExp = er.data.map(r=>({id:r.id,date:r.date,ts:r.ts,amt:r.amt,note:r.note||'',category:r.category||'Shop',country:r.country||'IN',branchId:r.branch_id||null}));
+      _rawExpenses = _mergeKeepLocal(cloudExp, _rawExpenses);
+    }
     applyBranchFilter();
-    if(ur.data) udhaars=ur.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',amt:r.amt,date:r.date,ts:r.ts,paid:r.paid,dueDate:r.due_date||'',country:r.country||'IN'}));
-    if(str.data) stock=str.data.map(r=>({id:r.id,name:r.name,size:r.size||'',qty:r.qty,buy:r.buy,sell:r.sell,country:r.country||'IN',barcode:r.barcode||''}));
-    if(spr.data) suppliers=spr.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',note:r.note||''}));
+    if(ur.data) {
+      const cloudU = ur.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',amt:r.amt,date:r.date,ts:r.ts,paid:r.paid,dueDate:r.due_date||'',country:r.country||'IN'}));
+      udhaars = _mergeKeepLocal(cloudU, udhaars);
+    }
+    if(str.data) {
+      const cloudStock = str.data.map(r=>({id:r.id,name:r.name,size:r.size||'',qty:r.qty,buy:r.buy,sell:r.sell,country:r.country||'IN',barcode:r.barcode||''}));
+      stock = _mergeKeepLocal(cloudStock, stock);
+    }
+    if(spr.data) {
+      const cloudSup = spr.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',note:r.note||''}));
+      suppliers = _mergeKeepLocal(cloudSup, suppliers);
+    }
     if(setr.data){
       const d=setr.data;
       try{
@@ -3314,21 +3340,21 @@ async function loadAll(){
     } else {
       // No cloud settings row yet — keep whatever cacheRead loaded (don't reset to IN defaults)
     }
-    if(gbr.data) gstBills=gbr.data.map(r=>({id:r.id,invoiceNo:r.invoice_no,date:r.date,buyerName:r.buyer_name||'',buyerGstin:r.buyer_gstin||'',buyerAddr:r.buyer_address||'',buyerState:r.buyer_state||'',items:r.items||[],taxable:r.taxable||0,cgst:r.cgst||0,sgst:r.sgst||0,igst:r.igst||0,total:r.total||0,isInterstate:!!r.is_interstate,note:r.note||''}));
-    if(rtr.data) returns=rtr.data.map(r=>({id:r.id,date:r.date,ts:r.ts,amt:r.amt,type:r.type,reason:r.reason||'Defective',note:r.note||'',refName:r.ref_name||'',country:r.country||'IN'}));
-    if(khr.data) kharidiEntries=khr.data.map(r=>({id:r.id,supplierName:r.supplier_name,date:r.date,ts:r.ts,amt:r.amt,type:r.type,note:r.note||'',country:r.country||'IN'}));
-    if(dlr.data) dealers=dlr.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',note:r.note||''}));
-    if(dle.data) dealerEntries=dle.data.map(r=>({id:r.id,dealerName:r.dealer_name,date:r.date,ts:r.ts,amt:r.amt,type:r.type,note:r.note||'',country:r.country||'IN'}));
-    if(cbr.data) cashbookEntries=cbr.data.map(r=>({id:r.id,date:r.date,opening:r.opening||0,expected:r.expected,actual:r.actual,difference:r.difference,note:r.note||''}));
-    if(ctr.data) customers=ctr.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',address:r.address||'',note:r.note||''}));
-    if(sfr.data) staffList=sfr.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',salaryType:r.salary_type||'daily',salaryAmt:r.salary_amt||0}));
-    if(sfer.data) staffEntries=sfer.data.map(r=>({id:r.id,staffName:r.staff_name,date:r.date,type:r.type,value:r.value,note:r.note||''}));
-    if(epr.data) emiPlans=epr.data.map(r=>({id:r.id,customerName:r.customer_name,phone:r.phone||'',totalAmt:r.total_amt,downPayment:r.down_payment||0,installments:r.installments,frequency:r.frequency||'monthly',startDate:r.start_date,note:r.note||'',createdAt:r.created_at}));
-    if(epyr.data) emiPayments=epyr.data.map(r=>({id:r.id,planId:r.plan_id,dueDate:r.due_date,amt:r.amt,paid:!!r.paid,paidDate:r.paid_date||''}));
-    if(lnr.data) loans=lnr.data.map(r=>({id:r.id,lender:r.lender,loanAmt:r.loan_amt,interestRate:r.interest_rate||0,tenure:r.tenure,emiAmt:r.emi_amt,startDate:r.start_date,note:r.note||'',createdAt:r.created_at}));
-    if(lnpr.data) loanPayments=lnpr.data.map(r=>({id:r.id,loanId:r.loan_id,dueDate:r.due_date,emiAmt:r.emi_amt,principal:r.principal||0,interest:r.interest||0,paid:!!r.paid,paidDate:r.paid_date||''}));
+    if(gbr.data) gstBills        = _mergeKeepLocal(gbr.data.map(r=>({id:r.id,invoiceNo:r.invoice_no,date:r.date,buyerName:r.buyer_name||'',buyerGstin:r.buyer_gstin||'',buyerAddr:r.buyer_address||'',buyerState:r.buyer_state||'',items:r.items||[],taxable:r.taxable||0,cgst:r.cgst||0,sgst:r.sgst||0,igst:r.igst||0,total:r.total||0,isInterstate:!!r.is_interstate,note:r.note||''})), gstBills);
+    if(rtr.data) returns         = _mergeKeepLocal(rtr.data.map(r=>({id:r.id,date:r.date,ts:r.ts,amt:r.amt,type:r.type,reason:r.reason||'Defective',note:r.note||'',refName:r.ref_name||'',country:r.country||'IN'})), returns);
+    if(khr.data) kharidiEntries  = _mergeKeepLocal(khr.data.map(r=>({id:r.id,supplierName:r.supplier_name,date:r.date,ts:r.ts,amt:r.amt,type:r.type,note:r.note||'',country:r.country||'IN'})), kharidiEntries);
+    if(dlr.data) dealers         = _mergeKeepLocal(dlr.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',note:r.note||''})), dealers);
+    if(dle.data) dealerEntries   = _mergeKeepLocal(dle.data.map(r=>({id:r.id,dealerName:r.dealer_name,date:r.date,ts:r.ts,amt:r.amt,type:r.type,note:r.note||'',country:r.country||'IN'})), dealerEntries);
+    if(cbr.data) cashbookEntries = _mergeKeepLocal(cbr.data.map(r=>({id:r.id,date:r.date,opening:r.opening||0,expected:r.expected,actual:r.actual,difference:r.difference,note:r.note||''})), cashbookEntries);
+    if(ctr.data) customers       = _mergeKeepLocal(ctr.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',address:r.address||'',note:r.note||''})), customers);
+    if(sfr.data) staffList       = _mergeKeepLocal(sfr.data.map(r=>({id:r.id,name:r.name,phone:r.phone||'',salaryType:r.salary_type||'daily',salaryAmt:r.salary_amt||0})), staffList);
+    if(sfer.data) staffEntries   = _mergeKeepLocal(sfer.data.map(r=>({id:r.id,staffName:r.staff_name,date:r.date,type:r.type,value:r.value,note:r.note||''})), staffEntries);
+    if(epr.data) emiPlans        = _mergeKeepLocal(epr.data.map(r=>({id:r.id,customerName:r.customer_name,phone:r.phone||'',totalAmt:r.total_amt,downPayment:r.down_payment||0,installments:r.installments,frequency:r.frequency||'monthly',startDate:r.start_date,note:r.note||'',createdAt:r.created_at})), emiPlans);
+    if(epyr.data) emiPayments    = _mergeKeepLocal(epyr.data.map(r=>({id:r.id,planId:r.plan_id,dueDate:r.due_date,amt:r.amt,paid:!!r.paid,paidDate:r.paid_date||''})), emiPayments);
+    if(lnr.data) loans           = _mergeKeepLocal(lnr.data.map(r=>({id:r.id,lender:r.lender,loanAmt:r.loan_amt,interestRate:r.interest_rate||0,tenure:r.tenure,emiAmt:r.emi_amt,startDate:r.start_date,note:r.note||'',createdAt:r.created_at})), loans);
+    if(lnpr.data) loanPayments   = _mergeKeepLocal(lnpr.data.map(r=>({id:r.id,loanId:r.loan_id,dueDate:r.due_date,emiAmt:r.emi_amt,principal:r.principal||0,interest:r.interest||0,paid:!!r.paid,paidDate:r.paid_date||''})), loanPayments);
     if(scr&&scr.data){sahiChhapMap={};scr.data.forEach(r=>{sahiChhapMap[r.udhaar_id]={txSig:r.tx_signature,hash:r.hash,anchoredAt:r.anchored_at};});}
-    if(sar&&sar.data) stockAdjustments = sar.data.map(r => ({id:r.id,stockId:r.stock_id,stockName:r.stock_name,qtyChange:r.qty_change,reason:r.reason,note:r.note||'',balanceAfter:r.balance_after,ts:r.ts||Date.parse(r.created_at)||Date.now()}));
+    if(sar&&sar.data) stockAdjustments = _mergeKeepLocal(sar.data.map(r => ({id:r.id,stockId:r.stock_id,stockName:r.stock_name,qtyChange:r.qty_change,reason:r.reason,note:r.note||'',balanceAfter:r.balance_after,ts:r.ts||Date.parse(r.created_at)||Date.now()})), stockAdjustments);
     cacheWrite();
   }catch(e){console.error('DB load failed, using cache',e);cacheRead();}
 }
