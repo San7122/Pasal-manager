@@ -53,10 +53,10 @@ const HeroBanner = () => {
                         <span className="text-xs font-bold tracking-wide uppercase">{t('trustedByShopkeepers')}</span>
                     </div>
 
-                    <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-6">
-                        <span><span className="text-amber-300">S</span>mart <span className="text-amber-300">B</span>usiness</span>
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-6 text-white">
+                        Smart Business
                         <br />
-                        <span><span className="text-amber-300">S</span>tart <span className="text-amber-300">H</span>ere</span>
+                        <span className="text-amber-300">Starts Here</span>
                     </h1>
 
                     <p className="text-xl md:text-2xl text-blue-50 font-medium max-w-md leading-relaxed mb-10 opacity-90">
