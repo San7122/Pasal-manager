@@ -39,7 +39,7 @@ const HeroBanner = () => {
                 <div className="absolute inset-0 bg-gradient-to-r from-[#1e1147]/90 via-[#5b21b6]/70 to-transparent"></div>
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-12 items-center pt-24 pb-16 lg:pt-32 lg:pb-20">
+            <div className="relative z-10 max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-12 items-center pt-32 pb-16 sm:pt-36 lg:pt-32 lg:pb-20">
 
                 {/* Left Side: Content */}
                 <div className="text-white">
