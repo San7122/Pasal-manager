@@ -2153,6 +2153,37 @@ async function trackEvent(eventName, data){
   } catch(_) { /* analytics must never break the app */ }
 }
 
+// Surface backend errors to the analytics_events table as event_name='error'.
+// Fire-and-forget. NEVER re-throws (would defeat the purpose). NEVER calls
+// itself recursively. Use from inside catch blocks where the app silently
+// queues a failed write — so the admin dashboard can see what's failing in
+// real-time for all users without affecting the app behaviour.
+function trackError(errorName, context){
+  // Don't break anything if this helper itself has issues
+  try {
+    const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+    const device = /iPad/i.test(ua) ? 'tablet'
+                 : /Mobi|Android/i.test(ua) ? 'mobile' : 'desktop';
+    const safeCtx = {};
+    if (context && typeof context === 'object') {
+      // Whitelist + truncate so we never blow up the events table
+      if (context.operation) safeCtx.operation = String(context.operation).slice(0, 50);
+      if (context.table)     safeCtx.table     = String(context.table).slice(0, 50);
+      if (context.message)   safeCtx.message   = String(context.message).slice(0, 500);
+      if (context.code)      safeCtx.code      = String(context.code).slice(0, 30);
+      if (context.online !== undefined) safeCtx.online = !!context.online;
+    }
+    sb.from('analytics_events').insert({
+      user_id: (typeof currentUser !== 'undefined' && currentUser?.id) || null,
+      session_id: window._pmSessionId,
+      event_name: 'error',
+      event_data: { errorName: String(errorName).slice(0, 80), ...safeCtx },
+      device_type: device,
+      country: (typeof S !== 'undefined' && S?.country) || null,
+    }).then(() => {}, () => {}); // swallow rejection
+  } catch(_) { /* errors in error-tracking must NEVER break the app */ }
+}
+
 // Upsert the user's profile row whenever they log in / change shop name.
 // This is what powers the "Recent signups" + "Top shops" admin views.
 // IMPORTANT: never overwrite shop_name or country with an empty value —
@@ -3145,7 +3176,10 @@ async function _wqFlush(){
       else if(op.type==='delete') { const {error} = await sb.from(op.table).delete().eq('id',op.id).eq('user_id',currentUser.id); if(error) throw error; }
       else if(op.type==='update') { const {error} = await sb.from(op.table).update(op.fields).eq('id',op.id).eq('user_id',currentUser.id); if(error) throw error; }
       else if(op.type==='upsert') { const {error} = await sb.from(op.table).upsert(op.row,{onConflict:op.onConflict||'id'}); if(error) throw error; }
-    }catch(e){remaining.push(op);}
+    }catch(e){
+      remaining.push(op);
+      trackError(e?.name || 'QueueFlushFailed', {operation:'flush_'+op.type, table:op.table, message:e?.message, code:e?.code, online:navigator.onLine});
+    }
   }
   _wqSave(remaining);
   const synced = q.length - remaining.length;
@@ -3356,7 +3390,11 @@ async function loadAll(){
     if(scr&&scr.data){sahiChhapMap={};scr.data.forEach(r=>{sahiChhapMap[r.udhaar_id]={txSig:r.tx_signature,hash:r.hash,anchoredAt:r.anchored_at};});}
     if(sar&&sar.data) stockAdjustments = _mergeKeepLocal(sar.data.map(r => ({id:r.id,stockId:r.stock_id,stockName:r.stock_name,qtyChange:r.qty_change,reason:r.reason,note:r.note||'',balanceAfter:r.balance_after,ts:r.ts||Date.parse(r.created_at)||Date.now()})), stockAdjustments);
     cacheWrite();
-  }catch(e){console.error('DB load failed, using cache',e);cacheRead();}
+  }catch(e){
+    console.error('DB load failed, using cache',e);
+    trackError(e?.name || 'LoadAllFailed', {operation:'select_all', message:e?.message, code:e?.code, online:navigator.onLine});
+    cacheRead();
+  }
 }
 
 async function saveSettings(){
@@ -3405,6 +3443,7 @@ async function saveSettings(){
     _showToast(navigator.onLine ? 'Saved locally and on server' : 'Saved locally — will sync when online');
   }catch(e){
     console.error('Settings save failed — queuing for retry',e);
+    trackError(e?.name || 'SettingsSaveFailed', {operation:'upsert', table:'pm_settings', message:e?.message, code:e?.code, online:navigator.onLine});
     // Queue for retry when back online (upsert with onConflict user_id is idempotent)
     _wqPush({type:'upsert',table:'pm_settings',row:settingsRow,onConflict:'user_id'});
     _showToast('Saved locally — will sync when online');
@@ -3419,19 +3458,31 @@ async function dbAdd(table,row){
   const _BRANCH_TABLES=['pm_sales','pm_expenses','pm_udhaar','pm_stock','pm_kharidi','pm_dealer_entries','pm_cashbook'];
   const rowToInsert=(currentBranchId&&_BRANCH_TABLES.includes(table))?{...row,branch_id:currentBranchId}:row;
   try{await sb.from(table).insert(rowToInsert);}
-  catch(e){console.error('Insert failed, queued for retry',e);_wqPush({type:'insert',table,row:rowToInsert});}
+  catch(e){
+    console.error('Insert failed, queued for retry',e);
+    trackError(e?.name || 'InsertFailed', {operation:'insert', table, message:e?.message, code:e?.code, online:navigator.onLine});
+    _wqPush({type:'insert',table,row:rowToInsert});
+  }
 }
 async function dbDel(table,id){
   cacheWrite();
   if(!currentUser) return;
   try{await sb.from(table).delete().eq('id',id).eq('user_id',currentUser.id);}
-  catch(e){console.error('Delete failed, queued for retry',e);_wqPush({type:'delete',table,id});}
+  catch(e){
+    console.error('Delete failed, queued for retry',e);
+    trackError(e?.name || 'DeleteFailed', {operation:'delete', table, message:e?.message, code:e?.code, online:navigator.onLine});
+    _wqPush({type:'delete',table,id});
+  }
 }
 async function dbUpdate(table,id,fields){
   cacheWrite();
   if(!currentUser) return;
   try{await sb.from(table).update(fields).eq('id',id).eq('user_id',currentUser.id);}
-  catch(e){console.error('Update failed, queued for retry',e);_wqPush({type:'update',table,id,fields});}
+  catch(e){
+    console.error('Update failed, queued for retry',e);
+    trackError(e?.name || 'UpdateFailed', {operation:'update', table, message:e?.message, code:e?.code, online:navigator.onLine});
+    _wqPush({type:'update',table,id,fields});
+  }
 }
 
 // ===== AUTH =====
