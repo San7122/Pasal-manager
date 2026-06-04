@@ -3621,13 +3621,42 @@ async function afterLogin(){
 
   const skEl=document.getElementById('app-skeleton');
   const scrollEl=document.getElementById('scroll-area');
-  if(skEl){skEl.style.display='flex';} if(scrollEl){scrollEl.style.display='none';}
-  await loadAll();
-  if(skEl){skEl.style.display='none';} if(scrollEl){scrollEl.style.display='';}
-  // Analytics profile sync — runs AFTER loadAll so S.shopName is populated.
-  // Without this delay, every user would show as "(no name)" in the dashboard.
-  if(currentUser) _syncAnalyticsUser();
-  updateTopbar();updateNavLabels();renderToday();
+
+  // PERF: For returning users we already have all data in localStorage.
+  // Show that INSTANTLY, then run the cloud sync in the background and
+  // re-render when fresh data arrives. The skeleton only blocks for
+  // brand-new users (no cached data → nothing to show anyway).
+  cacheRead();
+  const hasCachedData = (sales && sales.length > 0)
+                     || (udhaars && udhaars.length > 0)
+                     || (stock && stock.length > 0)
+                     || (S && S.shopName);
+
+  if (hasCachedData) {
+    // Skip the skeleton entirely — render cached data immediately
+    if(skEl){skEl.style.display='none';} if(scrollEl){scrollEl.style.display='';}
+    updateTopbar();updateNavLabels();renderToday();
+    _renderIcons();
+    updateUdhaarBadge();
+    _updateSupplierBadge();
+    // Background sync — fetches latest from cloud + merges (no overwrite, see loadAll)
+    loadAll().then(() => {
+      if(currentUser) _syncAnalyticsUser();
+      // Re-render whatever tab the user is currently viewing
+      if(typeof renderTab === 'function') renderTab();
+      _renderIcons();
+      updateUdhaarBadge();
+      _updateSupplierBadge();
+    }).catch(e => console.warn('Background sync failed (cached data still shown):', e));
+  } else {
+    // Brand-new user — no cached data, block on first cloud load
+    if(skEl){skEl.style.display='flex';} if(scrollEl){scrollEl.style.display='none';}
+    await loadAll();
+    if(skEl){skEl.style.display='none';} if(scrollEl){scrollEl.style.display='';}
+    if(currentUser) _syncAnalyticsUser();
+    updateTopbar();updateNavLabels();renderToday();
+  }
+  // Shared post-render setup — runs in both fast (cached) and slow (new user) paths
   _renderIcons();
   updateUdhaarBadge();
   _updateSupplierBadge();
