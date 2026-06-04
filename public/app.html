@@ -12205,7 +12205,10 @@ async function trackVisit() {
       : /Safari/i.test(ua) ? 'Safari' : 'Other';
     const path = location.pathname || '/';
     const isLanding = path === '/' || path === '/index.html';
-    const { data, error } = await sb.from('analytics_visits').insert({
+    // INSERT only — DON'T chain .select() because the SELECT RLS policy is
+    // owner-only and would 401 for all other users. Update later by session_id
+    // (unique per page load) instead of needing the auto-generated row id back.
+    const { error } = await sb.from('analytics_visits').insert({
       session_id: sessionId,
       visited_at: new Date().toISOString(),
       device_type: device,
@@ -12217,16 +12220,15 @@ async function trackVisit() {
       path,
       country: (typeof S !== 'undefined' && S?.country) || null,
       is_landing: isLanding,
-    }).select('id').single();
-    if (error || !data) return;
-    const visitRowId = data.id;
+    });
+    if (error) return;
     const startTime = Date.now();
     async function recordLeave() {
       const duration = Math.round((Date.now() - startTime) / 1000);
       await sb.from('analytics_visits').update({
         left_at: new Date().toISOString(),
         duration_seconds: duration
-      }).eq('id', visitRowId);
+      }).eq('session_id', sessionId);
     }
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') recordLeave();

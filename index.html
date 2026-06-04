@@ -90,19 +90,19 @@
         const browser = /Edg/i.test(ua) ? 'Edge' : /Chrome/i.test(ua) ? 'Chrome' : /Firefox/i.test(ua) ? 'Firefox' : /Safari/i.test(ua) ? 'Safari' : 'Other';
         const visitedAt = new Date().toISOString();
         const startTime = Date.now();
-        const { data } = await sb.from('analytics_visits').insert({
+        // INSERT only — DON'T chain .select() (would 401 for non-owner users).
+        // Update later by session_id which is unique per page load.
+        await sb.from('analytics_visits').insert({
           session_id: sid, visited_at: visitedAt, device_type: device, browser,
           referrer: document.referrer || 'direct',
           screen_width: screen.width, screen_height: screen.height,
           path: location.pathname, is_landing: true,
-        }).select('id').single();
-        const visitId = data?.id;
+        });
         const recordLeave = async () => {
-          if (!visitId) return;
           await sb.from('analytics_visits').update({
             left_at: new Date().toISOString(),
             duration_seconds: Math.round((Date.now() - startTime) / 1000)
-          }).eq('id', visitId);
+          }).eq('session_id', sid);
         };
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') recordLeave(); });
         window.addEventListener('beforeunload', recordLeave);
