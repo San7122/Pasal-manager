@@ -8270,53 +8270,143 @@ async function downloadPLPdf(){
   const totalP=totalS-totalE;
   const margin=totalS>0?(totalP/totalS*100).toFixed(1):'0.0';
   const shop=S.shopName||'My Shop';
+  // PDF-safe currency code (Helvetica has no ₹/रू glyph). Use ISO code.
   const cur=S.country==='NP'?'NPR ':'INR ';
+  // Indian number format WITHOUT currency symbol (fmt() adds ₹ which won't render)
+  const fmtNum=n=>{
+    n=Math.round(n);
+    const neg=n<0;
+    let s=Math.abs(n).toString(),r='';
+    if(s.length<=3) r=s;
+    else{
+      r=s.slice(-3);s=s.slice(0,-3);
+      while(s.length>2){r=s.slice(-2)+','+r;s=s.slice(0,-2);}
+      if(s.length>0) r=s+','+r;
+    }
+    return (neg?'-':'')+r;
+  };
+  const money=(v,withCur=true)=>(withCur?cur:'')+fmtNum(v);
+
   const doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
-  let y=18;
-  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(31,78,120);
-  doc.text(shop,15,y);y+=7;
-  doc.setFontSize(13);doc.setTextColor(60,60,60);
-  doc.text('Profit & Loss Statement',15,y);y+=5;
-  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(110,110,110);
-  doc.text(_plPeriodLabel(period),15,y);y+=2;
-  doc.setLineWidth(0.3);doc.setDrawColor(180,180,180);doc.line(15,y+1,195,y+1);y+=8;
-  doc.setFillColor(totalP>=0?236:254, totalP>=0?253:242, totalP>=0?245:242);
-  doc.roundedRect(15,y,180,22,3,3,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(80,80,80);
-  doc.text('NET PROFIT',20,y+7);
-  doc.setFontSize(20);doc.setTextColor(totalP>=0?16:220, totalP>=0?160:38, totalP>=0?78:38);
-  doc.text(cur+fmt(totalP),20,y+17);
-  doc.setFontSize(9);doc.setTextColor(80,80,80);
-  doc.text(margin+'% margin',135,y+10);
-  doc.text(`Sales: ${cur}${fmt(totalS)}`,135,y+15);
-  doc.text(`Expenses: ${cur}${fmt(totalE)}`,135,y+19);
-  y+=30;
-  doc.setFillColor(232,232,232);doc.rect(15,y-5,180,8,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(31,41,55);
-  doc.text('Month',18,y);doc.text('Sales',75,y,{align:'right'});doc.text('Expenses',115,y,{align:'right'});doc.text('Profit',160,y,{align:'right'});
-  y+=4;doc.setDrawColor(220,220,220);doc.line(15,y,195,y);y+=5;
-  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(40,40,40);
+  const PW=210, MX=15, RX=195;
+  let y=20;
+
+  // ── Header band (purple) ──
+  doc.setFillColor(124,58,237); // brand purple
+  doc.rect(0,0,PW,30,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(255,255,255);
+  doc.text(shop,MX,16);
+  doc.setFont('helvetica','normal');doc.setFontSize(11);
+  doc.text('Profit & Loss Statement',MX,24);
+  doc.setFontSize(9);
+  doc.text(_plPeriodLabel(period),RX,16,{align:'right'});
+  doc.text(`Generated: ${todayStr()}`,RX,22,{align:'right'});
+  y=42;
+
+  // ── Net Profit card (full-width) ──
+  const cardColor=totalP>=0?[236,253,245]:[254,242,242];
+  const profitColor=totalP>=0?[16,160,78]:[220,38,38];
+  doc.setFillColor(...cardColor);
+  doc.roundedRect(MX,y,RX-MX,30,3,3,'F');
+  doc.setDrawColor(totalP>=0?167:252, totalP>=0?243:202, totalP>=0?208:202);
+  doc.setLineWidth(0.4);doc.roundedRect(MX,y,RX-MX,30,3,3,'S');
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(90,90,90);
+  doc.text('NET PROFIT',MX+5,y+8);
+  doc.setFontSize(24);doc.setTextColor(...profitColor);
+  doc.text(money(totalP),MX+5,y+22);
+  // Right side stats
+  doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(60,60,60);
+  doc.text(`${margin}% margin`,RX-5,y+10,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(110,110,110);
+  doc.text(`Sales:  ${money(totalS)}`,RX-5,y+18,{align:'right'});
+  doc.text(`Expenses:  ${money(totalE)}`,RX-5,y+24,{align:'right'});
+  y+=40;
+
+  // ── Section heading ──
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(31,41,55);
+  doc.text('Monthly Breakdown',MX,y);
+  y+=6;
+
+  // ── Table header band ──
+  const colMonth=MX+3, colSales=95, colExp=140, colProfit=RX-3;
+  doc.setFillColor(31,41,55); // dark header
+  doc.rect(MX,y-5,RX-MX,9,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);
+  doc.text('Month',colMonth,y+1);
+  doc.text('Sales',colSales,y+1,{align:'right'});
+  doc.text('Expenses',colExp,y+1,{align:'right'});
+  doc.text('Profit',colProfit,y+1,{align:'right'});
+  y+=8;
+
+  // ── Data rows with alternating fills ──
+  doc.setFont('helvetica','normal');doc.setFontSize(10);
   const visibleMonths=months.filter(m=>m.sales>0||m.expenses>0);
-  visibleMonths.forEach(m=>{
-    doc.text(m.label,18,y);
-    doc.setTextColor(16,160,78);doc.text(cur+fmt(m.sales),75,y,{align:'right'});
-    doc.setTextColor(220,38,38);doc.text(cur+fmt(m.expenses),115,y,{align:'right'});
+  visibleMonths.forEach((m,idx)=>{
+    if(idx%2===0){
+      doc.setFillColor(249,250,251);
+      doc.rect(MX,y-5,RX-MX,7,'F');
+    }
+    doc.setTextColor(31,41,55);
+    doc.text(m.label,colMonth,y);
+    doc.setTextColor(16,160,78);
+    doc.text(money(m.sales),colSales,y,{align:'right'});
+    doc.setTextColor(220,38,38);
+    doc.text(money(m.expenses),colExp,y,{align:'right'});
     doc.setTextColor(m.profit>=0?16:220, m.profit>=0?160:38, m.profit>=0?78:38);
-    doc.text(cur+fmt(m.profit),160,y,{align:'right'});
-    doc.setTextColor(40,40,40);
-    y+=6;
-    if(y>270){doc.addPage();y=20;}
+    doc.text(money(m.profit),colProfit,y,{align:'right'});
+    y+=7;
+    if(y>265){doc.addPage();y=20;}
   });
-  y+=2;doc.setFillColor(241,245,249);doc.rect(15,y-4,180,8,'F');
-  doc.setFont('helvetica','bold');doc.setTextColor(31,41,55);
-  doc.text('TOTAL',18,y);
-  doc.setTextColor(16,160,78);doc.text(cur+fmt(totalS),75,y,{align:'right'});
-  doc.setTextColor(220,38,38);doc.text(cur+fmt(totalE),115,y,{align:'right'});
-  doc.setTextColor(totalP>=0?16:220, totalP>=0?160:38, totalP>=0?78:38);
-  doc.text(cur+fmt(totalP),160,y,{align:'right'});
-  y+=12;
-  doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(140,140,140);
-  doc.text(`Generated on ${todayStr()} by Pasal Manager`,15,287);
+
+  // ── TOTAL row (highlighted) ──
+  doc.setFillColor(241,245,249);
+  doc.rect(MX,y-5,RX-MX,9,'F');
+  doc.setDrawColor(124,58,237);doc.setLineWidth(0.5);
+  doc.line(MX,y-5,RX,y-5);
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(31,41,55);
+  doc.text('TOTAL',colMonth,y+1);
+  doc.setTextColor(16,160,78);
+  doc.text(money(totalS),colSales,y+1,{align:'right'});
+  doc.setTextColor(220,38,38);
+  doc.text(money(totalE),colExp,y+1,{align:'right'});
+  doc.setTextColor(...profitColor);
+  doc.text(money(totalP),colProfit,y+1,{align:'right'});
+  y+=18;
+
+  // ── Best/Worst callouts (only when 2+ active months) ──
+  const active=months.filter(m=>m.sales>0||m.expenses>0);
+  if(active.length>=2){
+    const best=active.reduce((a,m)=>m.profit>a.profit?m:a,active[0]);
+    const worst=active.reduce((a,m)=>m.profit<a.profit?m:a,active[0]);
+    if(best!==worst){
+      const cardW=(RX-MX-6)/2;
+      // Best
+      doc.setFillColor(236,253,245);
+      doc.roundedRect(MX,y,cardW,22,2,2,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(16,160,78);
+      doc.text('BEST MONTH',MX+4,y+6);
+      doc.setFontSize(10);doc.setTextColor(31,41,55);
+      doc.text(best.label,MX+4,y+12);
+      doc.setFontSize(11);doc.setTextColor(16,160,78);
+      doc.text(money(best.profit),MX+4,y+18);
+      // Worst
+      doc.setFillColor(254,242,242);
+      doc.roundedRect(MX+cardW+6,y,cardW,22,2,2,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(220,38,38);
+      doc.text('WORST MONTH',MX+cardW+10,y+6);
+      doc.setFontSize(10);doc.setTextColor(31,41,55);
+      doc.text(worst.label,MX+cardW+10,y+12);
+      doc.setFontSize(11);doc.setTextColor(worst.profit>=0?16:220, worst.profit>=0?160:38, worst.profit>=0?78:38);
+      doc.text(money(worst.profit),MX+cardW+10,y+18);
+      y+=28;
+    }
+  }
+
+  // ── Footer ──
+  doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(150,150,150);
+  doc.text(`Generated by Pasal Manager · pasal-manager.vercel.app`,MX,287);
+  doc.text(`Page 1`,RX,287,{align:'right'});
+
   const filename=`${shop.replace(/\s+/g,'_')}_P&L_${_plPeriodLabel(period).replace(/\s+/g,'_')}.pdf`;
   doc.save(filename);
 }
