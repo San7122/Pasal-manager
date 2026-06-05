@@ -2333,7 +2333,7 @@ function _lazyLoad(url) {
   });
   return _lazyLoaded[url];
 }
-const _XLSX_URL    = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+const _XLSX_URL    = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
 const _SOLANA_URL  = 'https://cdn.jsdelivr.net/npm/@solana/web3.js@1.87.6/lib/index.iife.min.js';
 const _TESS_URL    = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
 // ─────────────────────────────────────────────────────────────────────────────
@@ -8272,32 +8272,34 @@ async function downloadAuditReport(){
     return '90+';
   };
 
-  // Helper: Create header style
-  const headerStyle={bold:true,fill:{fgColor:{rgb:'E8E8E8'}},alignment:{horizontal:'center',vertical:'center'}};
+  // Style presets (xlsx-js-style format)
   const numberFmt='#,##,##0.00;[Red](#,##,##0.00)';
-  const dateFmt='DD-Mmm-YYYY';
-
-  // Helper: Add styled header row to sheet
-  const addHeaderRow=(ws,headers)=>{
-    headers.forEach((h,i)=>{
-      const cell=ws[XLSX.utils.encode_cell({r:0,c:i})];
-      if(!cell) ws[XLSX.utils.encode_cell({r:0,c:i})]={v:h};
-      Object.assign(cell,headerStyle);
-    });
-    ws['!views']=[{state:'frozen',ySplit:1}];
+  const thinBorder={style:'thin',color:{rgb:'D0D0D0'}};
+  const headerStyle={
+    font:{bold:true,sz:11,color:{rgb:'1F2937'}},
+    fill:{patternType:'solid',fgColor:{rgb:'E8E8E8'}},
+    alignment:{horizontal:'center',vertical:'center',wrapText:true},
+    border:{top:thinBorder,bottom:thinBorder,left:thinBorder,right:thinBorder}
   };
-
-  // Helper: Set number format for column
-  const setColFormat=(ws,colIdx,fmt)=>{
-    for(let r=1;r<100;r++){
-      const cell=ws[XLSX.utils.encode_cell({r,c:colIdx})];
-      if(cell) cell.z=fmt;
-    }
+  const titleStyle={
+    font:{bold:true,sz:14,color:{rgb:'1F4E78'}},
+    alignment:{horizontal:'center',vertical:'center'}
   };
+  const totalRowStyle={
+    font:{bold:true,sz:11},
+    fill:{patternType:'solid',fgColor:{rgb:'F3F4F6'}},
+    border:{top:{style:'medium',color:{rgb:'1F4E78'}},bottom:{style:'medium',color:{rgb:'1F4E78'}},left:thinBorder,right:thinBorder}
+  };
+  const dataBorder={top:thinBorder,bottom:thinBorder,left:thinBorder,right:thinBorder};
 
-  // Helper: Finalize a sheet — re-inject formula cells that aoa_to_sheet drops,
-  // apply Indian number format to all numeric cells, and add a frozen header pane.
-  // Call right after aoa_to_sheet, before book_append_sheet.
+  // No-op shims — kept for backwards compat. finalizeSheet() does the real work
+  // (header styling, number formatting, frozen panes, borders) on every sheet.
+  const addHeaderRow=()=>{};
+  const setColFormat=()=>{};
+
+  // Helper: Finalize a sheet — re-inject formula cells, apply Indian number
+  // format, frozen header pane, header/total row styling, and data borders.
+  // opts.frozen=false → report sheet (no data table); opts.titleRow=true → style row 0 as title.
   const finalizeSheet=(ws,aoaData,opts)=>{
     opts=opts||{};
     const headerRow=opts.headerRow||0;
@@ -8320,15 +8322,51 @@ async function downloadAuditReport(){
     });
     range.e.r=maxRow;range.e.c=maxCol;
     ws['!ref']=XLSX.utils.encode_range(range);
-    // 3. Apply Indian lakhs format to every numeric cell (skip header)
+    // 3. Detect TOTAL rows (where first column is 'TOTAL' or starts with 'TOTAL')
+    const totalRows=new Set();
+    aoaData.forEach((row,r)=>{
+      if(row && row[0] && typeof row[0]==='string' && /^(TOTAL|SUB-?TOTAL|NET )/i.test(row[0])) totalRows.add(r);
+    });
+    // 4. Apply Indian lakhs format + light borders to every data cell
     for(let r=headerRow+1;r<=maxRow;r++){
       for(let col=range.s.c;col<=maxCol;col++){
         const cell=ws[XLSX.utils.encode_cell({r,c:col})];
-        if(cell && (typeof cell.v==='number' || cell.f)) cell.z=numberFmt;
+        if(!cell) continue;
+        if(typeof cell.v==='number' || cell.f) cell.z=numberFmt;
+        if(frozen){
+          if(totalRows.has(r)) cell.s={...totalRowStyle};
+          else cell.s={border:dataBorder,alignment:{vertical:'center'}};
+        }
       }
     }
-    // 4. Frozen header pane
-    if(frozen) ws['!views']=[{state:'frozen',ySplit:headerRow+1}];
+    // 5. Style header row (only for data sheets — frozen:true)
+    if(frozen){
+      for(let col=range.s.c;col<=maxCol;col++){
+        const cell=ws[XLSX.utils.encode_cell({r:headerRow,c:col})];
+        if(cell) cell.s={...headerStyle};
+      }
+      // 6. Frozen header pane
+      ws['!views']=[{state:'frozen',ySplit:headerRow+1}];
+    }else{
+      // Report sheets: style any row whose first cell is uppercase title text
+      aoaData.forEach((row,r)=>{
+        if(row && row[0] && typeof row[0]==='string'){
+          const v=row[0];
+          // Title detection: all-caps, contains keywords like REPORT/STATEMENT/BALANCE/SHEET
+          if(/^[A-Z][A-Z &]+(STATEMENT|REPORT|BALANCE|SHEET|FLOW|ACCOUNTS|INDEX)/i.test(v) || v==='AUDIT REPORT'){
+            const cell=ws[XLSX.utils.encode_cell({r,c:0})];
+            if(cell) cell.s={...titleStyle};
+          }
+          // Style total/subtotal rows in report sheets too
+          if(totalRows.has(r)){
+            for(let col=range.s.c;col<=maxCol;col++){
+              const tcell=ws[XLSX.utils.encode_cell({r,c:col})];
+              if(tcell) tcell.s={...totalRowStyle};
+            }
+          }
+        }
+      });
+    }
   };
 
   // Helper: Signature row
