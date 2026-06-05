@@ -8233,12 +8233,162 @@ async function downloadAuditReport(){
   const fromStr=document.getElementById('audit-from')?.value||todayStr().substring(0,7)+'-01';
   const toStr=document.getElementById('audit-to')?.value||todayStr();
   if(fromStr>toStr){alert('From date must be before To date');return;}
+
   const shop=S.shopName||'Pasal Manager';
   const wb=XLSX.utils.book_new();
   const n=v=>Number(v)||0;
   const inRange=date=>date>=fromStr&&date<=toStr;
+  const cur=S.country==='NP'?'रू':'₹';
+  const today=new Date();
+  const reportDate=today.getDate()+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][today.getMonth()]+'-'+today.getFullYear();
 
-  // ── 1. AUDIT SUMMARY ──
+  // Helper: Format number as Indian lakhs #,##,##0.00
+  const indianFmt=n=>{
+    const neg=n<0;
+    let s=Math.abs(n).toFixed(2).toString();
+    const parts=s.split('.');
+    let intPart=parts[0];
+    if(intPart.length<=3){
+      return (neg?'-':'')+intPart+'.'+parts[1];
+    }
+    let r=intPart.slice(-3);
+    intPart=intPart.slice(0,-3);
+    while(intPart.length>2){
+      r=intPart.slice(-2)+','+r;
+      intPart=intPart.slice(0,-2);
+    }
+    if(intPart.length>0) r=intPart+','+r;
+    return (neg?'-':'')+r+'.'+parts[1];
+  };
+
+  // Helper: Calculate aging bucket in days
+  const agingBucket=fromDate=>{
+    const from=new Date(fromDate);
+    const to=new Date(toStr);
+    const days=Math.floor((to-from)/(1000*60*60*24));
+    if(days<=30) return '0-30';
+    if(days<=60) return '31-60';
+    if(days<=90) return '61-90';
+    return '90+';
+  };
+
+  // Helper: Create header style
+  const headerStyle={bold:true,fill:{fgColor:{rgb:'E8E8E8'}},alignment:{horizontal:'center',vertical:'center'}};
+  const numberFmt='#,##,##0.00;[Red](#,##,##0.00)';
+  const dateFmt='DD-Mmm-YYYY';
+
+  // Helper: Add styled header row to sheet
+  const addHeaderRow=(ws,headers)=>{
+    headers.forEach((h,i)=>{
+      const cell=ws[XLSX.utils.encode_cell({r:0,c:i})];
+      if(!cell) ws[XLSX.utils.encode_cell({r:0,c:i})]={v:h};
+      Object.assign(cell,headerStyle);
+    });
+    ws['!views']=[{state:'frozen',ySplit:1}];
+  };
+
+  // Helper: Set number format for column
+  const setColFormat=(ws,colIdx,fmt)=>{
+    for(let r=1;r<100;r++){
+      const cell=ws[XLSX.utils.encode_cell({r,c:colIdx})];
+      if(cell) cell.z=fmt;
+    }
+  };
+
+  // Helper: Finalize a sheet — re-inject formula cells that aoa_to_sheet drops,
+  // apply Indian number format to all numeric cells, and add a frozen header pane.
+  // Call right after aoa_to_sheet, before book_append_sheet.
+  const finalizeSheet=(ws,aoaData,opts)=>{
+    opts=opts||{};
+    const headerRow=opts.headerRow||0;
+    const frozen=opts.frozen!==false;
+    // 1. Re-inject formula cells (aoa_to_sheet drops {f:'...'} objects)
+    aoaData.forEach((row,r)=>{
+      if(!row) return;
+      row.forEach((c,col)=>{
+        if(c && typeof c==='object' && c.f){
+          ws[XLSX.utils.encode_cell({r,c:col})]={t:'n',f:c.f};
+        }
+      });
+    });
+    // 2. Extend !ref to cover the full data area
+    const range=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
+    let maxRow=range.e.r,maxCol=range.e.c;
+    aoaData.forEach((row,r)=>{
+      if(r>maxRow) maxRow=r;
+      if(row) row.forEach((_,col)=>{ if(col>maxCol) maxCol=col; });
+    });
+    range.e.r=maxRow;range.e.c=maxCol;
+    ws['!ref']=XLSX.utils.encode_range(range);
+    // 3. Apply Indian lakhs format to every numeric cell (skip header)
+    for(let r=headerRow+1;r<=maxRow;r++){
+      for(let col=range.s.c;col<=maxCol;col++){
+        const cell=ws[XLSX.utils.encode_cell({r,c:col})];
+        if(cell && (typeof cell.v==='number' || cell.f)) cell.z=numberFmt;
+      }
+    }
+    // 4. Frozen header pane
+    if(frozen) ws['!views']=[{state:'frozen',ySplit:headerRow+1}];
+  };
+
+  // Helper: Signature row
+  const sigRow=[`For ${shop}`,,'',`Signature: ____________`,`Place: ${S.bizAddress||''}`,`Date: ${reportDate}`];
+
+  // ──────────────────────────────────────────────────────────
+  // 01_COVER SHEET
+  // ──────────────────────────────────────────────────────────
+  const coverData=[
+    [''],
+    [''],
+    ['AUDIT REPORT'],
+    [''],
+    [`${shop}`],
+    [''],
+    [`For the period: ${fromStr} to ${toStr}`],
+    [`(Financial Year 2025-26)`],
+    [''],
+    [''],
+    ['Proprietor/Owner',S.ownName||'—'],
+    ['Address',S.bizAddress||'—'],
+    ['GSTIN / PAN',S.gstin||'—'],
+    ['Phone',S.ownPhone||'—'],
+    ['Country',S.country==='NP'?'NEPAL':'INDIA'],
+    [''],
+    ['Report Generated',reportDate],
+    ['Prepared Using','Pasal Manager'],
+    ['Currency',cur],
+    ['Basis of Accounts','Cash Basis'],
+    [''],
+    [''],
+    ['INDEX OF SHEETS'],
+    [''],
+    ['Sheet 02','Trial Balance'],
+    ['Sheet 03','Profit & Loss Statement'],
+    ['Sheet 04','Balance Sheet'],
+    ['Sheet 05','Cash Flow Statement'],
+    ['Sheet 06','Sales Register'],
+    ['Sheet 07','Purchase Register'],
+    ['Sheet 08','Expense Register'],
+    ['Sheet 09','Sundry Debtors (Udhaar) with Aging'],
+    ['Sheet 10','Sundry Creditors (Suppliers) with Aging'],
+    ['Sheet 11','Customer Ledgers'],
+    ['Sheet 12','Supplier Ledgers'],
+    ['Sheet 13','Stock Register'],
+    ['Sheet 14','Cashbook'],
+    ['Sheet 15','Staff Register'],
+    ['Sheet 16','Loan Register'],
+    ['Sheet 17','Customer EMI Plans'],
+    ['Sheet 18','Item-wise Analysis (Top SKUs & Slow-Moving)'],
+    ['Sheet 19','Monthly Comparison'],
+    [S.gstin?'Sheet 20':'','HSN & GST Summary'],
+    ['Sheet 21','Notes to Accounts'],
+  ];
+  const wsCover=XLSX.utils.aoa_to_sheet(coverData);
+  wsCover['!cols']=[{wch:28},{wch:35}];
+  finalizeSheet(wsCover,coverData,{frozen:false});
+  XLSX.utils.book_append_sheet(wb,wsCover,'01_Cover');
+
+  // Pre-compute period aggregates
   const filtSales=sales.filter(s=>inRange(s.date));
   const filtExp=expenses.filter(e=>inRange(e.date));
   const filtRet=returns.filter(r=>inRange(r.date));
@@ -8248,186 +8398,567 @@ async function downloadAuditReport(){
   const filtAdv=staffEntries.filter(e=>inRange(e.date)&&e.type==='advance');
   const filtLoanPay=loanPayments.filter(p=>p.paid&&inRange(p.paidDate));
   const filtEmiPay=emiPayments.filter(p=>p.paid&&inRange(p.paidDate));
+  const filtCashbook=cashbookEntries.filter(c=>inRange(c.date));
 
   const totalSales=filtSales.reduce((a,s)=>a+n(s.amt),0);
-  const totalReturns=filtRet.filter(r=>r.type==='customer').reduce((a,r)=>a+n(r.amt),0);
-  const netSales=totalSales-totalReturns;
+  const totalCustReturns=filtRet.filter(r=>r.type==='customer').reduce((a,r)=>a+n(r.amt),0);
+  const totalSupplierReturns=filtRet.filter(r=>r.type==='supplier').reduce((a,r)=>a+n(r.amt),0);
+  const netSales=totalSales-totalCustReturns;
   const totalCost=filtSales.reduce((a,s)=>a+n(s.cost),0);
   const totalExp=filtExp.reduce((a,e)=>a+n(e.amt),0);
-  const grossProfit=netSales-totalExp;
-  const netProfit=totalCost>0?netSales-totalCost-totalExp:grossProfit;
   const totalKhPurchase=filtKh.filter(k=>k.type==='purchase').reduce((a,k)=>a+n(k.amt),0);
   const totalKhPayment=filtKh.filter(k=>k.type==='payment').reduce((a,k)=>a+n(k.amt),0);
   const totalDlGiven=filtDl.filter(d=>d.type==='given').reduce((a,d)=>a+n(d.amt),0);
   const totalDlReceived=filtDl.filter(d=>d.type==='received').reduce((a,d)=>a+n(d.amt),0);
   const totalSalaryPaid=filtSalPay.reduce((a,e)=>a+n(e.value),0);
   const totalAdvancePaid=filtAdv.reduce((a,e)=>a+n(e.value),0);
-  const totalLoanPaid=filtLoanPay.reduce((a,p)=>a+n(p.emiAmt),0);
 
-  const summaryRows=[
-    ['AUDIT REPORT',''],
-    ['Shop',shop],
-    ['Period',fromStr+' to '+toStr],
-    ['Generated',new Date().toLocaleString('en-IN')],
-    ['',''],
-    ['━━ INCOME ━━',''],
-    ['Gross Sales',totalSales],
-    ['Customer Returns',-totalReturns],
-    ['Net Sales',netSales],
-    ['',''],
-    ['━━ EXPENSES ━━',''],
-    ['Operating Expenses',totalExp],
-    ['Cost of Goods Sold',totalCost||'(not tracked)'],
-    ['Staff Salary Paid',totalSalaryPaid],
-    ['Staff Advances',totalAdvancePaid],
-    ['Loan EMI Paid',totalLoanPaid],
-    ['',''],
-    ['━━ PROFIT ━━',''],
-    ['Gross Profit (Sales - Expenses)',grossProfit],
-    ['Net Profit (after COGS)',totalCost>0?netProfit:'(COGS not tracked)'],
-    ['',''],
-    ['━━ PAYABLES / RECEIVABLES ━━',''],
-    ['Total Purchased on Credit (Kharidi)',totalKhPurchase],
-    ['Paid to Suppliers',totalKhPayment],
-    ['Net Due to Suppliers',totalKhPurchase-totalKhPayment],
-    ['Credit Given to Dealers',totalDlGiven],
-    ['Received from Dealers',totalDlReceived],
-    ['Net Receivable from Dealers',totalDlGiven-totalDlReceived],
-    ['Udhaar Pending',udhaars.filter(u=>!u.paid).reduce((a,u)=>a+n(u.amt),0)],
-    ['',''],
-    ['━━ LOANS ━━',''],
-    ['Active Loans',loans.length],
-    ['Total Outstanding',loans.reduce((a,l)=>a+loanOutstanding(l),0)],
-    ['Loan EMI Paid (period)',totalLoanPaid],
+  // ──────────────────────────────────────────────────────────
+  // 02_TRIAL BALANCE (must balance)
+  // ──────────────────────────────────────────────────────────
+  const tbData=[
+    ['TRIAL BALANCE as on '+toStr,'',''],
+    ['ACCOUNT','DEBIT ('+cur+')','CREDIT ('+cur+')'],
   ];
-  const wsSummary=XLSX.utils.aoa_to_sheet(summaryRows);
-  wsSummary['!cols']=[{wch:38},{wch:18}];
-  XLSX.utils.book_append_sheet(wb,wsSummary,'📋 Audit Summary');
+  let tbRow=2;
+  const tbDebitStart=tbRow+1;
 
-  // ── 2. SALES ──
-  const salesRows=[['Date','Time','Amount','Cost','Profit','Payment Mode','Customer','Note']];
+  // Assets/Debits
+  tbData.push(['Cash in Hand',totalSales+totalDlReceived-totalExp-totalKhPayment-totalSalaryPaid,'']);
+  tbData.push(['Closing Stock (at cost)',totalCost||0,'']);
+  const custUdhaar=udhaars.filter(u=>!u.paid).reduce((a,u)=>a+n(u.amt),0);
+  tbData.push(['Sundry Debtors (Udhaar)',custUdhaar,'']);
+  const dealerReceivable=totalDlGiven-totalDlReceived;
+  tbData.push(['Sundry Debtors (Dealer)',Math.max(0,dealerReceivable),'']);
+
+  tbRow=tbData.length;
+  const tbCreditStart=tbRow;
+
+  // Liabilities/Credits
+  const suppPayable=totalKhPurchase-totalKhPayment;
+  if(suppPayable>0) tbData.push(['Sundry Creditors (Suppliers)','',suppPayable]);
+
+  const loanTotal=loans.reduce((a,l)=>a+loanOutstanding(l),0);
+  if(loanTotal>0) tbData.push(['Outstanding Loans','',loanTotal]);
+
+  // Revenue
+  tbData.push(['Sales A/c','',totalSales]);
+  if(totalCustReturns>0) tbData.push(['Sales Returns',totalCustReturns,'']);
+
+  // Expenses
+  if(totalExp>0) tbData.push(['Operating Expenses',totalExp,'']);
+  if(totalSalaryPaid>0) tbData.push(['Staff Salary',totalSalaryPaid,'']);
+
+  // Owner's Equity (balancing figure)
+  const debitSum=tbData.slice(2,tbCreditStart).reduce((a,r)=>a+n(r[1]),0);
+  const creditSum=tbData.slice(tbCreditStart).reduce((a,r)=>a+n(r[2]),0);
+  const eqBalFig=creditSum-debitSum;
+  tbData.push(['Owner Equity (Opening + Profit/Loss)',eqBalFig>0?eqBalFig:'',eqBalFig<0?Math.abs(eqBalFig):'']);
+
+  // Totals
+  const tbTotalRow=tbData.length;
+  tbData.push(['TOTAL',{f:`SUM(B3:B${tbTotalRow})`},{f:`SUM(C3:C${tbTotalRow})`}]);
+
+  const wsTB=XLSX.utils.aoa_to_sheet(tbData);
+  wsTB['!cols']=[{wch:28},{wch:16},{wch:16}];
+  addHeaderRow(wsTB,['ACCOUNT','DEBIT ('+cur+')','CREDIT ('+cur+')']);
+  setColFormat(wsTB,1,numberFmt);
+  setColFormat(wsTB,2,numberFmt);
+  finalizeSheet(wsTB,tbData,{frozen:false});
+  XLSX.utils.book_append_sheet(wb,wsTB,'02_TrialBalance');
+
+  // ──────────────────────────────────────────────────────────
+  // 03_PROFIT & LOSS STATEMENT
+  // ──────────────────────────────────────────────────────────
+  const plData=[
+    ['PROFIT & LOSS STATEMENT'],
+    ['For the period: '+fromStr+' to '+toStr],
+    [''],
+    ['REVENUE','',''],
+    ['  Gross Sales','',totalSales],
+    ['  Less: Sales Returns','(',totalCustReturns,')'],
+    ['NET REVENUE','',{f:'C5-C6'}],
+    [''],
+    ['COST OF GOODS SOLD','',''],
+    ['  Opening Stock (at cost)','',0],
+    ['  Add: Purchases (Kharidi)','',totalKhPurchase],
+    ['  Less: Closing Stock (at cost)','(',totalCost,')'],
+    ['COST OF GOODS SOLD','',{f:'C10+C11-C12'}],
+    [''],
+    ['GROSS PROFIT','',{f:'C7-C13'}],
+    ['(Gross Profit Margin %)',{f:'C15/C7*100'},'%'],
+    [''],
+    ['OPERATING EXPENSES','',''],
+    ['  Shop Expenses','',totalExp],
+    ['  Staff Salaries','',totalSalaryPaid],
+    ['TOTAL OPERATING EXPENSES','',{f:'SUM(C19:C20)'}],
+    [''],
+    ['OPERATING PROFIT (EBIT)','',{f:'C15-C21'}],
+    [''],
+    ['  Less: Interest on Loans','',0],
+    ['NET PROFIT BEFORE TAX','',{f:'C23-C25'}],
+  ];
+
+  const wsPL=XLSX.utils.aoa_to_sheet(plData);
+  wsPL['!cols']=[{wch:35},{wch:12},{wch:16}];
+  setColFormat(wsPL,2,numberFmt);
+  finalizeSheet(wsPL,plData,{frozen:false});
+  XLSX.utils.book_append_sheet(wb,wsPL,'03_ProfitLoss');
+
+  // ──────────────────────────────────────────────────────────
+  // 04_BALANCE SHEET
+  // ──────────────────────────────────────────────────────────
+  const bsData=[
+    ['BALANCE SHEET as on '+toStr],
+    [''],
+    ['LIABILITIES & EQUITY','AMOUNT ('+cur+')','ASSETS','AMOUNT ('+cur+')'],
+    ['Owner\'s Capital','','Cash in Hand',totalSales+totalDlReceived-totalExp-totalKhPayment-totalSalaryPaid],
+    ['Add: Net Profit / Loss','','Stock (at cost)',totalCost],
+    ['Less: Drawings','','Sundry Debtors:',''],
+    ['SUB-TOTAL EQUITY',{f:`(B4+B5)-B6`},'  Udhaar (Customers)',custUdhaar],
+    ['','','  Dealer Receivable',Math.max(0,dealerReceivable)],
+    ['Sundry Creditors (Suppliers)',suppPayable,'',''],
+    ['Outstanding Loans',loanTotal,'',''],
+    [''],
+    ['TOTAL LIABILITIES & EQUITY',{f:`B7+B9+B10`},'TOTAL ASSETS',{f:`D4+D5+D7+D8`}],
+  ];
+
+  const wsBS=XLSX.utils.aoa_to_sheet(bsData);
+  wsBS['!cols']=[{wch:28},{wch:16},{wch:28},{wch:16}];
+  setColFormat(wsBS,1,numberFmt);
+  setColFormat(wsBS,3,numberFmt);
+  finalizeSheet(wsBS,bsData,{frozen:false});
+  XLSX.utils.book_append_sheet(wb,wsBS,'04_BalanceSheet');
+
+  // ──────────────────────────────────────────────────────────
+  // 05_CASH FLOW STATEMENT
+  // ──────────────────────────────────────────────────────────
+  const cfData=[
+    ['CASH FLOW STATEMENT'],
+    ['For the period: '+fromStr+' to '+toStr],
+    [''],
+    ['OPERATING ACTIVITIES','',''],
+    ['  Net Profit','',{f:'03_ProfitLoss!C26'}],
+    ['  Add: Depreciation','',0],
+    ['Cash from Operations','',{f:'B5+B6'}],
+    [''],
+    ['INVESTING ACTIVITIES','',''],
+    ['  Stock Purchases','(',totalKhPurchase,')'],
+    ['Cash from Investing','',{f:'B10'}],
+    [''],
+    ['FINANCING ACTIVITIES','',''],
+    ['  Loan Received','',0],
+    ['  Loan Repaid','(',totalKhPayment,')'],
+    ['Cash from Financing','',{f:'B14-B15'}],
+    [''],
+    ['NET CHANGE IN CASH','',{f:'B7+B11+B16'}],
+    ['Opening Cash Balance','',0],
+    ['Closing Cash Balance',{f:'B19+B18'},''],
+  ];
+
+  const wsCF=XLSX.utils.aoa_to_sheet(cfData);
+  wsCF['!cols']=[{wch:30},{wch:12},{wch:16}];
+  setColFormat(wsCF,2,numberFmt);
+  finalizeSheet(wsCF,cfData,{frozen:false});
+  XLSX.utils.book_append_sheet(wb,wsCF,'05_CashFlow');
+
+  // ──────────────────────────────────────────────────────────
+  // 06_SALES REGISTER
+  // ──────────────────────────────────────────────────────────
+  const srData=[['S.No','Date','Customer','Payment Mode','Amount ('+cur+')','Cost ('+cur+')','Profit ('+cur+')','Note']];
+  let srNum=1;
   filtSales.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>{
     const cust=customers.find(c=>c.id===s.customerId);
-    salesRows.push([s.date,s.ts?new Date(s.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'',n(s.amt),n(s.cost)||'',s.cost>0?n(s.amt)-n(s.cost):'',s.payMode||'Cash',cust?cust.name:'',s.note||'']);
+    srData.push([srNum++,s.date,cust?cust.name:'',s.payMode||'Cash',n(s.amt),n(s.cost)||0,{f:`E${srNum}-F${srNum}`},s.note||'']);
   });
-  salesRows.push(['','','TOTAL',totalSales,totalCost||'',totalCost>0?totalSales-totalCost:'','','']);
-  const wsSales=XLSX.utils.aoa_to_sheet(salesRows);
-  wsSales['!cols']=[{wch:12},{wch:10},{wch:12},{wch:12},{wch:12},{wch:14},{wch:18},{wch:20}];
-  XLSX.utils.book_append_sheet(wb,wsSales,'Sales');
+  srData.push(['TOTAL','','','',{f:`SUM(E2:E${srData.length})`},{f:`SUM(F2:F${srData.length})`},{f:`SUM(G2:G${srData.length})`},'']);
 
-  // ── 3. EXPENSES ──
-  const expRows=[['Date','Time','Amount','Category','Note']];
+  const wsSR=XLSX.utils.aoa_to_sheet(srData);
+  wsSR['!cols']=[{wch:6},{wch:12},{wch:20},{wch:14},{wch:14},{wch:14},{wch:14},{wch:20}];
+  addHeaderRow(wsSR,srData[0]);
+  setColFormat(wsSR,4,numberFmt);
+  setColFormat(wsSR,5,numberFmt);
+  setColFormat(wsSR,6,numberFmt);
+  finalizeSheet(wsSR,srData);
+  XLSX.utils.book_append_sheet(wb,wsSR,'06_SalesRegister');
+
+  // ──────────────────────────────────────────────────────────
+  // 07_PURCHASE REGISTER
+  // ──────────────────────────────────────────────────────────
+  const purData=[['S.No','Date','Supplier','Item Type','Amount ('+cur+')','Note']];
+  let purNum=1;
+  filtKh.filter(k=>k.type==='purchase').slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(k=>{
+    purData.push([purNum++,k.date,k.supplierName||'',k.type||'',n(k.amt),k.note||'']);
+  });
+  purData.push(['TOTAL','','','',{f:`SUM(E2:E${purData.length})`},'']);
+
+  const wsPUR=XLSX.utils.aoa_to_sheet(purData);
+  wsPUR['!cols']=[{wch:6},{wch:12},{wch:20},{wch:16},{wch:14},{wch:24}];
+  addHeaderRow(wsPUR,purData[0]);
+  setColFormat(wsPUR,4,numberFmt);
+  finalizeSheet(wsPUR,purData);
+  XLSX.utils.book_append_sheet(wb,wsPUR,'07_PurchaseRegister');
+
+  // ──────────────────────────────────────────────────────────
+  // 08_EXPENSE REGISTER
+  // ──────────────────────────────────────────────────────────
+  const expData=[['S.No','Date','Category','Amount ('+cur+')','Note']];
+  let expNum=1;
   filtExp.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
-    expRows.push([e.date,e.ts?new Date(e.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'',n(e.amt),e.category||'Shop',e.note||'']);
+    expData.push([expNum++,e.date,e.category||'Shop',n(e.amt),e.note||'']);
   });
-  expRows.push(['','','TOTAL',totalExp,'']);
-  const wsExp=XLSX.utils.aoa_to_sheet(expRows);
-  wsExp['!cols']=[{wch:12},{wch:10},{wch:12},{wch:14},{wch:24}];
-  XLSX.utils.book_append_sheet(wb,wsExp,'Expenses');
+  expData.push(['TOTAL','','',{f:`SUM(D2:D${expData.length})`},'']);
 
-  // ── 4. RETURNS ──
-  const retRows=[['Date','Type','Amount','Reason','Ref Name','Note']];
-  filtRet.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(r=>{
-    retRows.push([r.date,r.type==='customer'?'Customer Return':'Supplier Return',n(r.amt),r.reason||'',r.refName||'',r.note||'']);
-  });
-  retRows.push(['','TOTAL',filtRet.reduce((a,r)=>a+n(r.amt),0),'','','']);
-  const wsRet=XLSX.utils.aoa_to_sheet(retRows);
-  wsRet['!cols']=[{wch:12},{wch:18},{wch:12},{wch:16},{wch:18},{wch:20}];
-  XLSX.utils.book_append_sheet(wb,wsRet,'Returns');
+  const wsEXP=XLSX.utils.aoa_to_sheet(expData);
+  wsEXP['!cols']=[{wch:6},{wch:12},{wch:18},{wch:14},{wch:24}];
+  addHeaderRow(wsEXP,expData[0]);
+  setColFormat(wsEXP,3,numberFmt);
+  finalizeSheet(wsEXP,expData);
+  XLSX.utils.book_append_sheet(wb,wsEXP,'08_ExpenseRegister');
 
-  // ── 5. UDHAAR ──
-  const uRows=[['Name','Phone','Amount','Date','Due Date','Status']];
+  // ──────────────────────────────────────────────────────────
+  // 09_SUNDRY DEBTORS (Udhaar) WITH AGING
+  // ──────────────────────────────────────────────────────────
+  const debData=[['Name','Phone','Outstanding ('+cur+')','0-30 Days','31-60 Days','61-90 Days','90+ Days']];
   udhaars.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(u=>{
-    uRows.push([u.name,u.phone||'',n(u.amt),u.date,u.dueDate||'',u.paid?'PAID':'PENDING']);
+    if(u.paid) return;
+    const bucket=agingBucket(u.date);
+    const buckets={
+      '0-30':bucket==='0-30'?n(u.amt):0,
+      '31-60':bucket==='31-60'?n(u.amt):0,
+      '61-90':bucket==='61-90'?n(u.amt):0,
+      '90+':bucket==='90+'?n(u.amt):0
+    };
+    debData.push([u.name,u.phone||'',n(u.amt),buckets['0-30'],buckets['31-60'],buckets['61-90'],buckets['90+']]);
   });
-  const uPending=udhaars.filter(u=>!u.paid).reduce((a,u)=>a+n(u.amt),0);
-  uRows.push(['','','PENDING',uPending,'','']);
-  const wsU=XLSX.utils.aoa_to_sheet(uRows);
-  wsU['!cols']=[{wch:18},{wch:14},{wch:12},{wch:12},{wch:12},{wch:10}];
-  XLSX.utils.book_append_sheet(wb,wsU,'Udhaar');
+  const debRow=debData.length;
+  debData.push(['TOTAL','',{f:`SUM(C2:C${debRow})`},{f:`SUM(D2:D${debRow})`},{f:`SUM(E2:E${debRow})`},{f:`SUM(F2:F${debRow})`},{f:`SUM(G2:G${debRow})`}]);
 
-  // ── 6. KHARIDI (Purchase Ledger) ──
-  const khRows=[['Supplier','Date','Type','Amount','Note']];
-  filtKh.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(k=>{
-    khRows.push([k.supplierName,k.date,k.type==='purchase'?'Purchase':'Payment',n(k.amt),k.note||'']);
+  const wsDebtor=XLSX.utils.aoa_to_sheet(debData);
+  wsDebtor['!cols']=[{wch:20},{wch:14},{wch:16},{wch:12},{wch:12},{wch:12},{wch:12}];
+  addHeaderRow(wsDebtor,debData[0]);
+  for(let c=2;c<=6;c++) setColFormat(wsDebtor,c,numberFmt);
+  finalizeSheet(wsDebtor,debData);
+  XLSX.utils.book_append_sheet(wb,wsDebtor,'09_SundryDebtors');
+
+  // ──────────────────────────────────────────────────────────
+  // 10_SUNDRY CREDITORS (Suppliers) WITH AGING
+  // ──────────────────────────────────────────────────────────
+  const credData=[['Name','Phone','Outstanding ('+cur+')','0-30 Days','31-60 Days','61-90 Days','90+ Days']];
+  suppliers.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(s=>{
+    const entries=kharidiEntries.filter(k=>k.supplierName===s.name);
+    if(entries.length===0) return;
+    const lastDate=entries.sort((a,b)=>b.date.localeCompare(a.date))[0].date;
+    const balance=entries.reduce((a,e)=>a+(e.type==='purchase'?n(e.amt):-n(e.amt)),0);
+    if(balance<=0) return;
+    const bucket=agingBucket(lastDate);
+    const buckets={
+      '0-30':bucket==='0-30'?balance:0,
+      '31-60':bucket==='31-60'?balance:0,
+      '61-90':bucket==='61-90'?balance:0,
+      '90+':bucket==='90+'?balance:0
+    };
+    credData.push([s.name,s.phone||'',balance,buckets['0-30'],buckets['31-60'],buckets['61-90'],buckets['90+']]);
   });
-  khRows.push(['','','PURCHASE TOTAL',totalKhPurchase,'']);
-  khRows.push(['','','PAYMENT TOTAL',totalKhPayment,'']);
-  khRows.push(['','','NET DUE',totalKhPurchase-totalKhPayment,'']);
-  const wsKh=XLSX.utils.aoa_to_sheet(khRows);
-  wsKh['!cols']=[{wch:20},{wch:12},{wch:12},{wch:12},{wch:24}];
-  XLSX.utils.book_append_sheet(wb,wsKh,'Kharidi (Purchase)');
+  const credRow=credData.length;
+  credData.push(['TOTAL','',{f:`SUM(C2:C${credRow})`},{f:`SUM(D2:D${credRow})`},{f:`SUM(E2:E${credRow})`},{f:`SUM(F2:F${credRow})`},{f:`SUM(G2:G${credRow})`}]);
 
-  // ── 7. DEALER BOOK ──
-  const dlRows=[['Dealer','Date','Type','Amount','Note']];
-  filtDl.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(d=>{
-    dlRows.push([d.dealerName,d.date,d.type==='given'?'Given':'Received',n(d.amt),d.note||'']);
+  const wsCred=XLSX.utils.aoa_to_sheet(credData);
+  wsCred['!cols']=[{wch:20},{wch:14},{wch:16},{wch:12},{wch:12},{wch:12},{wch:12}];
+  addHeaderRow(wsCred,credData[0]);
+  for(let c=2;c<=6;c++) setColFormat(wsCred,c,numberFmt);
+  finalizeSheet(wsCred,credData);
+  XLSX.utils.book_append_sheet(wb,wsCred,'10_SundryCreditors');
+
+  // ──────────────────────────────────────────────────────────
+  // 11_CUSTOMER LEDGERS (Party-wise sales + running balance)
+  // ──────────────────────────────────────────────────────────
+  const uniqueCustomers=[...new Set(filtSales.map(s=>s.customerId).filter(Boolean))];
+  const custLedgerData=[];
+  uniqueCustomers.forEach(custId=>{
+    const cust=customers.find(c=>c.id===custId);
+    const custName=cust?cust.name:'Unknown';
+    custLedgerData.push(['','','','','']);
+    custLedgerData.push([custName,'CUSTOMER LEDGER','','','']);
+    custLedgerData.push(['Date','Description','Debit ('+cur+')','Credit ('+cur+')','Balance ('+cur+')']);
+
+    let runningBal=0;
+    const custSales=filtSales.filter(s=>s.customerId===custId).sort((a,b)=>a.date.localeCompare(b.date));
+    const custUdhaar=udhaars.filter(u=>u.name===custName);
+
+    custSales.forEach(s=>{
+      runningBal+=n(s.amt);
+      custLedgerData.push([s.date,'Sale',n(s.amt),'',runningBal]);
+    });
+
+    custUdhaar.filter(u=>!u.paid).forEach(u=>{
+      runningBal-=n(u.amt);
+      custLedgerData.push([u.date,'Udhaar Paid','',n(u.amt),runningBal]);
+    });
   });
-  dlRows.push(['','','GIVEN TOTAL',totalDlGiven,'']);
-  dlRows.push(['','','RECEIVED TOTAL',totalDlReceived,'']);
-  dlRows.push(['','','NET RECEIVABLE',totalDlGiven-totalDlReceived,'']);
-  const wsDl=XLSX.utils.aoa_to_sheet(dlRows);
-  wsDl['!cols']=[{wch:20},{wch:12},{wch:12},{wch:12},{wch:24}];
-  XLSX.utils.book_append_sheet(wb,wsDl,'Dealer Book');
 
-  // ── 8. STAFF SALARY ──
-  const sfRows=[['Staff Name','Date','Type','Amount / Value','Note']];
-  staffEntries.filter(e=>inRange(e.date)).slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
-    sfRows.push([e.staffName,e.date,e.type==='attendance'?'Attendance':(e.type==='advance'?'Advance':'Salary'),e.type==='attendance'?e.value===1?'Present':e.value===0.5?'Half Day':'Absent':n(e.value),e.note||'']);
+  const wsCustLedger=XLSX.utils.aoa_to_sheet(custLedgerData);
+  wsCustLedger['!cols']=[{wch:12},{wch:24},{wch:14},{wch:14},{wch:14}];
+  finalizeSheet(wsCustLedger,custLedgerData);
+  XLSX.utils.book_append_sheet(wb,wsCustLedger,'11_CustomerLedgers');
+
+  // ──────────────────────────────────────────────────────────
+  // 12_SUPPLIER LEDGERS
+  // ──────────────────────────────────────────────────────────
+  const supplierLedgerData=[];
+  suppliers.forEach(supp=>{
+    const entries=kharidiEntries.filter(k=>k.supplierName===supp.name&&inRange(k.date)).sort((a,b)=>a.date.localeCompare(b.date));
+    if(entries.length===0) return;
+
+    supplierLedgerData.push(['','','','','']);
+    supplierLedgerData.push([supp.name,'SUPPLIER LEDGER','','','']);
+    supplierLedgerData.push(['Date','Description','Debit ('+cur+')','Credit ('+cur+')','Balance ('+cur+')']);
+
+    let runningBal=0;
+    entries.forEach(e=>{
+      if(e.type==='purchase'){
+        runningBal+=n(e.amt);
+        supplierLedgerData.push([e.date,'Purchase','',n(e.amt),runningBal]);
+      }else{
+        runningBal-=n(e.amt);
+        supplierLedgerData.push([e.date,'Payment',n(e.amt),'',runningBal]);
+      }
+    });
   });
-  sfRows.push(['','','SALARY PAID',totalSalaryPaid,'']);
-  sfRows.push(['','','ADVANCE PAID',totalAdvancePaid,'']);
-  const wsSf=XLSX.utils.aoa_to_sheet(sfRows);
-  wsSf['!cols']=[{wch:18},{wch:12},{wch:14},{wch:14},{wch:20}];
-  XLSX.utils.book_append_sheet(wb,wsSf,'Staff');
 
-  // ── 9. EMI PLANS (Customer) ──
-  const emiRows=[['Customer','Phone','Total Amt','Down Payment','Installments','Frequency','Start Date','Outstanding']];
-  emiPlans.forEach(p=>{
-    emiRows.push([p.customerName,p.phone||'',n(p.totalAmt),n(p.downPayment),p.installments,p.frequency,p.startDate,Math.max(0,emiPlanRemaining(p))]);
+  const wsSupplierLedger=XLSX.utils.aoa_to_sheet(supplierLedgerData);
+  wsSupplierLedger['!cols']=[{wch:12},{wch:24},{wch:14},{wch:14},{wch:14}];
+  finalizeSheet(wsSupplierLedger,supplierLedgerData);
+  XLSX.utils.book_append_sheet(wb,wsSupplierLedger,'12_SupplierLedgers');
+
+  // ──────────────────────────────────────────────────────────
+  // 13_STOCK REGISTER (with formulas)
+  // ──────────────────────────────────────────────────────────
+  const stData=[['Item','Size','Opening Qty','IN (Purchases)','OUT (Sales)','Closing Qty ('+cur+')','Unit Cost ('+cur+')','Total Value ('+cur+')']];
+  stock.forEach(item=>{
+    const itemSales=filtSales.filter(s=>s.note&&s.note.includes(item.name)).length;
+    const itemPurchases=filtKh.filter(k=>k.note&&k.note.includes(item.name)).length;
+    stData.push([item.name,item.size||'',0,itemPurchases,itemSales,item.qty,n(item.buy),{f:`F${stData.length+1}*G${stData.length+1}`}]);
   });
-  emiRows.push(['','','','','','','TOTAL OUTSTANDING',emiPlans.reduce((a,p)=>a+Math.max(0,emiPlanRemaining(p)),0)]);
-  const wsEmi=XLSX.utils.aoa_to_sheet(emiRows);
-  wsEmi['!cols']=[{wch:18},{wch:14},{wch:12},{wch:14},{wch:14},{wch:12},{wch:12},{wch:16}];
-  XLSX.utils.book_append_sheet(wb,wsEmi,'Customer EMI');
+  const stRow=stData.length;
+  stData.push(['','','','','','',{f:`SUM(G2:G${stRow})`},{f:`SUM(H2:H${stRow})`}]);
 
-  // ── 10. LOANS ──
-  const lnRows=[['Lender','Loan Amount','Interest Rate','Tenure (months)','EMI Amount','Start Date','Outstanding','Note']];
+  const wsSt=XLSX.utils.aoa_to_sheet(stData);
+  wsSt['!cols']=[{wch:20},{wch:10},{wch:12},{wch:14},{wch:12},{wch:14},{wch:14},{wch:14}];
+  addHeaderRow(wsSt,stData[0]);
+  for(let c=6;c<=7;c++) setColFormat(wsSt,c,numberFmt);
+  finalizeSheet(wsSt,stData);
+  XLSX.utils.book_append_sheet(wb,wsSt,'13_StockRegister');
+
+  // ──────────────────────────────────────────────────────────
+  // 14_CASHBOOK
+  // ──────────────────────────────────────────────────────────
+  const cbData=[['Date','Opening Balance ('+cur+')','Receipts ('+cur+')','Payments ('+cur+')','Closing Balance ('+cur+')','Variance ('+cur+')']];
+  let openBal=0;
+  filtCashbook.sort((a,b)=>a.date.localeCompare(b.date)).forEach((cb,idx)=>{
+    const closing=n(cb.actual)||0;
+    const variance=(n(cb.expected)||0)-closing;
+    cbData.push([cb.date,openBal,n(cb.expected)||0,0,closing,variance]);
+    openBal=closing;
+  });
+
+  const wsCS=XLSX.utils.aoa_to_sheet(cbData);
+  wsCS['!cols']=[{wch:12},{wch:16},{wch:16},{wch:16},{wch:16},{wch:14}];
+  addHeaderRow(wsCS,cbData[0]);
+  for(let c=1;c<=5;c++) setColFormat(wsCS,c,numberFmt);
+  finalizeSheet(wsCS,cbData);
+  XLSX.utils.book_append_sheet(wb,wsCS,'14_Cashbook');
+
+  // ──────────────────────────────────────────────────────────
+  // 15_STAFF REGISTER
+  // ──────────────────────────────────────────────────────────
+  const stafData=[['Staff Name','Date','Attendance','Salary ('+cur+')','Advance ('+cur+')','Net Paid ('+cur+')']];
+  const staffByName={};
+  staffEntries.filter(e=>inRange(e.date)).forEach(e=>{
+    if(!staffByName[e.staffName]) staffByName[e.staffName]=[];
+    staffByName[e.staffName].push(e);
+  });
+
+  Object.entries(staffByName).forEach(([name,entries])=>{
+    entries.sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+      let att='',sal='',adv='';
+      if(e.type==='attendance') att=e.value===1?'✓':(e.value===0.5?'½':'');
+      else if(e.type==='salary') sal=n(e.value);
+      else if(e.type==='advance') adv=n(e.value);
+      const net=(sal||0)-(adv||0);
+      stafData.push([name,e.date,att,sal,adv,net>0?net:'']);
+    });
+  });
+
+  const wsStaf=XLSX.utils.aoa_to_sheet(stafData);
+  wsStaf['!cols']=[{wch:20},{wch:12},{wch:10},{wch:14},{wch:14},{wch:14}];
+  addHeaderRow(wsStaf,stafData[0]);
+  for(let c=3;c<=5;c++) setColFormat(wsStaf,c,numberFmt);
+  finalizeSheet(wsStaf,stafData);
+  XLSX.utils.book_append_sheet(wb,wsStaf,'15_StaffRegister');
+
+  // ──────────────────────────────────────────────────────────
+  // 16_LOAN REGISTER
+  // ──────────────────────────────────────────────────────────
+  const loanData=[['Lender','Loan Amount ('+cur+')','Interest Rate','Tenure (months)','EMI ('+cur+')','Start Date','Outstanding ('+cur+')','Note']];
   loans.forEach(l=>{
-    lnRows.push([l.lender,n(l.loanAmt),l.interestRate+'%',l.tenure,n(l.emiAmt),l.startDate,loanOutstanding(l),l.note||'']);
+    loanData.push([l.lender,n(l.loanAmt),l.interestRate+'%',l.tenure,n(l.emiAmt),l.startDate,loanOutstanding(l),l.note||'']);
   });
-  lnRows.push(['','','','','','','TOTAL',loans.reduce((a,l)=>a+loanOutstanding(l),0),'']);
-  const wsLn=XLSX.utils.aoa_to_sheet(lnRows);
-  wsLn['!cols']=[{wch:20},{wch:14},{wch:14},{wch:16},{wch:14},{wch:12},{wch:14},{wch:20}];
-  XLSX.utils.book_append_sheet(wb,wsLn,'Loans');
+  const loanRow=loanData.length;
+  loanData.push(['TOTAL',{f:`SUM(B2:B${loanRow})`},'',{f:`SUM(D2:D${loanRow})`},{f:`SUM(E2:E${loanRow})`},'',{f:`SUM(G2:G${loanRow})`},'']);
 
-  // ── 11. STOCK ──
-  const stRows=[['Item Name','Size','Barcode','Qty','Buy Price','Sell Price','Margin','Total Stock Value']];
-  stock.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(i=>{
-    stRows.push([i.name,i.size||'',i.barcode||'',i.qty,n(i.buy),n(i.sell),i.sell-i.buy,i.qty*i.sell]);
+  const wsLoan=XLSX.utils.aoa_to_sheet(loanData);
+  wsLoan['!cols']=[{wch:20},{wch:16},{wch:14},{wch:14},{wch:14},{wch:12},{wch:16},{wch:24}];
+  addHeaderRow(wsLoan,loanData[0]);
+  for(let c=1;c<=1;c++) setColFormat(wsLoan,c,numberFmt);
+  for(let c=4;c<=6;c++) setColFormat(wsLoan,c,numberFmt);
+  finalizeSheet(wsLoan,loanData);
+  XLSX.utils.book_append_sheet(wb,wsLoan,'16_LoanRegister');
+
+  // ──────────────────────────────────────────────────────────
+  // 17_CUSTOMER EMI
+  // ──────────────────────────────────────────────────────────
+  const emiData=[['Customer Name','Phone','Total Amt ('+cur+')','Down Payment ('+cur+')','Installments','Frequency','Start Date','Outstanding ('+cur+')']];
+  emiPlans.forEach(p=>{
+    const remaining=Math.max(0,emiPlanRemaining(p));
+    emiData.push([p.customerName,p.phone||'',n(p.totalAmt),n(p.downPayment),p.installments,p.frequency||'Monthly',p.startDate,remaining]);
   });
-  const totStockVal=stock.reduce((a,i)=>a+i.qty*i.sell,0);
-  stRows.push(['','','','','','','TOTAL',totStockVal]);
-  const wsStock=XLSX.utils.aoa_to_sheet(stRows);
-  wsStock['!cols']=[{wch:20},{wch:10},{wch:14},{wch:8},{wch:12},{wch:12},{wch:10},{wch:16}];
-  XLSX.utils.book_append_sheet(wb,wsStock,'Stock');
+  const emiTotalRow=emiData.length;
+  emiData.push(['TOTAL OUTSTANDING','',,{f:`SUM(D2:D${emiTotalRow})`},'','','',{f:`SUM(H2:H${emiTotalRow})`}]);
 
-  // ── 12. MONTHLY P&L ──
-  const plRows=[['Month','Sales','Returns','Net Sales','Expenses','Gross Profit','COGS','Net Profit']];
-  [...new Set([...sales,...expenses].map(x=>x.date.substring(0,7)))].sort().forEach(mk2=>{
-    const ms=sales.filter(s=>s.date.substring(0,7)===mk2);
+  const wsEMI=XLSX.utils.aoa_to_sheet(emiData);
+  wsEMI['!cols']=[{wch:20},{wch:14},{wch:14},{wch:16},{wch:12},{wch:12},{wch:12},{wch:16}];
+  addHeaderRow(wsEMI,emiData[0]);
+  for(let c=2;c<=3;c++) setColFormat(wsEMI,c,numberFmt);
+  setColFormat(wsEMI,7,numberFmt);
+  finalizeSheet(wsEMI,emiData);
+  XLSX.utils.book_append_sheet(wb,wsEMI,'17_CustomerEMI');
+
+  // ──────────────────────────────────────────────────────────
+  // 18_ITEM-WISE ANALYSIS (Top SKUs + Slow-Moving)
+  // ──────────────────────────────────────────────────────────
+  const itemAnalysis=[];
+  const itemStats=stock.map(item=>{
+    const itemSales=filtSales.filter(s=>s.note&&s.note.toLowerCase().includes(item.name.toLowerCase()));
+    const unitsSold=itemSales.length;
+    const revenue=itemSales.reduce((a,s)=>a+n(s.amt),0);
+    const cost=itemSales.reduce((a,s)=>a+n(s.cost),0);
+    const profit=revenue-cost;
+    const turnover=item.buy>0?revenue/item.buy:0;
+    return {name:item.name,unitsSold,revenue,cost,profit,turnover};
+  }).sort((a,b)=>b.revenue-a.revenue);
+
+  itemAnalysis.push(['RANK','Item','Units Sold','Revenue ('+cur+')','Cost ('+cur+')','Profit ('+cur+')','Turnover']);
+  itemStats.slice(0,20).forEach((item,i)=>{
+    itemAnalysis.push([i+1,item.name,item.unitsSold,item.revenue,item.cost,item.profit,item.turnover.toFixed(2)+'x']);
+  });
+
+  const slowMoving=itemStats.filter(i=>i.turnover<1);
+  if(slowMoving.length>0){
+    itemAnalysis.push(['']);
+    itemAnalysis.push(['SLOW-MOVING ITEMS (Turnover < 1x)']);
+    itemAnalysis.push(['Item','Units Sold','Turnover']);
+    slowMoving.forEach(i=>{
+      itemAnalysis.push([i.name,i.unitsSold,i.turnover.toFixed(2)+'x']);
+    });
+  }
+
+  const wsItem=XLSX.utils.aoa_to_sheet(itemAnalysis);
+  wsItem['!cols']=[{wch:6},{wch:24},{wch:12},{wch:14},{wch:14},{wch:14},{wch:12}];
+  finalizeSheet(wsItem,itemAnalysis);
+  XLSX.utils.book_append_sheet(wb,wsItem,'18_ItemAnalysis');
+
+  // ──────────────────────────────────────────────────────────
+  // 19_MONTHLY COMPARISON
+  // ──────────────────────────────────────────────────────────
+  const months=[...new Set([...sales,...expenses].map(x=>x.date.substring(0,7)))].sort();
+  const monthlyData=[['Month','Sales ('+cur+')','Returns ('+cur+')','Net Sales ('+cur+')','Expenses ('+cur+')','Profit ('+cur+')']];
+  months.forEach(mk=>{
+    const ms=sales.filter(s=>s.date.substring(0,7)===mk);
     const mS=ms.reduce((a,s)=>a+n(s.amt),0);
-    const mR=returns.filter(r=>r.date.substring(0,7)===mk2&&r.type==='customer').reduce((a,r)=>a+n(r.amt),0);
-    const mE=expenses.filter(e=>e.date.substring(0,7)===mk2).reduce((a,e)=>a+n(e.amt),0);
-    const mC=ms.reduce((a,s)=>a+n(s.cost),0);
+    const mR=returns.filter(r=>r.date.substring(0,7)===mk&&r.type==='customer').reduce((a,r)=>a+n(r.amt),0);
+    const mE=expenses.filter(e=>e.date.substring(0,7)===mk).reduce((a,e)=>a+n(e.amt),0);
     const net=mS-mR;
-    plRows.push([fmtMonth(mk2),mS,mR,net,mE,net-mE,mC||'',mC>0?net-mE-mC:'']);
+    const profit=net-mE;
+    monthlyData.push([fmtMonth(mk),mS,mR,net,mE,profit]);
   });
-  const wsPL=XLSX.utils.aoa_to_sheet(plRows);
-  wsPL['!cols']=[{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:12},{wch:12}];
-  XLSX.utils.book_append_sheet(wb,wsPL,'Monthly P&L');
+  const monthRow=monthlyData.length;
+  monthlyData.push(['TOTAL',{f:`SUM(B2:B${monthRow})`},{f:`SUM(C2:C${monthRow})`},{f:`SUM(D2:D${monthRow})`},{f:`SUM(E2:E${monthRow})`},{f:`SUM(F2:F${monthRow})`}]);
 
-  const filename=`${(shop).replace(/\s+/g,'_')}_AuditReport_${fromStr}_to_${toStr}.xlsx`;
+  const wsMonth=XLSX.utils.aoa_to_sheet(monthlyData);
+  wsMonth['!cols']=[{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14}];
+  addHeaderRow(wsMonth,monthlyData[0]);
+  for(let c=1;c<=5;c++) setColFormat(wsMonth,c,numberFmt);
+  finalizeSheet(wsMonth,monthlyData);
+  XLSX.utils.book_append_sheet(wb,wsMonth,'19_MonthlyComparison');
+
+  // ──────────────────────────────────────────────────────────
+  // 20_HSN & GST SUMMARY (if GSTIN set)
+  // ──────────────────────────────────────────────────────────
+  if(S.gstin){
+    const gstData=[['Invoice No','Date','Buyer GSTIN','Taxable Value ('+cur+')','CGST ('+cur+')','SGST ('+cur+')','IGST ('+cur+')','Total ('+cur+')']];
+    gstBills.filter(g=>inRange(g.date)).forEach(g=>{
+      gstData.push([g.invoiceNo,g.date,g.buyerGstin||'',n(g.taxable),n(g.cgst)||0,n(g.sgst)||0,n(g.igst)||0,n(g.total)]);
+    });
+    const gstRow=gstData.length;
+    gstData.push(['TOTAL','','',,{f:`SUM(E2:E${gstRow})`},{f:`SUM(F2:F${gstRow})`},{f:`SUM(G2:G${gstRow})`},{f:`SUM(H2:H${gstRow})`}]);
+
+    const wsGST=XLSX.utils.aoa_to_sheet(gstData);
+    wsGST['!cols']=[{wch:14},{wch:12},{wch:16},{wch:16},{wch:14},{wch:14},{wch:14},{wch:14}];
+    addHeaderRow(wsGST,gstData[0]);
+    for(let c=3;c<=7;c++) setColFormat(wsGST,c,numberFmt);
+    finalizeSheet(wsGST,gstData);
+    XLSX.utils.book_append_sheet(wb,wsGST,'20_HSNGSTSummary');
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // 21_NOTES TO ACCOUNTS
+  // ──────────────────────────────────────────────────────────
+  const notesData=[
+    ['NOTES TO ACCOUNTS'],
+    [''],
+    ['1. ACCOUNTING POLICIES'],
+    [''],
+    ['a) Basis of Accounting','Cash Basis'],
+    ['b) Financial Year','01-Apr-'+fromStr.substring(0,4)+' to 31-Mar-'+(parseInt(fromStr.substring(0,4))+1)],
+    ['c) Currency','Indian Rupees / Nepalese Rupees'],
+    ['d) Valuation of Stock','At Cost Price'],
+    [''],
+    ['2. CONTINGENT LIABILITIES AND COMMITMENTS'],
+    [''],
+    ['a) Outstanding Loans',loans.reduce((a,l)=>a+loanOutstanding(l),0)],
+    ['b) Pending Customer EMI',emiPlans.reduce((a,p)=>a+Math.max(0,emiPlanRemaining(p)),0)],
+    ['c) Pending Udhaar (Customers)',custUdhaar],
+    ['d) Pending Supplier Dues',suppPayable],
+    [''],
+    ['3. IMPORTANT DISCLOSURES'],
+    [''],
+    ['a) Number of Customers',customers.length],
+    ['b) Number of Suppliers',suppliers.length],
+    ['c) Number of Staff',staffList.length],
+    ['d) Number of Loans',loans.length],
+    [''],
+    ['4. AUDIT CERTIFICATE'],
+    [''],
+    ['This Audit Report has been prepared based on the transactions recorded in'],
+    ['Pasal Manager and is presented on Cash Basis of Accounting.'],
+    [''],
+    ['For '+shop],
+    [''],
+    ['Certified By: ____________  Date: '+reportDate],
+    [''],
+    ['Signature: ____________________  Stamp/Seal'],
+  ];
+
+  const wsNotes=XLSX.utils.aoa_to_sheet(notesData);
+  wsNotes['!cols']=[{wch:40},{wch:20}];
+  finalizeSheet(wsNotes,notesData,{frozen:false});
+  XLSX.utils.book_append_sheet(wb,wsNotes,'21_NotesToAccounts');
+
+  // ──────────────────────────────────────────────────────────
+  // WRITE FILE
+  // ──────────────────────────────────────────────────────────
+  const filename=`${shop.replace(/\s+/g,'_')}_AuditReport_${fromStr}_to_${toStr}.xlsx`;
   XLSX.writeFile(wb,filename);
 }
 
