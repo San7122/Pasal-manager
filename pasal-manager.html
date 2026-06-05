@@ -5928,12 +5928,19 @@ function renderMore(){
   (pages[moreSubPage]||renderMoreMenu)(el);
   _renderIcons();
 }
-function goMore(page){if(moreSubPage==='dashboard') destroyCharts();if(moreSubPage==='admin') _adminDestroyCharts();if(page==='cashbook'&&moreSubPage!=='cashbook') cashbookViewDate=new Date();if(page==='customers'){custSearch='';custTab='all';}if(page==='staffBook'&&moreSubPage!=='staffBook'&&moreSubPage!=='staffDetail') staffViewDate=new Date();if(page==='menu'){currentEmiPlanId='';currentLoanId='';_scoreCache=null;}moreSubPage=page;document.getElementById('scroll-area').scrollTop=0;renderMore();}
+function goMore(page){if(moreSubPage==='dashboard') destroyCharts();if(moreSubPage==='admin') _adminDestroyCharts();if(moreSubPage==='pl') _destroyPLCharts();if(page==='cashbook'&&moreSubPage!=='cashbook') cashbookViewDate=new Date();if(page==='customers'){custSearch='';custTab='all';}if(page==='staffBook'&&moreSubPage!=='staffBook'&&moreSubPage!=='staffDetail') staffViewDate=new Date();if(page==='menu'){currentEmiPlanId='';currentLoanId='';_scoreCache=null;}if(page==='pl'&&moreSubPage!=='pl'){_plExpandedMonth=null;}moreSubPage=page;document.getElementById('scroll-area').scrollTop=0;renderMore();}
 function backBtn(){return `<button class="back-btn" onclick="goMore('menu')">${licon('chevron-left',16)} ${t('back')}</button>`;}
 
 // =============== DASHBOARD ===============
 let _charts=[];
 function destroyCharts(){_charts.forEach(c=>{try{c.destroy();}catch(e){}});_charts=[];}
+
+// P&L page state
+let _plCharts=[];
+let _plPeriod=6;
+let _plExpandedMonth=null;
+function _destroyPLCharts(){_plCharts.forEach(c=>{try{c.destroy();}catch(e){}});_plCharts=[];}
+
 function renderDashboard(el){
   destroyCharts();
   const now=new Date();
@@ -8070,29 +8077,248 @@ function shareGSTWA(invNo){
 }
 
 // =============== P&L REPORT ===============
-function renderPL(el){
+function _plBuildMonths(period){
   const now=new Date();
+  let monthsCount,startD;
+  if(period==='fy'){
+    const fyStartYr = now.getMonth()>=3 ? now.getFullYear() : now.getFullYear()-1;
+    startD = new Date(fyStartYr,3,1);
+    monthsCount = (now.getFullYear()-fyStartYr)*12 + (now.getMonth()-3) + 1;
+  } else {
+    monthsCount = period;
+    startD = new Date(now.getFullYear(),now.getMonth()-monthsCount+1,1);
+  }
   const months=[];
-  for(let i=5;i>=0;i--){
-    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+  for(let i=0;i<monthsCount;i++){
+    const d=new Date(startD.getFullYear(),startD.getMonth()+i,1);
     const mk=monthKey(d);
     const s=sales.filter(s=>s.date.substring(0,7)===mk).reduce((a,s)=>a+s.amt,0);
-    const ret=returns.filter(r=>r.date.substring(0,7)===mk).reduce((a,r)=>a+r.amt,0);
+    const ret=returns.filter(r=>r.date.substring(0,7)===mk&&r.type==='customer').reduce((a,r)=>a+r.amt,0);
     const e=expenses.filter(e=>e.date.substring(0,7)===mk).reduce((a,e)=>a+e.amt,0);
     const netS=s-ret;
-    months.push({label:fmtMonth(mk),sales:netS,grossSales:s,returns:ret,expenses:e,profit:netS-e});
+    months.push({mk,label:fmtMonth(mk),sales:netS,grossSales:s,returns:ret,expenses:e,profit:netS-e});
   }
+  return months;
+}
+function _plPeriodLabel(period){
+  if(period==='fy'){
+    const now=new Date();
+    const fyStartYr = now.getMonth()>=3 ? now.getFullYear() : now.getFullYear()-1;
+    return `FY ${fyStartYr}-${String(fyStartYr+1).slice(2)}`;
+  }
+  return `Last ${period} Months`;
+}
+function setPLPeriod(p){ _plPeriod = p==='fy' ? 'fy' : Number(p); _plExpandedMonth=null; _destroyPLCharts(); renderMore(); }
+function togglePLMonth(mk){ _plExpandedMonth = (_plExpandedMonth===mk ? null : mk); renderMore(); }
+
+function renderPL(el){
+  _destroyPLCharts();
+  const period=_plPeriod;
+  const months=_plBuildMonths(period);
   const totalS=months.reduce((a,m)=>a+m.sales,0);
   const totalE=months.reduce((a,m)=>a+m.expenses,0);
   const totalP=totalS-totalE;
+  const margin=totalS>0 ? (totalP/totalS*100) : 0;
+  const active=months.filter(m=>m.sales>0||m.expenses>0);
+  const best=active.length ? active.reduce((a,m)=>m.profit>a.profit?m:a, active[0]) : null;
+  const worst=active.length ? active.reduce((a,m)=>m.profit<a.profit?m:a, active[0]) : null;
+
+  const prevMonths=(()=>{
+    if(period==='fy') return null;
+    const now=new Date();
+    const out=[];
+    for(let i=0;i<period;i++){
+      const d=new Date(now.getFullYear(),now.getMonth()-period*2+i+1,1);
+      const mk=monthKey(d);
+      const s=sales.filter(s=>s.date.substring(0,7)===mk).reduce((a,s)=>a+s.amt,0);
+      const ret=returns.filter(r=>r.date.substring(0,7)===mk&&r.type==='customer').reduce((a,r)=>a+r.amt,0);
+      const e=expenses.filter(e=>e.date.substring(0,7)===mk).reduce((a,e)=>a+e.amt,0);
+      out.push({profit:s-ret-e});
+    }
+    return out;
+  })();
+  const prevP=prevMonths ? prevMonths.reduce((a,m)=>a+m.profit,0) : null;
+  const trendPct=(prevP!==null && Math.abs(prevP)>0) ? ((totalP-prevP)/Math.abs(prevP)*100) : null;
+  const trendArrow=trendPct===null?'':(trendPct>=0?'↑':'↓');
+  const trendColor=trendPct===null?'':(trendPct>=0?'var(--color-success)':'var(--color-danger)');
+
+  const firstActiveIdx = months.findIndex(m=>m.sales>0||m.expenses>0);
+  const hiddenCount = firstActiveIdx>0 ? firstActiveIdx : 0;
+  const visibleMonths = hiddenCount>0 ? months.slice(firstActiveIdx) : months;
+
   el.innerHTML=backBtn()+`
-    <div class="big-total-box" style="background:${totalP>=0?'var(--color-success-light)':'var(--color-danger-light)'}">
-      <div class="big-total-label">${t('net')} (6 ${t('monthly')})</div>
-      <div class="big-total-amt" style="color:${totalP>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(totalP)}</div>
-    </div>
-    <div class="pl-row header"><span>Month</span><span>${t('salesL')}</span><span>${t('expensesL')}</span><span>${t('profit')}</span></div>
-    ${months.map(m=>`<div class="pl-row"><span>${m.label}</span><span style="color:var(--color-success)">${fmt(m.sales)}</span><span style="color:var(--color-danger)">${fmt(m.expenses)}</span><span style="color:${m.profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(m.profit)}</span></div>`).join('')}
-    <div class="pl-row total"><span>${t('total')}</span><span style="color:var(--color-success)">${fmt(totalS)}</span><span style="color:var(--color-danger)">${fmt(totalE)}</span><span style="color:${totalP>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(totalP)}</span></div>`;
+    <div style="padding:14px 14px 80px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        ${[3,6,12,'fy'].map(p=>{
+          const label = p==='fy' ? 'FY' : `${p}M`;
+          const isActive = (p===_plPeriod || (p==='fy'&&_plPeriod==='fy'));
+          return `<button onclick="setPLPeriod('${p}')" style="padding:6px 14px;border-radius:20px;border:1.5px solid ${isActive?'var(--pm-purple)':'var(--color-border-tertiary)'};background:${isActive?'var(--pm-purple)':'transparent'};color:${isActive?'#fff':'var(--color-text-secondary)'};font-size:12px;font-weight:700;cursor:pointer">${label}</button>`;
+        }).join('')}
+        <span style="margin-left:auto;font-size:11px;color:var(--color-text-secondary);font-weight:600">${_plPeriodLabel(period)}</span>
+      </div>
+      <div style="background:${totalP>=0?'linear-gradient(135deg,#ecfdf5,#d1fae5)':'linear-gradient(135deg,#fef2f2,#fee2e2)'};border-radius:16px;padding:18px;border:1px solid ${totalP>=0?'#a7f3d0':'#fecaca'}">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--color-text-secondary);text-transform:uppercase;margin-bottom:4px">${_plPeriodLabel(period)} · Net Profit</div>
+        <div style="font-size:32px;font-weight:900;letter-spacing:-0.8px;color:${totalP>=0?'var(--color-success)':'var(--color-danger)'};line-height:1.1">${fmt(totalP)}</div>
+        <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;align-items:center">
+          <div style="background:rgba(255,255,255,0.7);padding:5px 11px;border-radius:14px;font-size:12px;font-weight:700;color:var(--color-text-primary)">${margin.toFixed(1)}% margin</div>
+          ${trendPct!==null?`<div style="font-size:12px;font-weight:700;color:${trendColor}">${trendArrow} ${Math.abs(trendPct).toFixed(0)}% vs prev ${period}M</div>`:''}
+        </div>
+      </div>
+      ${active.length>=2?`<div style="background:#fff;border:1px solid var(--color-border-tertiary);border-radius:14px;padding:14px 10px 10px">
+        <div style="font-size:12px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;padding:0 6px 8px">Monthly Trend</div>
+        <div style="height:200px;position:relative"><canvas id="pl-chart"></canvas></div>
+      </div>`:''}
+      ${(best&&worst&&active.length>=2&&best!==worst)?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:12px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">${licon('trophy',14,'color:var(--color-success)')}<span style="font-size:10px;font-weight:800;color:var(--color-success);letter-spacing:0.5px;text-transform:uppercase">Best Month</span></div>
+          <div style="font-size:13px;font-weight:700;color:var(--color-text-primary);margin-bottom:2px">${best.label}</div>
+          <div style="font-size:16px;font-weight:900;color:var(--color-success);line-height:1.1">${fmt(best.profit)}</div>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px">profit</div>
+        </div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">${licon('alert-triangle',14,'color:var(--color-danger)')}<span style="font-size:10px;font-weight:800;color:var(--color-danger);letter-spacing:0.5px;text-transform:uppercase">Worst Month</span></div>
+          <div style="font-size:13px;font-weight:700;color:var(--color-text-primary);margin-bottom:2px">${worst.label}</div>
+          <div style="font-size:16px;font-weight:900;color:${worst.profit>=0?'var(--color-success)':'var(--color-danger)'};line-height:1.1">${fmt(worst.profit)}</div>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px">${worst.profit<0?'loss':'lowest profit'}</div>
+        </div>
+      </div>`:''}
+      <div style="background:#fff;border:1px solid var(--color-border-tertiary);border-radius:14px;overflow:hidden">
+        <div class="pl-row header" style="background:#f8fafc;border-bottom:1px solid var(--color-border-tertiary)"><span>Month</span><span>${t('salesL')}</span><span>${t('expensesL')}</span><span>${t('profit')}</span></div>
+        ${hiddenCount>0?`<div onclick="this.style.display='none';this.nextElementSibling.style.display='block'" style="padding:8px 14px;font-size:11px;color:var(--color-text-secondary);background:#f8fafc;border-bottom:1px solid var(--color-border-tertiary);cursor:pointer">▼ ${hiddenCount} earlier month${hiddenCount>1?'s':''} (no activity) — tap to show</div><div style="display:none">${months.slice(0,firstActiveIdx).map(m=>`<div class="pl-row" style="opacity:0.5"><span>${m.label}</span><span>—</span><span>—</span><span>—</span></div>`).join('')}</div>`:''}
+        ${visibleMonths.map(m=>{
+          const isExp = _plExpandedMonth===m.mk;
+          const monthSales = sales.filter(s=>s.date.substring(0,7)===m.mk);
+          const monthExps = expenses.filter(e=>e.date.substring(0,7)===m.mk);
+          const expByCat = {};
+          monthExps.forEach(e=>{ const c=e.category||'Other'; expByCat[c]=(expByCat[c]||0)+(Number(e.amt)||0); });
+          const topCats = Object.entries(expByCat).sort((a,b)=>b[1]-a[1]).slice(0,3);
+          return `<div onclick="togglePLMonth('${m.mk}')" class="pl-row" style="cursor:pointer;${isExp?'background:#f5f3ff;':''}">
+            <span>${m.label} ${isExp?'▲':'▼'}</span>
+            <span style="color:var(--color-success)">${fmt(m.sales)}</span>
+            <span style="color:var(--color-danger)">${fmt(m.expenses)}</span>
+            <span style="color:${m.profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(m.profit)}</span>
+          </div>
+          ${isExp?`<div style="padding:12px 16px;background:#fafaff;border-bottom:1px solid var(--color-border-tertiary);font-size:12px;color:var(--color-text-secondary)">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px">
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Transactions</div><div style="font-size:13px;font-weight:700;color:var(--color-text-primary)">${monthSales.length} sales</div></div>
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Avg Sale</div><div style="font-size:13px;font-weight:700;color:var(--color-text-primary)">${fmt(monthSales.length?m.sales/monthSales.length:0)}</div></div>
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Margin</div><div style="font-size:13px;font-weight:700;color:${m.sales>0&&(m.profit/m.sales*100)>=0?'var(--color-success)':'var(--color-danger)'}">${m.sales>0?((m.profit/m.sales*100).toFixed(1)+'%'):'—'}</div></div>
+            </div>
+            ${topCats.length?`<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Top Expense Categories</div>${topCats.map(([c,v])=>`<div style="display:flex;justify-content:space-between;padding:3px 0"><span>${esc(c)}</span><span style="color:var(--color-danger);font-weight:600">${fmt(v)}</span></div>`).join('')}`:'<div style="font-size:11px;font-style:italic;opacity:0.7">No expenses recorded</div>'}
+          </div>`:''}`;
+        }).join('')}
+        <div class="pl-row total" style="background:#f1f5f9;border-top:2px solid var(--pm-purple)"><span>${t('total')}</span><span style="color:var(--color-success)">${fmt(totalS)}</span><span style="color:var(--color-danger)">${fmt(totalE)}</span><span style="color:${totalP>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(totalP)}</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button onclick="sharePLWhatsApp()" style="padding:13px;background:#25D366;color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">${licon('message-circle',16,'color:#fff')} WhatsApp</button>
+        <button onclick="downloadPLPdf()" style="padding:13px;background:var(--pm-purple);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">${licon('file-down',16,'color:#fff')} PDF</button>
+      </div>
+    </div>`;
+
+  if(active.length>=2){
+    setTimeout(()=>{
+      const cvs=document.getElementById('pl-chart');
+      if(!cvs||!window.Chart) return;
+      const ctx=cvs.getContext('2d');
+      _plCharts.push(new Chart(ctx,{
+        type:'bar',
+        data:{labels:months.map(m=>m.label.substring(0,3)+' '+m.label.slice(-2)),datasets:[
+          {label:'Sales',data:months.map(m=>m.sales),backgroundColor:'#10b981',borderRadius:4,barPercentage:0.7,categoryPercentage:0.8},
+          {label:'Expenses',data:months.map(m=>m.expenses),backgroundColor:'#ef4444',borderRadius:4,barPercentage:0.7,categoryPercentage:0.8},
+          {label:'Profit',data:months.map(m=>m.profit),backgroundColor:months.map(m=>m.profit>=0?'#7c3aed':'#fb923c'),borderRadius:4,barPercentage:0.7,categoryPercentage:0.8},
+        ]},
+        options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8,boxWidth:10}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.parsed.y)}}},scales:{y:{beginAtZero:true,ticks:{font:{size:10},callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'K':v}},x:{ticks:{font:{size:10}}}}}
+      }));
+    },50);
+  }
+}
+
+function sharePLWhatsApp(){
+  const period=_plPeriod;
+  const months=_plBuildMonths(period);
+  const totalS=months.reduce((a,m)=>a+m.sales,0);
+  const totalE=months.reduce((a,m)=>a+m.expenses,0);
+  const totalP=totalS-totalE;
+  const margin=totalS>0?(totalP/totalS*100).toFixed(1):'0.0';
+  const shop=S.shopName||'My Shop';
+  const cur=S.country==='NP'?'रू':'₹';
+  const active=months.filter(m=>m.sales>0||m.expenses>0);
+  const best=active.length?active.reduce((a,m)=>m.profit>a.profit?m:a,active[0]):null;
+  const lines=[
+    `📊 *${shop} — P&L Summary*`,
+    `_${_plPeriodLabel(period)}_`,
+    '',
+    `💰 Sales: ${cur}${fmt(totalS)}`,
+    `💸 Expenses: ${cur}${fmt(totalE)}`,
+    `${totalP>=0?'✅':'⚠️'} Net Profit: ${cur}${fmt(totalP)} (${margin}% margin)`,
+    '',
+    '*Monthly breakdown:*',
+    ...active.map(m=>`• ${m.label}: ${cur}${fmt(m.profit)} ${m.profit>=0?'✓':'✗'}`),
+  ];
+  if(best && active.length>=2) lines.push('',`🏆 Best month: ${best.label} (${cur}${fmt(best.profit)})`);
+  lines.push('','_Generated by Pasal Manager_');
+  window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`,'_blank');
+}
+
+async function downloadPLPdf(){
+  if(!window.jspdf||!window.jspdf.jsPDF){alert('PDF library still loading. Try again in a moment.');return;}
+  const {jsPDF}=window.jspdf;
+  const period=_plPeriod;
+  const months=_plBuildMonths(period);
+  const totalS=months.reduce((a,m)=>a+m.sales,0);
+  const totalE=months.reduce((a,m)=>a+m.expenses,0);
+  const totalP=totalS-totalE;
+  const margin=totalS>0?(totalP/totalS*100).toFixed(1):'0.0';
+  const shop=S.shopName||'My Shop';
+  const cur=S.country==='NP'?'NPR ':'INR ';
+  const doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+  let y=18;
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(31,78,120);
+  doc.text(shop,15,y);y+=7;
+  doc.setFontSize(13);doc.setTextColor(60,60,60);
+  doc.text('Profit & Loss Statement',15,y);y+=5;
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(110,110,110);
+  doc.text(_plPeriodLabel(period),15,y);y+=2;
+  doc.setLineWidth(0.3);doc.setDrawColor(180,180,180);doc.line(15,y+1,195,y+1);y+=8;
+  doc.setFillColor(totalP>=0?236:254, totalP>=0?253:242, totalP>=0?245:242);
+  doc.roundedRect(15,y,180,22,3,3,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(80,80,80);
+  doc.text('NET PROFIT',20,y+7);
+  doc.setFontSize(20);doc.setTextColor(totalP>=0?16:220, totalP>=0?160:38, totalP>=0?78:38);
+  doc.text(cur+fmt(totalP),20,y+17);
+  doc.setFontSize(9);doc.setTextColor(80,80,80);
+  doc.text(margin+'% margin',135,y+10);
+  doc.text(`Sales: ${cur}${fmt(totalS)}`,135,y+15);
+  doc.text(`Expenses: ${cur}${fmt(totalE)}`,135,y+19);
+  y+=30;
+  doc.setFillColor(232,232,232);doc.rect(15,y-5,180,8,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(31,41,55);
+  doc.text('Month',18,y);doc.text('Sales',75,y,{align:'right'});doc.text('Expenses',115,y,{align:'right'});doc.text('Profit',160,y,{align:'right'});
+  y+=4;doc.setDrawColor(220,220,220);doc.line(15,y,195,y);y+=5;
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(40,40,40);
+  const visibleMonths=months.filter(m=>m.sales>0||m.expenses>0);
+  visibleMonths.forEach(m=>{
+    doc.text(m.label,18,y);
+    doc.setTextColor(16,160,78);doc.text(cur+fmt(m.sales),75,y,{align:'right'});
+    doc.setTextColor(220,38,38);doc.text(cur+fmt(m.expenses),115,y,{align:'right'});
+    doc.setTextColor(m.profit>=0?16:220, m.profit>=0?160:38, m.profit>=0?78:38);
+    doc.text(cur+fmt(m.profit),160,y,{align:'right'});
+    doc.setTextColor(40,40,40);
+    y+=6;
+    if(y>270){doc.addPage();y=20;}
+  });
+  y+=2;doc.setFillColor(241,245,249);doc.rect(15,y-4,180,8,'F');
+  doc.setFont('helvetica','bold');doc.setTextColor(31,41,55);
+  doc.text('TOTAL',18,y);
+  doc.setTextColor(16,160,78);doc.text(cur+fmt(totalS),75,y,{align:'right'});
+  doc.setTextColor(220,38,38);doc.text(cur+fmt(totalE),115,y,{align:'right'});
+  doc.setTextColor(totalP>=0?16:220, totalP>=0?160:38, totalP>=0?78:38);
+  doc.text(cur+fmt(totalP),160,y,{align:'right'});
+  y+=12;
+  doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(140,140,140);
+  doc.text(`Generated on ${todayStr()} by Pasal Manager`,15,287);
+  const filename=`${shop.replace(/\s+/g,'_')}_P&L_${_plPeriodLabel(period).replace(/\s+/g,'_')}.pdf`;
+  doc.save(filename);
 }
 
 // =============== EXPORT ===============
