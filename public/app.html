@@ -8307,7 +8307,7 @@ async function downloadAuditReport(){
       if(!row) return;
       row.forEach((c,col)=>{
         if(c && typeof c==='object' && c.f){
-          ws[XLSX.utils.encode_cell({r,c:col})]={t:'n',f:c.f};
+          ws[XLSX.utils.encode_cell({r,c:col})]={t:'n',f:c.f,v:0};
         }
       });
     });
