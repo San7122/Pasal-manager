@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /node_modules/
 
-Sitemap: https://pasal-manager.vercel.app/sitemap.xml
+Sitemap: https://pasalmanagers.com/sitemap.xml
