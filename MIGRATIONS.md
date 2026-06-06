@@ -185,3 +185,56 @@ After running, the History (📋) button next to each stock item will show
 every adjustment with reason, note, qty change, and the running balance.
 
 
+
+---
+
+## Payment Subscription System (pm_payment_requests)
+
+Tracks subscription payment submissions from users so the owner can approve
+them from the Admin Dashboard. Without this table, payments still work
+(WhatsApp fallback) but the owner won't see them in the in-app admin view.
+
+```sql
+CREATE TABLE IF NOT EXISTS pm_payment_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id),
+  email text,
+  shop_name text,
+  country text DEFAULT 'IN',
+  amount numeric NOT NULL,
+  currency text NOT NULL,            -- 'INR' or 'NPR'
+  method text,                        -- 'UPI' or 'eSewa/Khalti'
+  txn_id text NOT NULL,
+  note text DEFAULT '',
+  status text DEFAULT 'pending',     -- 'pending' / 'approved' / 'rejected'
+  approved_at timestamptz,
+  approved_until timestamptz,        -- when subscription expires
+  approved_by text,                   -- email of owner who approved
+  rejection_reason text,
+  submitted_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pm_pay_user   ON pm_payment_requests(user_id, submitted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pm_pay_status ON pm_payment_requests(status, submitted_at DESC);
+
+ALTER TABLE pm_payment_requests ENABLE ROW LEVEL SECURITY;
+
+-- Users can INSERT their own payment requests + SELECT to see status
+DROP POLICY IF EXISTS "pm_pay_user_insert" ON pm_payment_requests;
+CREATE POLICY "pm_pay_user_insert" ON pm_payment_requests FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "pm_pay_user_select" ON pm_payment_requests;
+CREATE POLICY "pm_pay_user_select" ON pm_payment_requests FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Owner (sanjanathakur302@gmail.com) can do everything
+DROP POLICY IF EXISTS "pm_pay_owner_all" ON pm_payment_requests;
+CREATE POLICY "pm_pay_owner_all" ON pm_payment_requests FOR ALL
+  USING ((auth.jwt() ->> 'email') = 'sanjanathakur302@gmail.com')
+  WITH CHECK ((auth.jwt() ->> 'email') = 'sanjanathakur302@gmail.com');
+```
+
+After running, the Admin Dashboard will show a "Payment Requests" card with
+pending submissions and Approve/Reject buttons. Approving sets
+`subscription_expiry = now() + 30 days` for that user.

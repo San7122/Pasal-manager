@@ -2207,7 +2207,70 @@ async function _syncAnalyticsUser(){
 const UNLOCK_CODE = 'PASAL2025';
 
 // ===== STATE =====
-let S = { country:'IN', language:'en', shopName:'', ownPhone:'', reminderTime:'21:00', gstin:'', bizAddress:'', bizState:'', upiId:'' };
+let S = { country:'IN', language:'en', shopName:'', ownName:'', ownPhone:'', reminderTime:'21:00', gstin:'', bizAddress:'', bizState:'', upiId:'', openingCash:0, openingCapital:0, openingStock:0, trialStartDate:0, subscriptionStatus:null, subscriptionExpiry:0, pendingPaymentTxnId:'' };
+
+// ───── SUBSCRIPTION CONSTANTS ─────
+const SUB_GRANDFATHER_CUTOFF_MS = new Date('2026-06-06T00:00:00').getTime(); // Users created before this date = free forever
+const SUB_TRIAL_DAYS = 30;
+const SUB_PRICE_NP = 499;  // रू per month
+const SUB_PRICE_IN = 299;  // ₹ per month
+const SUB_OWNER_WHATSAPP = '919928095269'; // your number for payment notifications (Sanjana — update if wrong)
+
+// Computes subscription state (no side effects). Returns one of:
+//  { status:'grandfathered', daysLeft:Infinity }
+//  { status:'paid', daysLeft:<int> }
+//  { status:'trial', daysLeft:<int> }
+//  { status:'expired', daysLeft:0 }
+function getSubscriptionState(){
+  const now=Date.now();
+  // 1. Explicit "paid" status with valid expiry
+  if(S.subscriptionStatus==='paid' && S.subscriptionExpiry > now){
+    return { status:'paid', daysLeft: Math.ceil((S.subscriptionExpiry - now) / 86400000) };
+  }
+  // 2. Compute trial start date (sticky once set)
+  let trialStart = S.trialStartDate;
+  if(!trialStart){
+    // Fall back to guest_start or assume now (brand new user)
+    trialStart = parseInt(localStorage.getItem(GUEST_DATE_KEY) || '0', 10) || now;
+  }
+  // 3. Grandfather check: anyone whose trial started BEFORE cutoff = free forever
+  if(trialStart < SUB_GRANDFATHER_CUTOFF_MS){
+    return { status:'grandfathered', daysLeft: Infinity };
+  }
+  // 4. Trial period check
+  const trialEnd = trialStart + SUB_TRIAL_DAYS * 86400000;
+  if(now < trialEnd){
+    return { status:'trial', daysLeft: Math.ceil((trialEnd - now) / 86400000), trialStart };
+  }
+  return { status:'expired', daysLeft:0, trialStart };
+}
+
+// One-time initialization: stamp trialStartDate using best available source.
+// Called from afterLogin AFTER currentUser is set so Supabase fallback works.
+async function _initSubscription(){
+  if(S.trialStartDate > 0) return; // sticky once set
+  // 1. localStorage guest_start (most accurate for guests)
+  const guestStart = parseInt(localStorage.getItem(GUEST_DATE_KEY) || '0', 10);
+  if(guestStart > 0){
+    S.trialStartDate = guestStart;
+    cacheWrite();
+    return;
+  }
+  // 2. Supabase analytics_users.signed_up_at (for email users)
+  if(currentUser){
+    try {
+      const { data } = await sb.from('analytics_users').select('signed_up_at').eq('user_id', currentUser.id).single();
+      if(data?.signed_up_at){
+        S.trialStartDate = new Date(data.signed_up_at).getTime();
+        cacheWrite();
+        return;
+      }
+    } catch(e){ /* offline / row missing → fall through */ }
+  }
+  // 3. Brand new user — start trial NOW
+  S.trialStartDate = Date.now();
+  cacheWrite();
+}
 let sales=[], expenses=[], udhaars=[], stock=[], suppliers=[];
 let currentTab='today', moreSubPage='menu';
 let kathaMode='daily', kathaDate=new Date();
@@ -3341,6 +3404,7 @@ async function loadAll(){
             country:    d.country||_localCountry||'IN',
             language:   d.language||'en',
             shopName:   d.shop_name||'',
+            ownName:    d.own_name||'',
             ownPhone:   d.own_phone||'',
             reminderTime:d.reminder_time||'21:00',
             gstin:      d.gstin||'',
@@ -3350,6 +3414,13 @@ async function loadAll(){
             npPaymentId:d.np_payment_id||_localOnly.npPaymentId,
             esewaId:    d.esewa_id||_localOnly.esewaId,
             khaltiId:   d.khalti_id||_localOnly.khaltiId,
+            openingCash:d.opening_cash||0,
+            openingCapital:d.opening_capital||0,
+            openingStock:d.opening_stock||0,
+            trialStartDate:d.trial_start_date||S.trialStartDate||0,
+            subscriptionStatus:d.subscription_status||S.subscriptionStatus||null,
+            subscriptionExpiry:d.subscription_expiry||S.subscriptionExpiry||0,
+            pendingPaymentTxnId:S.pendingPaymentTxnId||'',
           };
           udhaarUnlocked=true;billUnlocked=true;exportUnlocked=true;
         }
@@ -3359,6 +3430,7 @@ async function loadAll(){
           country:    d.country||_localCountry||'IN',
           language:   d.language||'en',
           shopName:   d.shop_name||'',
+          ownName:    d.own_name||'',
           ownPhone:   d.own_phone||'',
           reminderTime:d.reminder_time||'21:00',
           gstin:      d.gstin||'',
@@ -3368,6 +3440,13 @@ async function loadAll(){
           npPaymentId:d.np_payment_id||_localOnly.npPaymentId,
           esewaId:    d.esewa_id||_localOnly.esewaId,
           khaltiId:   d.khalti_id||_localOnly.khaltiId,
+          openingCash:d.opening_cash||0,
+          openingCapital:d.opening_capital||0,
+          openingStock:d.opening_stock||0,
+          trialStartDate:d.trial_start_date||S.trialStartDate||0,
+          subscriptionStatus:d.subscription_status||S.subscriptionStatus||null,
+          subscriptionExpiry:d.subscription_expiry||S.subscriptionExpiry||0,
+          pendingPaymentTxnId:S.pendingPaymentTxnId||'',
         };
         udhaarUnlocked=true;billUnlocked=true;exportUnlocked=true;
       }
@@ -3412,6 +3491,7 @@ async function saveSettings(){
     country:S.country,
     language:S.language,
     shop_name:S.shopName,
+    own_name:S.ownName||'',
     own_phone:S.ownPhone,
     reminder_time:S.reminderTime,
     gstin:S.gstin,
@@ -3421,6 +3501,12 @@ async function saveSettings(){
     np_payment_id:S.npPaymentId||'',
     esewa_id:S.esewaId||'',
     khalti_id:S.khaltiId||'',
+    opening_cash:S.openingCash||0,
+    opening_capital:S.openingCapital||0,
+    opening_stock:S.openingStock||0,
+    trial_start_date:S.trialStartDate||0,
+    subscription_status:S.subscriptionStatus||null,
+    subscription_expiry:S.subscriptionExpiry||0,
     udhaar_unlocked:udhaarUnlocked,
     bill_unlocked:billUnlocked,
     export_unlocked:exportUnlocked,
@@ -3636,6 +3722,9 @@ function showAuthErr(msg){
 }
 
 async function afterLogin(){
+  // Stamp trial start date on first run (sticky). Must run before any
+  // subscription check so we know whether to grandfather this user.
+  await _initSubscription();
   // Cache email so we can pre-fill it if session ever expires (better UX)
   if(currentUser && currentUser.email){
     try { localStorage.setItem('pm_last_login_email', currentUser.email); } catch(e) {}
@@ -3729,6 +3818,13 @@ async function afterLogin(){
     _renderGuestBanner();
     setTimeout(_checkGuestNudge, 5000); // Show nudge after 5s if eligible
   }
+
+  // Subscription: check if a pending payment was approved (silently, best-effort)
+  if(S.pendingPaymentTxnId) _checkSubscriptionApproval();
+  // Subscription: show trial countdown banner if ≤7 days left
+  _renderTrialBanner();
+  // Subscription: enforce paywall if expired
+  _enforcePaywall();
 
   setTimeout(checkOverdueNotification,1500);
   setTimeout(initReminderCheck,2000);
@@ -3881,6 +3977,79 @@ async function confirmGuest(){
     if(btn){btn.innerHTML=t('guestStartBtn');btn.disabled=false;}
     alert('Something went wrong: '+e.message);
   }
+}
+
+// Trial countdown banner — shows when trial has ≤7 days left.
+// Inserted right under the topbar, NOT shown for grandfathered/paid users.
+function _renderTrialBanner(){
+  const existing=document.getElementById('trial-banner-el');
+  if(existing) existing.remove();
+  const state=getSubscriptionState();
+  // Only show when trial active AND ≤7 days remaining
+  if(state.status!=='trial' || state.daysLeft>7) return;
+  const app=document.getElementById('app');
+  if(!app) return;
+  const topbar=app.querySelector('.topbar');
+  if(!topbar) return;
+  const banner=document.createElement('div');
+  banner.id='trial-banner-el';
+  const urgent=state.daysLeft<=3;
+  banner.style.cssText=`background:${urgent?'linear-gradient(90deg,#dc2626,#b91c1c)':'linear-gradient(90deg,#f59e0b,#d97706)'};color:#fff;padding:10px 14px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer`;
+  banner.onclick=()=>{ if(typeof switchTab==='function'){ switchTab('more'); goMore('payment'); } };
+  const dayWord=state.daysLeft===1?'day':'days';
+  banner.innerHTML=`
+    <span>⏳ Free trial ends in <strong>${state.daysLeft} ${dayWord}</strong> — tap to upgrade</span>
+    <span style="background:rgba(255,255,255,0.25);padding:4px 10px;border-radius:12px;font-weight:700;font-size:12px">Pay Now →</span>
+  `;
+  topbar.after(banner);
+}
+
+// Paywall: full-screen overlay when subscription is expired. Blocks all interaction.
+function _enforcePaywall(){
+  const state=getSubscriptionState();
+  const existing=document.getElementById('paywall-overlay');
+  if(state.status!=='expired'){
+    if(existing) existing.remove();
+    return;
+  }
+  if(existing) return; // already showing
+  const cur=S.country==='NP'?'रू':'₹';
+  const price=S.country==='NP'?SUB_PRICE_NP:SUB_PRICE_IN;
+  const code=S.country==='NP'?'NPR':'INR';
+  const overlay=document.createElement('div');
+  overlay.id='paywall-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,0.96);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+  overlay.innerHTML=`
+    <div style="background:#fff;border-radius:20px;padding:28px 22px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.4)">
+      <div style="font-size:56px;margin-bottom:8px">🔒</div>
+      <div style="font-size:22px;font-weight:900;color:#1f2937;letter-spacing:-0.3px;margin-bottom:6px">Free trial finished</div>
+      <div style="font-size:14px;color:#6b7280;margin-bottom:22px;line-height:1.5">Thank you for trying Pasal Manager! Continue using it for just <strong style="color:#7c3aed">${cur}${price}/month</strong>.</div>
+      <div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1.5px solid #c4b5fd;border-radius:14px;padding:16px;margin-bottom:18px;text-align:left">
+        <div style="font-size:11px;font-weight:700;color:#6d28d9;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">What you get</div>
+        <div style="font-size:13px;color:#1f2937;line-height:1.7">
+          ✓ Unlimited sales, udhaar, stock<br>
+          ✓ All your data stays safe<br>
+          ✓ Excel + PDF reports<br>
+          ✓ WhatsApp bill sharing<br>
+          ✓ Multi-device sync
+        </div>
+      </div>
+      <button onclick="_openPaymentFlow()" style="width:100%;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:8px;box-shadow:0 4px 12px rgba(124,58,237,0.4)">Pay ${cur}${price} & Unlock →</button>
+      <button onclick="_paywallLogout()" style="width:100%;padding:10px;background:transparent;color:#6b7280;border:none;font-size:13px;cursor:pointer;text-decoration:underline">Log out</button>
+      <div style="font-size:11px;color:#9ca3af;margin-top:14px;line-height:1.5">Your data is safe and will be restored as soon as payment is approved.</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function _paywallLogout(){
+  if(typeof signOut==='function') signOut();
+  else { localStorage.clear(); location.reload(); }
+}
+
+function _openPaymentFlow(){
+  document.getElementById('paywall-overlay')?.remove();
+  if(typeof switchTab==='function'){ switchTab('more'); goMore('payment'); }
 }
 
 function _renderGuestBanner(){
@@ -5924,7 +6093,7 @@ async function delStock(id){
 // =============== MORE MENU ===============
 function renderMore(){
   const el=document.getElementById('page-more');
-  const pages={menu:renderMoreMenu,expense:renderExpense,supplier:renderSupplier,bill:renderBill,pl:renderPL,export:renderExport,settings:renderSettingsPage,kharidi:renderKharidi,kharidiDetail:renderKharidiDetail,dealer:renderDealerBook,dealerDetail:renderDealerDetail,dashboard:renderDashboard,cashbook:renderCashBook,customers:renderCustomers,customerDetail:renderCustomerDetail,staffBook:renderStaffBook,staffDetail:renderStaffDetail,branches:renderBranchesPage,emi:renderEmiPage,emiDetail:renderEmiDetail,loan:renderLoanPage,loanDetail:renderLoanDetail,score:renderScorePage,morning:renderMorningPage,'supplier-cal':renderSupplierCalPage,reminders:renderRemindersPage,admin:renderAdminDashboard};
+  const pages={menu:renderMoreMenu,expense:renderExpense,supplier:renderSupplier,bill:renderBill,pl:renderPL,export:renderExport,settings:renderSettingsPage,kharidi:renderKharidi,kharidiDetail:renderKharidiDetail,dealer:renderDealerBook,dealerDetail:renderDealerDetail,dashboard:renderDashboard,cashbook:renderCashBook,customers:renderCustomers,customerDetail:renderCustomerDetail,staffBook:renderStaffBook,staffDetail:renderStaffDetail,branches:renderBranchesPage,emi:renderEmiPage,emiDetail:renderEmiDetail,loan:renderLoanPage,loanDetail:renderLoanDetail,score:renderScorePage,morning:renderMorningPage,'supplier-cal':renderSupplierCalPage,reminders:renderRemindersPage,admin:renderAdminDashboard,payment:renderPaymentPage};
   (pages[moreSubPage]||renderMoreMenu)(el);
   _renderIcons();
 }
@@ -6334,6 +6503,181 @@ function toggleAdvanced(){
   localStorage.setItem('pm_show_advanced',JSON.stringify(_showAdvanced));
   renderMore();
 }
+
+// ═══════════════════════════════════════════════════════════
+// PAYMENT / SUBSCRIPTION PAGE
+// ═══════════════════════════════════════════════════════════
+function renderPaymentPage(el){
+  const state=getSubscriptionState();
+  const isExpired=state.status==='expired';
+  const isPaid=state.status==='paid';
+  const isGrand=state.status==='grandfathered';
+  const isTrial=state.status==='trial';
+  const cur=S.country==='NP'?'रू':'₹';
+  const price=S.country==='NP'?SUB_PRICE_NP:SUB_PRICE_IN;
+  const currencyCode=S.country==='NP'?'NPR':'INR';
+  // Payment recipient details (your eSewa/Khalti/UPI ID, read from settings)
+  const upiId=S.upiId||'sanjanathakur302@upi'; // fallback
+  const nepalPayId=S.npPaymentId||'9928095269'; // fallback
+  const shop=S.shopName||'Pasal Manager';
+
+  // Status badge
+  let badge='';
+  if(isGrand) badge=`<div style="background:#dcfce7;color:#166534;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:16px;text-align:center">🎉 You're a founding user — free forever. Thank you!</div>`;
+  else if(isPaid) badge=`<div style="background:#dbeafe;color:#1e40af;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:16px;text-align:center">✓ Active subscription — renews in ${state.daysLeft} days</div>`;
+  else if(isTrial) badge=`<div style="background:${state.daysLeft<=7?'#fee2e2':'#fef3c7'};color:${state.daysLeft<=7?'#991b1b':'#92400e'};padding:12px 14px;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:16px;text-align:center">⏳ Free trial — ${state.daysLeft} day${state.daysLeft===1?'':'s'} remaining</div>`;
+  else if(isExpired) badge=`<div style="background:#fee2e2;color:#991b1b;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:16px;text-align:center">🔒 Trial finished — please pay to continue</div>`;
+
+  // For grandfathered users, just show the badge and bail
+  if(isGrand){
+    el.innerHTML=backBtn()+`<div style="padding:20px">${badge}<div style="text-align:center;color:#6b7280;font-size:13px;margin-top:30px">You've been with us since the early days — enjoy unlimited access on the house. ❤️</div></div>`;
+    return;
+  }
+
+  // Payment instructions vary by country
+  const isNepal=S.country==='NP';
+  const payHTML=isNepal?`
+    <div style="background:#fff;border:2px solid #16a34a;border-radius:14px;padding:16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="background:#16a34a;color:#fff;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800">e</div>
+        <div style="font-size:15px;font-weight:800;color:#1f2937">eSewa</div>
+      </div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:8px">Send <strong>${cur}${price}</strong> to:</div>
+      <div style="background:#f0fdf4;padding:10px 12px;border-radius:8px;font-family:monospace;font-size:15px;font-weight:700;color:#166534;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center">
+        <span id="esewa-id">${nepalPayId}</span>
+        <button onclick="_copyText('${nepalPayId}','eSewa ID copied')" style="background:#16a34a;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Copy</button>
+      </div>
+    </div>
+    <div style="background:#fff;border:2px solid #5C2D91;border-radius:14px;padding:16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="background:#5C2D91;color:#fff;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800">K</div>
+        <div style="font-size:15px;font-weight:800;color:#1f2937">Khalti</div>
+      </div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:8px">Send <strong>${cur}${price}</strong> to:</div>
+      <div style="background:#f5f0ff;padding:10px 12px;border-radius:8px;font-family:monospace;font-size:15px;font-weight:700;color:#5C2D91;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center">
+        <span>${nepalPayId}</span>
+        <button onclick="_copyText('${nepalPayId}','Khalti ID copied')" style="background:#5C2D91;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Copy</button>
+      </div>
+    </div>
+  `:`
+    <div style="background:#fff;border:2px solid #ea580c;border-radius:14px;padding:16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="background:#ea580c;color:#fff;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800">₹</div>
+        <div style="font-size:15px;font-weight:800;color:#1f2937">UPI (any app — GPay, PhonePe, Paytm)</div>
+      </div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:8px">Send <strong>${cur}${price}</strong> to:</div>
+      <div style="background:#fff7ed;padding:10px 12px;border-radius:8px;font-family:monospace;font-size:15px;font-weight:700;color:#9a3412;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center">
+        <span>${upiId}</span>
+        <button onclick="_copyText('${upiId}','UPI ID copied')" style="background:#ea580c;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Copy</button>
+      </div>
+      <div style="margin-top:10px"><canvas id="upi-qr" style="display:block;margin:0 auto;max-width:180px"></canvas></div>
+      <div style="font-size:11px;color:#9a3412;text-align:center;margin-top:6px">Or scan QR with any UPI app</div>
+    </div>
+  `;
+
+  el.innerHTML=backBtn()+`
+    <div style="padding:14px 14px 80px;display:flex;flex-direction:column;gap:14px">
+      ${badge}
+
+      <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;padding:20px;border-radius:16px;text-align:center">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;opacity:0.85;text-transform:uppercase;margin-bottom:4px">${shop} — Monthly</div>
+        <div style="font-size:36px;font-weight:900;letter-spacing:-1px;line-height:1">${cur}${price}</div>
+        <div style="font-size:12px;opacity:0.85;margin-top:6px">${currencyCode} · per month · cancel anytime</div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;text-transform:uppercase;margin-top:4px">Step 1 · Pay using any of these</div>
+      ${payHTML}
+
+      <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;text-transform:uppercase">Step 2 · Submit Transaction ID</div>
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:10px">After paying, enter your transaction ID below. Approval usually within a few hours.</div>
+        <input id="pay-txn-id" type="text" placeholder="Transaction ID (e.g. 9928095269ABC)" style="width:100%;padding:11px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;margin-bottom:10px;box-sizing:border-box">
+        <textarea id="pay-note" placeholder="Note for admin (optional, e.g. 'Paid via Khalti at 3pm')" style="width:100%;padding:11px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;min-height:60px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+        <button onclick="submitPayment()" id="pay-submit-btn" style="width:100%;padding:13px;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;margin-top:10px">Submit Payment & Notify Owner</button>
+      </div>
+
+      ${S.pendingPaymentTxnId?`<div style="background:#fef3c7;color:#92400e;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:600">⏳ Payment under review (Txn: <strong>${esc(S.pendingPaymentTxnId)}</strong>). You'll be notified by the owner within 24h.</div>`:''}
+
+      <div style="text-align:center;font-size:11px;color:#9ca3af;margin-top:10px;line-height:1.6">
+        Questions? WhatsApp Sanjana<br>
+        <a href="https://wa.me/${SUB_OWNER_WHATSAPP}" target="_blank" style="color:#7c3aed;font-weight:700;text-decoration:none">+${SUB_OWNER_WHATSAPP}</a>
+      </div>
+    </div>
+  `;
+
+  // Render UPI QR for India
+  if(!isNepal && typeof QRCode!=='undefined'){
+    setTimeout(()=>{
+      const cvs=document.getElementById('upi-qr');
+      if(!cvs) return;
+      const upiLink=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent('Pasal Manager')}&am=${price}&cu=INR&tn=${encodeURIComponent('PM Subscription')}`;
+      QRCode.toCanvas(cvs,upiLink,{width:180,margin:1},err=>{ if(err) console.warn(err); });
+    },100);
+  }
+}
+
+function _copyText(text,toastMsg){
+  navigator.clipboard?.writeText(text).then(()=>{
+    if(typeof _showToast==='function') _showToast(toastMsg||'Copied');
+  });
+}
+
+async function submitPayment(){
+  const txnId=(document.getElementById('pay-txn-id')?.value||'').trim();
+  const note=(document.getElementById('pay-note')?.value||'').trim();
+  if(!txnId){
+    alert('Please enter your transaction ID.');
+    return;
+  }
+  const btn=document.getElementById('pay-submit-btn');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="btn-spinner"></span> Submitting...';}
+  const cur=S.country==='NP'?'NPR ':'INR ';
+  const price=S.country==='NP'?SUB_PRICE_NP:SUB_PRICE_IN;
+  const method=S.country==='NP'?'eSewa/Khalti':'UPI';
+
+  // Save txn ID locally so we can show "under review" status
+  S.pendingPaymentTxnId=txnId;
+  cacheWrite();
+
+  // Try to insert into Supabase (best effort — falls through to WhatsApp if offline)
+  try {
+    if(currentUser && sb){
+      await sb.from('pm_payment_requests').insert({
+        user_id: currentUser.id,
+        email: currentUser.email || '',
+        shop_name: S.shopName || '',
+        country: S.country || 'IN',
+        amount: price,
+        currency: S.country==='NP'?'NPR':'INR',
+        method,
+        txn_id: txnId,
+        note,
+        status: 'pending',
+      });
+    }
+  } catch(e){ console.warn('Payment request DB insert failed:', e.message); }
+
+  // Open WhatsApp to owner with pre-filled details — this is the reliable channel
+  const msg=[
+    `💰 *Payment submitted — Pasal Manager*`,
+    ``,
+    `Shop: ${S.shopName||'(no name)'}`,
+    `User: ${currentUser?.email||'(guest)'}`,
+    `Country: ${S.country==='NP'?'Nepal':'India'}`,
+    `Amount: ${cur}${price}`,
+    `Method: ${method}`,
+    `Txn ID: ${txnId}`,
+    note?`Note: ${note}`:``,
+    ``,
+    `Please verify and approve in Admin Dashboard.`
+  ].filter(Boolean).join('\n');
+  window.open(`https://wa.me/${SUB_OWNER_WHATSAPP}?text=${encodeURIComponent(msg)}`,'_blank');
+
+  setTimeout(()=>{
+    alert('✓ Payment submitted!\n\nWe opened WhatsApp so you can also send a screenshot to the owner. You will be notified once approved (usually within a few hours).');
+    renderMore(); // re-render to show "under review" state
+  },500);
+}
 function renderMoreMenu(el){
   const basicItems=[
     {id:'dashboard',icon:'layout-dashboard',color:'#4F46E5',label:'Dashboard',desc:'Sales charts & business overview'},
@@ -6350,6 +6694,7 @@ function renderMoreMenu(el){
     {id:'reminders',icon:'bell',color:'#1E88E5',label:t('remindersTitle'),desc:'Auto-scheduled WhatsApp reminders from payment history'},
     {id:'pl',icon:'trending-up',color:'#059669',label:'P&L Report',desc:'Monthly profit & loss summary'},
     {id:'export',icon:'download',color:'#D97706',label:'Export & Audit',desc:'Download Excel & audit report'},
+    {id:'payment',icon:'credit-card',color:'#16A34A',label:'Subscription',desc:(()=>{ const st=getSubscriptionState(); if(st.status==='grandfathered') return 'Free forever — founding user 🎉'; if(st.status==='paid') return `Active · ${st.daysLeft} days left`; if(st.status==='trial') return `Free trial · ${st.daysLeft} days left`; return '🔒 Pay to unlock'; })()},
     {id:'settings',icon:'settings',color:'#64748B',label:t('settings'),desc:''},
     {id:'logout',icon:'log-out',color:'#DC2626',label:'Logout',desc:'Sign out of your account',action:'signOut()'}
   ];
@@ -6397,6 +6742,72 @@ function renderMoreMenu(el){
 // =============== ADMIN DASHBOARD (owner-only) ===============
 let _adminCharts = [];
 function _adminDestroyCharts(){ _adminCharts.forEach(c=>{try{c.destroy();}catch(_){}}); _adminCharts=[]; }
+
+// Approve a pending payment: marks approved in Supabase, re-renders admin panel.
+async function _approvePayment(requestId, userEmail){
+  if(!confirm(`Approve payment from ${userEmail||requestId.slice(0,8)}?\n\nThis will unlock their subscription for 30 days.`)) return;
+  const now=new Date();
+  const expiry=new Date(now.getTime()+30*86400000);
+  try {
+    const {error}=await sb.from('pm_payment_requests').update({
+      status:'approved',
+      approved_at: now.toISOString(),
+      approved_until: expiry.toISOString(),
+      approved_by: currentUser?.email||'owner'
+    }).eq('id',requestId);
+    if(error) throw error;
+    _showToast('✓ Payment approved — user unlocked for 30 days');
+    // Re-render to show updated state
+    setTimeout(()=>renderMore(),400);
+  } catch(e){
+    alert('Approval failed: '+e.message+'\nCheck Supabase logs.');
+  }
+}
+
+// Reject a payment request with reason.
+async function _rejectPayment(requestId){
+  const reason=prompt('Reason for rejection (will NOT be sent to user automatically):','Could not verify transaction ID');
+  if(reason===null) return; // cancelled
+  try {
+    const {error}=await sb.from('pm_payment_requests').update({
+      status:'rejected',
+      rejection_reason: reason,
+      approved_by: currentUser?.email||'owner'
+    }).eq('id',requestId);
+    if(error) throw error;
+    _showToast('Payment rejected');
+    setTimeout(()=>renderMore(),400);
+  } catch(e){
+    alert('Rejection failed: '+e.message);
+  }
+}
+
+// Check if THIS user's payment was approved (called on app resume / tab focus).
+// If approved, update S.subscriptionStatus + expiry and hide paywall.
+async function _checkSubscriptionApproval(){
+  if(!currentUser || S.subscriptionStatus==='grandfathered') return;
+  try {
+    const {data}=await sb.from('pm_payment_requests')
+      .select('status,approved_until')
+      .eq('user_id',currentUser.id)
+      .eq('status','approved')
+      .order('approved_until',{ascending:false})
+      .limit(1);
+    if(data && data.length>0 && data[0].approved_until){
+      const expiry=new Date(data[0].approved_until).getTime();
+      if(expiry>Date.now()){
+        S.subscriptionStatus='paid';
+        S.subscriptionExpiry=expiry;
+        S.pendingPaymentTxnId=''; // clear pending
+        cacheWrite();
+        // Remove paywall + re-render trial banner
+        document.getElementById('paywall-overlay')?.remove();
+        _renderTrialBanner();
+        _showToast('✓ Subscription activated! Thank you.');
+      }
+    }
+  } catch(e){ /* offline — silent fail */ }
+}
 function _adminKpiCard(label, value, sub, color, icon){
   const c = color || '#7c3aed';
   // Light tint of the accent color for the icon background pill
@@ -6496,6 +6907,17 @@ async function renderAdminDashboard(el){
             <div style="font-size:13px;font-weight:700">Most Active Shops <span style="color:var(--color-text-secondary);font-weight:500">· last 7 days</span></div>
           </div>
           <div id="admin-top-shops" style="font-size:13px"></div>
+        </div>
+        <!-- Pending payment requests (owner approval flow) -->
+        <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:26px;height:26px;border-radius:8px;background:#dcfce7;display:flex;align-items:center;justify-content:center">${licon('credit-card',14,'color:#16a34a;')}</div>
+              <div style="font-size:13px;font-weight:700">Pending Payments <span style="color:var(--color-text-secondary);font-weight:500">· tap to approve / reject</span></div>
+            </div>
+            <div id="admin-pay-count" style="font-size:11px;color:var(--color-text-secondary)"></div>
+          </div>
+          <div id="admin-pay-requests" style="font-size:13px;max-height:400px;overflow-y:auto"></div>
         </div>
         <!-- Recent errors (powered by trackError) -->
         <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px;margin-bottom:14px">
@@ -6700,6 +7122,50 @@ async function _renderAdminMetrics(){
           <div style="font-size:10px;color:var(--color-text-secondary);white-space:nowrap;margin-left:4px">${fmtRel(e.ts)}</div>
         </div>`;
       }).join('');
+
+  // ===== Payment requests (owner approval) =====
+  try {
+    const { data: payReqs } = await sb.from('pm_payment_requests')
+      .select('*').order('submitted_at',{ascending:false}).limit(50);
+    const reqs = payReqs || [];
+    const pending = reqs.filter(r=>r.status==='pending');
+    const elCount = document.getElementById('admin-pay-count');
+    if (elCount) elCount.innerHTML = pending.length>0
+      ? `<span style="color:#dc2626;font-weight:700">${pending.length} pending</span>`
+      : '<span style="color:#10b981">✓ all caught up</span>';
+    const elList = document.getElementById('admin-pay-requests');
+    if (elList) elList.innerHTML = reqs.length === 0
+      ? '<div style="color:#94a3b8;padding:16px 8px;text-align:center;font-size:13px">No payment submissions yet.</div>'
+      : reqs.slice(0,20).map(r => {
+          const cur = r.currency==='NPR'?'रू':'₹';
+          const statusBadge = r.status==='approved' ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">✓ APPROVED</span>'
+                            : r.status==='rejected' ? '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">✗ REJECTED</span>'
+                            : '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">⏳ PENDING</span>';
+          const submitted = new Date(r.submitted_at);
+          const actions = r.status==='pending' ? `
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button onclick="_approvePayment('${r.id}','${esc(r.email||'')}')" style="flex:1;padding:7px;background:#16a34a;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">✓ Approve</button>
+              <button onclick="_rejectPayment('${r.id}')" style="flex:1;padding:7px;background:#dc2626;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">✗ Reject</button>
+            </div>` : '';
+          return `<div style="padding:12px;border:1px solid var(--color-border-tertiary);border-radius:10px;margin-bottom:10px;background:${r.status==='pending'?'#fffbeb':r.status==='approved'?'#f0fdf4':'#fef2f2'}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+              <div style="font-weight:700;font-size:13px;color:#1f2937;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(r.shop_name||r.email||'(unknown)')}</div>
+              ${statusBadge}
+            </div>
+            <div style="font-size:11px;color:#6b7280;line-height:1.6">
+              ${esc(r.email||'')} · ${r.country||'?'}<br>
+              Amount: <strong style="color:#1f2937">${cur}${r.amount}</strong> · ${r.method}<br>
+              Txn ID: <code style="background:#fff;padding:2px 6px;border-radius:4px;color:#7c3aed;font-weight:700">${esc(r.txn_id||'')}</code><br>
+              ${r.note?`Note: ${esc(r.note)}<br>`:''}
+              <span style="color:#9ca3af">${submitted.toLocaleString()}</span>
+            </div>
+            ${actions}
+          </div>`;
+        }).join('');
+  } catch(e) {
+    const elList = document.getElementById('admin-pay-requests');
+    if (elList) elList.innerHTML = `<div style="color:#dc2626;padding:12px;font-size:12px">⚠️ Could not load payment requests: ${esc(e.message||'unknown error')}.<br>Make sure the pm_payment_requests table exists (see MIGRATIONS.md).</div>`;
+  }
 
   // ===== Activity feed =====
   const feed = feedRes.data || [];
@@ -9511,6 +9977,39 @@ function renderSettingsPage(el){
       <div class="settings-info" style="display:flex;align-items:center;gap:5px;margin-top:6px">${licon('info',12,'color:var(--color-text-secondary);')} ${t('shopInfo')}</div>
     </div>
 
+    <!-- Business Info -->
+    <div class="settings-card">
+      ${sectionHead('user','Proprietor Details','#EC4899')}
+      <input class="settings-input" id="s-own-name" value="${esc(S.ownName)}" placeholder="Your name (e.g., Sanjana Thakur)" style="margin-bottom:8px">
+      <input class="settings-input" id="s-biz-addr-own" value="${esc(S.bizAddress)}" placeholder="Shop address" style="margin-bottom:8px">
+      <input class="settings-input" id="s-own-phone-own" type="tel" value="${esc(S.ownPhone)}" placeholder="Phone number">
+      <div class="settings-info" style="display:flex;align-items:center;gap:5px;margin-top:6px">${licon('info',12,'color:var(--color-text-secondary);')} Used in audit reports. Set once and forget.</div>
+    </div>
+
+    <!-- Opening Balances (for Cash-Basis Accounting) -->
+    <div class="settings-card">
+      ${sectionHead('wallet','Opening Balances (optional)','#06B6D4')}
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-secondary);margin-bottom:10px">
+        ${licon('info',13,'color:var(--color-text-secondary);')} Set these if you had money, stock, or capital before using Pasal Manager. Leave blank if you're starting fresh.
+      </label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        ${licon('banknote',16,'color:var(--color-accent);')}
+        <label style="flex:1">Cash in drawer</label>
+        <input type="number" class="settings-input" id="s-opening-cash" value="${S.openingCash||0}" placeholder="0.00" style="width:120px;margin:0">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        ${licon('package',16,'color:var(--color-accent);')}
+        <label style="flex:1">Stock value (₹ or रू)</label>
+        <input type="number" class="settings-input" id="s-opening-stock" value="${S.openingStock||0}" placeholder="0.00" style="width:120px;margin:0">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${licon('briefcase',16,'color:var(--color-accent);')}
+        <label style="flex:1">Total capital invested</label>
+        <input type="number" class="settings-input" id="s-opening-capital" value="${S.openingCapital||0}" placeholder="0.00" style="width:120px;margin:0">
+      </div>
+      <div class="settings-info" style="display:flex;align-items:center;gap:5px;margin-top:6px">${licon('info',12,'color:var(--color-text-secondary);')} Your accountant will need these for accurate P&L and balance sheet.</div>
+    </div>
+
     ${S.country==='IN'?`
     <!-- GST Settings -->
     <div class="settings-card">
@@ -9722,6 +10221,20 @@ function renderSettingsPage(el){
     if(es) es.onblur=async function(){S.esewaId=this.value.trim();await saveSettings();};
     const kh=document.getElementById('s-khalti');
     if(kh) kh.onblur=async function(){S.khaltiId=this.value.trim();await saveSettings();};
+
+    // New Business Info & Opening Balances fields
+    const on=document.getElementById('s-own-name');
+    if(on) on.onblur=async function(){S.ownName=this.value.trim();await saveSettings();};
+    const ba2=document.getElementById('s-biz-addr-own');
+    if(ba2) ba2.onblur=async function(){S.bizAddress=this.value.trim();await saveSettings();};
+    const ph2=document.getElementById('s-own-phone-own');
+    if(ph2) ph2.onblur=async function(){S.ownPhone=this.value.trim();await saveSettings();};
+    const oc=document.getElementById('s-opening-cash');
+    if(oc) oc.onblur=async function(){S.openingCash=parseFloat(this.value)||0;await saveSettings();};
+    const os=document.getElementById('s-opening-stock');
+    if(os) os.onblur=async function(){S.openingStock=parseFloat(this.value)||0;await saveSettings();};
+    const ocap=document.getElementById('s-opening-capital');
+    if(ocap) ocap.onblur=async function(){S.openingCapital=parseFloat(this.value)||0;await saveSettings();};
   },50);
 }
 async function setCo(c){S.country=c;selectedPay='Cash';await saveSettings();updateTopbar();updateNavLabels();goMore('settings');}
@@ -11734,6 +12247,10 @@ function initVisibilityLock(){
       const grace=Date.now()-_pinLastUnlock;
       if(grace>8000) showPinOverlay('enter');
     }
+    // Also check if subscription was approved while app was in background
+    if(!document.hidden && S.pendingPaymentTxnId){
+      _checkSubscriptionApproval();
+    }
   });
 }
 
@@ -13217,9 +13734,6 @@ async function trackVisit() {
 trackVisit();
 
 </script>
-</body>
-</html>
-
 <script>
 (function autoLoginFromReact(){
   const params = new URLSearchParams(location.search);
@@ -13243,4 +13757,5 @@ trackVisit();
   }, 100);
 })();
 </script>
-
+</body>
+</html>
