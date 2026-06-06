@@ -8578,21 +8578,97 @@ async function downloadAuditReport(){
     return `FY ${start}-${String(start+1).slice(2)}`;
   };
 
-  // Helper: Create styled workbook
-  const headerStyle={bold:true,fill:{fgColor:{rgb:'E8E8E8'}},alignment:{horizontal:'center',vertical:'center'}};
+  // Style presets (xlsx-js-style format — must use nested font/fill structure)
   const numberFmt='#,##,##0.00;[Red](#,##,##0.00)';
-  const addHeaderRow=(ws,headers)=>{
-    headers.forEach((h,i)=>{
-      const cell=ws[XLSX.utils.encode_cell({r:0,c:i})];
-      if(!cell) ws[XLSX.utils.encode_cell({r:0,c:i})]={v:h};
-      Object.assign(cell,headerStyle);
-    });
-    ws['!views']=[{state:'frozen',ySplit:1}];
+  const thinBorder={style:'thin',color:{rgb:'D0D0D0'}};
+  const dataBorder={top:thinBorder,bottom:thinBorder,left:thinBorder,right:thinBorder};
+  const headerStyle={
+    font:{bold:true,sz:11,color:{rgb:'1F2937'}},
+    fill:{patternType:'solid',fgColor:{rgb:'E8E8E8'}},
+    alignment:{horizontal:'center',vertical:'center',wrapText:true},
+    border:{top:thinBorder,bottom:thinBorder,left:thinBorder,right:thinBorder}
   };
-  const setColFormat=(ws,colIdx,fmt)=>{
-    for(let r=1;r<100;r++){
-      const cell=ws[XLSX.utils.encode_cell({r,c:colIdx})];
-      if(cell) cell.z=fmt;
+  const titleStyle={
+    font:{bold:true,sz:14,color:{rgb:'1F4E78'}},
+    alignment:{horizontal:'left',vertical:'center'}
+  };
+  const totalRowStyle={
+    font:{bold:true,sz:11},
+    fill:{patternType:'solid',fgColor:{rgb:'F3F4F6'}},
+    border:{top:{style:'medium',color:{rgb:'1F4E78'}},bottom:{style:'medium',color:{rgb:'1F4E78'}},left:thinBorder,right:thinBorder}
+  };
+
+  // No-op shims kept for backward compat (older code calls these). finalizeSheet does the real work.
+  const addHeaderRow=()=>{};
+  const setColFormat=()=>{};
+
+  // Finalize a sheet: re-inject {f:...} formula cells, apply Indian number format
+  // to numeric cells, style header / TOTAL / title rows, and add borders.
+  // Call right after aoa_to_sheet, BEFORE book_append_sheet.
+  // opts.frozen=false → report sheet (skip frozen + header band)
+  // opts.headerRow → which row index has the column headers (default 0)
+  const finalizeSheet=(ws,aoaData,opts)=>{
+    opts=opts||{};
+    const frozen=opts.frozen!==false;
+    const headerRow=opts.headerRow||0;
+    // 1. Re-inject formula cells (aoa_to_sheet may strip {f:...} objects)
+    aoaData.forEach((row,r)=>{
+      if(!row) return;
+      row.forEach((c,col)=>{
+        if(c && typeof c==='object' && c.f){
+          ws[XLSX.utils.encode_cell({r,c:col})]={t:'n',f:c.f,v:0};
+        }
+      });
+    });
+    // 2. Extend !ref to cover all data
+    const range=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
+    let maxRow=range.e.r,maxCol=range.e.c;
+    aoaData.forEach((row,r)=>{
+      if(r>maxRow) maxRow=r;
+      if(row) row.forEach((_,col)=>{ if(col>maxCol) maxCol=col; });
+    });
+    range.e.r=maxRow;range.e.c=maxCol;
+    ws['!ref']=XLSX.utils.encode_range(range);
+    // 3. Detect TOTAL/SUBTOTAL rows (text starts with TOTAL/SUB-TOTAL/NET/GROSS/OPERATING/COGS)
+    const totalRows=new Set();
+    aoaData.forEach((row,r)=>{
+      if(row && row[0] && typeof row[0]==='string' &&
+         /^(TOTAL|SUB-?TOTAL|NET (PROFIT|REVENUE|CHANGE)|GROSS PROFIT|OPERATING PROFIT|COGS|CASH FROM|SUB-TOTAL EQUITY|TOTAL LIABILITIES)/i.test(row[0])){
+        totalRows.add(r);
+      }
+    });
+    // 4. Apply number format + borders to every data cell
+    for(let r=headerRow+1;r<=maxRow;r++){
+      for(let col=range.s.c;col<=maxCol;col++){
+        const cell=ws[XLSX.utils.encode_cell({r,c:col})];
+        if(!cell) continue;
+        if(typeof cell.v==='number' || cell.f) cell.z=numberFmt;
+        if(frozen){
+          if(totalRows.has(r)) cell.s={...totalRowStyle};
+          else cell.s={border:dataBorder,alignment:{vertical:'center'}};
+        } else if(totalRows.has(r)) {
+          cell.s={...totalRowStyle};
+        }
+      }
+    }
+    // 5. Style header row (only for data sheets)
+    if(frozen){
+      for(let col=range.s.c;col<=maxCol;col++){
+        const cell=ws[XLSX.utils.encode_cell({r:headerRow,c:col})];
+        if(cell) cell.s={...headerStyle};
+      }
+      ws['!views']=[{state:'frozen',ySplit:headerRow+1}];
+    } else {
+      // Report sheets: style title rows (uppercase ALL-CAPS lines)
+      aoaData.forEach((row,r)=>{
+        if(row && row[0] && typeof row[0]==='string'){
+          const v=row[0];
+          if(/^(TRIAL BALANCE|PROFIT & LOSS|BALANCE SHEET|CASH FLOW|AUDIT REPORT|NOTES TO|SHEET INDEX|OPENING BALANCES|REVENUE|COST OF GOODS|OPERATING EXPENSES|LIABILITIES|FINANCING|INVESTING)/.test(v)){
+            const cell=ws[XLSX.utils.encode_cell({r,c:0})];
+            if(cell) cell.s={...titleStyle};
+          }
+        }
+      });
     }
   };
 
@@ -8688,6 +8764,7 @@ async function downloadAuditReport(){
     const cell=wsCover[addr];
     if(cell && typeof cell.v==='number') cell.z=numberFmt;
   }
+  finalizeSheet(wsCover,coverData,{frozen:false});
   XLSX.utils.book_append_sheet(wb,wsCover,'01_Cover');
 
   // ═══════════════════════════════════════════════════════════
@@ -8731,6 +8808,7 @@ async function downloadAuditReport(){
   addHeaderRow(wsTB,['ACCOUNT','DEBIT ('+curSym+')','CREDIT ('+curSym+')']);
   setColFormat(wsTB,1,numberFmt);
   setColFormat(wsTB,2,numberFmt);
+  finalizeSheet(wsTB,tbData,{frozen:false});
   XLSX.utils.book_append_sheet(wb,wsTB,'02_TrialBalance');
 
   // ═══════════════════════════════════════════════════════════
@@ -8765,6 +8843,7 @@ async function downloadAuditReport(){
   const wsPL=XLSX.utils.aoa_to_sheet(plData);
   wsPL['!cols']=[{wch:40},{wch:14},{wch:18}];
   setColFormat(wsPL,2,numberFmt);
+  finalizeSheet(wsPL,plData,{frozen:false});
   XLSX.utils.book_append_sheet(wb,wsPL,'03_ProfitLoss');
 
   // ═══════════════════════════════════════════════════════════
@@ -8815,6 +8894,7 @@ async function downloadAuditReport(){
   wsBS['!cols']=[{wch:32},{wch:18},{wch:32},{wch:18}];
   setColFormat(wsBS,1,numberFmt);
   setColFormat(wsBS,3,numberFmt);
+  finalizeSheet(wsBS,bsData,{frozen:false});
   XLSX.utils.book_append_sheet(wb,wsBS,'04_BalanceSheet');
 
   // ═══════════════════════════════════════════════════════════
@@ -8845,6 +8925,7 @@ async function downloadAuditReport(){
   const wsCF=XLSX.utils.aoa_to_sheet(cfData);
   wsCF['!cols']=[{wch:40},{wch:18},{wch:10}];
   setColFormat(wsCF,1,numberFmt);
+  finalizeSheet(wsCF,cfData,{frozen:false});
   XLSX.utils.book_append_sheet(wb,wsCF,'05_CashFlow');
 
   // ═══════════════════════════════════════════════════════════
@@ -8865,6 +8946,7 @@ async function downloadAuditReport(){
   wsSR['!cols']=[{wch:6},{wch:14},{wch:20},{wch:14},{wch:14},{wch:14},{wch:12},{wch:20}];
   addHeaderRow(wsSR,srData[0]);
   for(let c=3;c<=5;c++) setColFormat(wsSR,c,numberFmt);
+  finalizeSheet(wsSR,srData,{});
   XLSX.utils.book_append_sheet(wb,wsSR,'06_SalesRegister');
 
   // ═══════════════════════════════════════════════════════════
@@ -8881,6 +8963,7 @@ async function downloadAuditReport(){
   wsPUR['!cols']=[{wch:14},{wch:20},{wch:14},{wch:24}];
   addHeaderRow(wsPUR,purData[0]);
   setColFormat(wsPUR,2,numberFmt);
+  finalizeSheet(wsPUR,purData,{});
   XLSX.utils.book_append_sheet(wb,wsPUR,'07_PurchaseRegister');
 
   // ═══════════════════════════════════════════════════════════
@@ -8897,6 +8980,7 @@ async function downloadAuditReport(){
   wsEXP['!cols']=[{wch:14},{wch:18},{wch:14},{wch:24}];
   addHeaderRow(wsEXP,expData[0]);
   setColFormat(wsEXP,2,numberFmt);
+  finalizeSheet(wsEXP,expData,{});
   XLSX.utils.book_append_sheet(wb,wsEXP,'08_ExpenseRegister');
 
   // ═══════════════════════════════════════════════════════════
@@ -8921,6 +9005,7 @@ async function downloadAuditReport(){
   wsDebtor['!cols']=[{wch:20},{wch:14},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12}];
   addHeaderRow(wsDebtor,debData[0]);
   for(let c=2;c<=6;c++) setColFormat(wsDebtor,c,numberFmt);
+  finalizeSheet(wsDebtor,debData,{});
   XLSX.utils.book_append_sheet(wb,wsDebtor,'09_SundryDebtors');
 
   // ═══════════════════════════════════════════════════════════
@@ -8949,6 +9034,7 @@ async function downloadAuditReport(){
   wsCred['!cols']=[{wch:20},{wch:14},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12}];
   addHeaderRow(wsCred,credData[0]);
   for(let c=2;c<=6;c++) setColFormat(wsCred,c,numberFmt);
+  finalizeSheet(wsCred,credData,{});
   XLSX.utils.book_append_sheet(wb,wsCred,'10_SundryCreditors');
 
   // ═══════════════════════════════════════════════════════════
@@ -8977,6 +9063,7 @@ async function downloadAuditReport(){
 
   const wsCustLedger=XLSX.utils.aoa_to_sheet(custLedgerData);
   wsCustLedger['!cols']=[{wch:14},{wch:24},{wch:16},{wch:16},{wch:16}];
+  finalizeSheet(wsCustLedger,custLedgerData,{});
   XLSX.utils.book_append_sheet(wb,wsCustLedger,'11_CustomerLedgers');
 
   // ═══════════════════════════════════════════════════════════
@@ -9003,6 +9090,7 @@ async function downloadAuditReport(){
 
   const wsSupplierLedger=XLSX.utils.aoa_to_sheet(supplierLedgerData);
   wsSupplierLedger['!cols']=[{wch:14},{wch:24},{wch:16},{wch:16},{wch:16}];
+  finalizeSheet(wsSupplierLedger,supplierLedgerData,{});
   XLSX.utils.book_append_sheet(wb,wsSupplierLedger,'12_SupplierLedgers');
 
   // ═══════════════════════════════════════════════════════════
@@ -9023,6 +9111,7 @@ async function downloadAuditReport(){
   wsSt['!cols']=[{wch:20},{wch:10},{wch:10},{wch:12},{wch:10},{wch:10},{wch:14},{wch:14}];
   addHeaderRow(wsSt,stData[0]);
   for(let c=6;c<=7;c++) setColFormat(wsSt,c,numberFmt);
+  finalizeSheet(wsSt,stData,{});
   XLSX.utils.book_append_sheet(wb,wsSt,'13_StockRegister');
 
   // ═══════════════════════════════════════════════════════════
@@ -9044,6 +9133,7 @@ async function downloadAuditReport(){
   wsCS['!cols']=[{wch:14},{wch:16},{wch:16},{wch:16},{wch:16},{wch:20}];
   addHeaderRow(wsCS,cbData[0]);
   for(let c=1;c<=4;c++) setColFormat(wsCS,c,numberFmt);
+  finalizeSheet(wsCS,cbData,{});
   XLSX.utils.book_append_sheet(wb,wsCS,'14_Cashbook');
 
   // ═══════════════════════════════════════════════════════════
@@ -9070,6 +9160,7 @@ async function downloadAuditReport(){
   wsStaf['!cols']=[{wch:20},{wch:14},{wch:10},{wch:14},{wch:14},{wch:14}];
   addHeaderRow(wsStaf,stafData[0]);
   for(let c=3;c<=5;c++) setColFormat(wsStaf,c,numberFmt);
+  finalizeSheet(wsStaf,stafData,{});
   XLSX.utils.book_append_sheet(wb,wsStaf,'15_StaffRegister');
 
   // ═══════════════════════════════════════════════════════════
@@ -9087,6 +9178,7 @@ async function downloadAuditReport(){
   addHeaderRow(wsLoan,loanData[0]);
   for(let c=1;c<=1;c++) setColFormat(wsLoan,c,numberFmt);
   for(let c=4;c<=6;c++) setColFormat(wsLoan,c,numberFmt);
+  finalizeSheet(wsLoan,loanData,{});
   XLSX.utils.book_append_sheet(wb,wsLoan,'16_LoanRegister');
 
   // ═══════════════════════════════════════════════════════════
@@ -9105,6 +9197,7 @@ async function downloadAuditReport(){
   addHeaderRow(wsEMI,emiData[0]);
   for(let c=2;c<=3;c++) setColFormat(wsEMI,c,numberFmt);
   setColFormat(wsEMI,6,numberFmt);
+  finalizeSheet(wsEMI,emiData,{});
   XLSX.utils.book_append_sheet(wb,wsEMI,'17_CustomerEMI');
 
   // ═══════════════════════════════════════════════════════════
@@ -9138,6 +9231,7 @@ async function downloadAuditReport(){
 
   const wsItem=XLSX.utils.aoa_to_sheet(itemAnalysis);
   wsItem['!cols']=[{wch:6},{wch:24},{wch:12},{wch:14},{wch:14},{wch:14},{wch:12}];
+  finalizeSheet(wsItem,itemAnalysis,{});
   XLSX.utils.book_append_sheet(wb,wsItem,'18_ItemAnalysis');
 
   // ═══════════════════════════════════════════════════════════
@@ -9164,6 +9258,7 @@ async function downloadAuditReport(){
   wsMonth['!cols']=[{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14}];
   addHeaderRow(wsMonth,monthlyData[0]);
   for(let c=1;c<=5;c++) setColFormat(wsMonth,c,numberFmt);
+  finalizeSheet(wsMonth,monthlyData,{});
   XLSX.utils.book_append_sheet(wb,wsMonth,'19_MonthlyComparison');
 
   // ═══════════════════════════════════════════════════════════
@@ -9181,6 +9276,7 @@ async function downloadAuditReport(){
     wsGST['!cols']=[{wch:14},{wch:14},{wch:16},{wch:16},{wch:14},{wch:14},{wch:14},{wch:14}];
     addHeaderRow(wsGST,gstData[0]);
     for(let c=3;c<=7;c++) setColFormat(wsGST,c,numberFmt);
+    finalizeSheet(wsGST,gstData,{});
     XLSX.utils.book_append_sheet(wb,wsGST,'20_HSNGSTSummary');
   }
 
@@ -9223,6 +9319,7 @@ async function downloadAuditReport(){
 
   const wsNotes=XLSX.utils.aoa_to_sheet(notesData);
   wsNotes['!cols']=[{wch:40},{wch:20}];
+  finalizeSheet(wsNotes,notesData,{frozen:false});
   XLSX.utils.book_append_sheet(wb,wsNotes,'21_NotesToAccounts');
 
   // Write workbook
