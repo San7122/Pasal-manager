@@ -13243,25 +13243,4 @@ trackVisit();
   }, 100);
 })();
 </script>
-(function autoLoginFromReact(){
-  const params = new URLSearchParams(location.search);
-  const guestParam = params.get('guest');
-  if(!guestParam) return;
-  const shopName = decodeURIComponent(guestParam);
-  let attempts = 0;
-  const tryAutoLogin = setInterval(()=>{
-    attempts++;
-    if(attempts > 50){clearInterval(tryAutoLogin); return;}
-    if(typeof showGuestSetup === 'function' && typeof confirmGuest === 'function'){
-      clearInterval(tryAutoLogin);
-      try{
-        showGuestSetup();
-        setTimeout(()=>{
-          const input = document.getElementById('guest-shop-input');
-          if(input){input.value = shopName; confirmGuest();}
-        }, 150);
-      }catch(e){}
-    }
-  }, 100);
-})();
-</script>
+
