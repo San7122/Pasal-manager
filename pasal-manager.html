@@ -990,6 +990,20 @@ body {
   padding: 8px 6px; border-top: 1px solid var(--sidebar-border);
 }
 .sidebar-wallet { font-size: 12px; }
+.sidebar-cat {
+  padding: 10px 14px 3px 14px;
+  font-size: 10px; font-weight: 700;
+  color: #7c6fba; text-transform: uppercase; letter-spacing: 0.6px;
+}
+.sidebar-subitem {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px 8px 20px; border-radius: 7px;
+  border: none; background: none; cursor: pointer;
+  color: var(--sidebar-text); font-size: 12.5px;
+  font-weight: 500; width: 100%; text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar-subitem:hover { background: var(--sidebar-hover); color: var(--sidebar-text-bright); }
 
 /* Sidebar logo area dark */
 .sidebar-logo {
@@ -1664,10 +1678,36 @@ body {
         <i data-lucide="package" style="width:20px;height:20px;flex-shrink:0"></i>
         <span class="sidebar-label" style="display:none">Stock</span>
       </button>
-      <button class="sidebar-item" id="snav-more" onclick="switchTab('more')">
+      <button class="sidebar-item" id="snav-more" onclick="toggleSidebarMore()">
         <i data-lucide="layout-grid" style="width:20px;height:20px;flex-shrink:0"></i>
         <span class="sidebar-label" style="display:none">More</span>
+        <i class="fas fa-chevron-down sidebar-label" id="snav-more-chevron" style="display:none;margin-left:auto;font-size:10px;transition:transform 0.25s"></i>
       </button>
+      <!-- More sub-panel -->
+      <div id="snav-more-panel" style="display:none">
+        <div class="sidebar-cat sidebar-label" style="display:none">Finance</div>
+        <button class="sidebar-subitem" onclick="goMore('dashboard');switchTab('more')"><i class="fas fa-chart-line" style="font-size:14px;color:#4F46E5;width:16px"></i><span class="sidebar-label" style="display:none">Dashboard</span></button>
+        <button class="sidebar-subitem" onclick="goMore('pl');switchTab('more')"><i class="fas fa-chart-bar" style="font-size:14px;color:#4F46E5;width:16px"></i><span class="sidebar-label" style="display:none">P&amp;L Report</span></button>
+        <button class="sidebar-subitem" onclick="goMore('cashbook');switchTab('more')"><i class="fas fa-book-open" style="font-size:14px;color:#0D9488;width:16px"></i><span class="sidebar-label" style="display:none">Cash Book</span></button>
+        <button class="sidebar-subitem" onclick="goMore('score');switchTab('more')"><i class="fas fa-star" style="font-size:14px;color:#7C3AED;width:16px"></i><span class="sidebar-label" style="display:none">Health Score</span></button>
+        <button class="sidebar-subitem" onclick="goMore('export');switchTab('more')"><i class="fas fa-download" style="font-size:14px;color:#D97706;width:16px"></i><span class="sidebar-label" style="display:none">Export &amp; Audit</span></button>
+        <div class="sidebar-cat sidebar-label" style="display:none">Sales</div>
+        <button class="sidebar-subitem" onclick="goMore('bill');switchTab('more')"><i class="fas fa-file-invoice" style="font-size:14px;color:#0EA5E9;width:16px"></i><span class="sidebar-label" style="display:none">Digital Bill</span></button>
+        <button class="sidebar-subitem" onclick="goMore('customers');switchTab('more')"><i class="fas fa-users" style="font-size:14px;color:#7C3AED;width:16px"></i><span class="sidebar-label" style="display:none">Customers</span></button>
+        <button class="sidebar-subitem" onclick="goMore('emi');switchTab('more')"><i class="fas fa-credit-card" style="font-size:14px;color:#059669;width:16px"></i><span class="sidebar-label" style="display:none">EMI Tracker</span></button>
+        <div class="sidebar-cat sidebar-label" style="display:none">Stock</div>
+        <button class="sidebar-subitem" onclick="goMore('supplier');switchTab('more')"><i class="fas fa-truck" style="font-size:14px;color:#8B5CF6;width:16px"></i><span class="sidebar-label" style="display:none">Suppliers</span></button>
+        <button class="sidebar-subitem" onclick="goMore('kharidi');switchTab('more')"><i class="fas fa-shopping-cart" style="font-size:14px;color:#EA580C;width:16px"></i><span class="sidebar-label" style="display:none">Purchase Book</span></button>
+        <button class="sidebar-subitem" onclick="goMore('dealer');switchTab('more')"><i class="fas fa-handshake" style="font-size:14px;color:#0891B2;width:16px"></i><span class="sidebar-label" style="display:none">Dealer Book</span></button>
+        <div class="sidebar-cat sidebar-label" style="display:none">Staff</div>
+        <button class="sidebar-subitem" onclick="goMore('staffBook');switchTab('more')"><i class="fas fa-clipboard-list" style="font-size:14px;color:#D97706;width:16px"></i><span class="sidebar-label" style="display:none">Staff Book</span></button>
+        <button class="sidebar-subitem" onclick="goMore('expense');switchTab('more')"><i class="fas fa-receipt" style="font-size:14px;color:#E11D48;width:16px"></i><span class="sidebar-label" style="display:none">Expenses</span></button>
+        <div class="sidebar-cat sidebar-label" style="display:none">More Tools</div>
+        <button class="sidebar-subitem" onclick="goMore('morning');switchTab('more')"><i class="fas fa-sun" style="font-size:14px;color:#F59E0B;width:16px"></i><span class="sidebar-label" style="display:none">Morning Briefing</span></button>
+        <button class="sidebar-subitem" onclick="goMore('loan');switchTab('more')"><i class="fas fa-hand-holding-usd" style="font-size:14px;color:#DC2626;width:16px"></i><span class="sidebar-label" style="display:none">Loan Manager</span></button>
+        <button class="sidebar-subitem" onclick="goMore('branches');switchTab('more')"><i class="fas fa-building" style="font-size:14px;color:#0891B2;width:16px"></i><span class="sidebar-label" style="display:none">Multi-Branch</span></button>
+        <button class="sidebar-subitem" onclick="goMore('payment');switchTab('more')"><i class="fas fa-credit-card" style="font-size:14px;color:#16A34A;width:16px"></i><span class="sidebar-label" style="display:none">Subscription</span></button>
+      </div>
     </nav>
     <div class="sidebar-bottom">
       <button class="sidebar-item sidebar-wallet" id="sidebar-wallet-btn" onclick="signOut()" title="Sign Out">
@@ -4338,6 +4378,7 @@ async function _migrateGuestData(){
 
 // ===== SIDEBAR =====
 let _sidebarExpanded = window.innerWidth >= 1100;
+let _sidebarMoreOpen = false;
 function toggleSidebar(){
   _sidebarExpanded=!_sidebarExpanded;
   const sb=document.getElementById('sidebar');
@@ -4346,6 +4387,14 @@ function toggleSidebar(){
   sb.querySelectorAll('.sidebar-label').forEach(el=>{
     el.style.display=_sidebarExpanded?'':'none';
   });
+}
+function toggleSidebarMore(){
+  if(!_sidebarExpanded) toggleSidebar();
+  _sidebarMoreOpen=!_sidebarMoreOpen;
+  const panel=document.getElementById('snav-more-panel');
+  const chevron=document.getElementById('snav-more-chevron');
+  if(panel) panel.style.display=_sidebarMoreOpen?'block':'none';
+  if(chevron) chevron.style.transform=_sidebarMoreOpen?'rotate(180deg)':'rotate(0deg)';
 }
 function _syncSidebarActive(tab){
   document.querySelectorAll('.sidebar-item[id^="snav-"]').forEach(b=>b.classList.remove('active'));
