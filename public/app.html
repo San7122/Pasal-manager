@@ -6704,16 +6704,25 @@ function renderPaymentPage(el){
 function openUPIPayment(upiId, amount, app){
   const params=`pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent('Pasal Manager')}&am=${amount}&cu=INR`;
   const isAndroid=/android/i.test(navigator.userAgent);
-  // Android: use Intent URLs to open specific app directly
-  // iOS: use generic upi:// (iOS doesn't support app-specific UPI schemes)
-  const androidPkgs={ gpay:'com.google.android.apps.nbu.paisa.user', phonepe:'com.phonepe.app', paytm:'net.one97.paytm' };
-  let link;
-  if(isAndroid && app!=='any' && androidPkgs[app]){
-    link=`intent://pay?${params}#Intent;scheme=upi;package=${androidPkgs[app]};end`;
-  } else {
-    link=`upi://pay?${params}`;
-  }
-  window.location.href=link;
+
+  // Android: Intent URLs open specific app directly (most reliable)
+  const androidLinks={
+    gpay:    `intent://pay?${params}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`,
+    phonepe: `intent://pay?${params}#Intent;scheme=upi;package=com.phonepe.app;end`,
+    paytm:   `intent://pay?${params}#Intent;scheme=upi;package=net.one97.paytm;end`,
+    any:     `upi://pay?${params}`,
+  };
+  // iOS: App-specific URL schemes open the specific app if installed
+  const iosLinks={
+    gpay:    `tez://upi/pay?${params}`,
+    phonepe: `phonepe://pay?${params}`,
+    paytm:   `paytmmp://pay?${params}`,
+    any:     `upi://pay?${params}`,
+  };
+
+  const links = isAndroid ? androidLinks : iosLinks;
+  window.location.href = links[app] || links.any;
+
   setTimeout(()=>{
     if(typeof _showToast==='function') _showToast('Complete payment in your app, then enter Transaction ID below');
   },1500);
