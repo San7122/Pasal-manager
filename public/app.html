@@ -6548,6 +6548,8 @@ function renderDashboard(el){
 }
 
 let _showAdvanced=JSON.parse(localStorage.getItem('pm_show_advanced')||'false');
+let _moreCat=0;
+function selectMoreCat(idx){_moreCat=idx;renderMore();}
 function toggleAdvanced(){
   _showAdvanced=!_showAdvanced;
   localStorage.setItem('pm_show_advanced',JSON.stringify(_showAdvanced));
@@ -6869,17 +6871,22 @@ function renderMoreMenu(el){
     payment:{icon:'credit-card',color:'#16A34A',label:'Subscription',desc:(()=>{ const st=getSubscriptionState(); if(st.status==='grandfathered') return 'Free forever — founding user 🎉'; if(st.status==='paid') return `Active · ${st.daysLeft} days left`; if(st.status==='trial') return `Free trial · ${st.daysLeft} days left`; return '🔒 Pay to unlock'; })()},
     settings:{icon:'settings',color:'#64748B',label:t('settings'),desc:''},
     logout:{icon:'log-out',color:'#DC2626',label:'Logout',desc:'Sign out of your account',action:'signOut()'},
+    admin:{icon:'shield',color:'#9333EA',label:'Admin',desc:'Active users, signups & feature usage'},
   };
   const groups=[
-    {label:'Finance & Reports', fa:'fa-chart-line',   color:'#4F46E5', ids:['dashboard','pl','cashbook','score','export']},
-    {label:'Sales & Customers', fa:'fa-shopping-bag', color:'#7C3AED', ids:['bill','customers','emi']},
-    {label:'Stock & Suppliers', fa:'fa-boxes',        color:'#EA580C', ids:['supplier','kharidi','dealer']},
-    {label:'Staff & Expenses',  fa:'fa-users',        color:'#D97706', ids:['staffBook','expense']},
-    {label:'Loans & Credit',    fa:'fa-hand-holding-usd', color:'#DC2626', ids:['loan']},
-    {label:'Daily Tools',       fa:'fa-bell',         color:'#059669', ids:['morning','supplier-cal','reminders']},
-    {label:'Business',          fa:'fa-building',     color:'#0891B2', ids:['branches']},
-    {label:'Account',           fa:'fa-cog',          color:'#64748B', ids:['payment','settings','logout']},
+    {label:'Finance & Reports', short:'Finance',  fa:'fa-chart-line',       color:'#4F46E5', ids:['dashboard','pl','cashbook','score','export']},
+    {label:'Sales & Customers', short:'Sales',    fa:'fa-shopping-bag',     color:'#7C3AED', ids:['bill','customers','emi']},
+    {label:'Stock & Suppliers', short:'Stock',    fa:'fa-boxes',            color:'#EA580C', ids:['supplier','kharidi','dealer']},
+    {label:'Staff & Expenses',  short:'Staff',    fa:'fa-users',            color:'#D97706', ids:['staffBook','expense']},
+    {label:'Loans & Credit',    short:'Loans',    fa:'fa-hand-holding-usd', color:'#DC2626', ids:['loan']},
+    {label:'Daily Tools',       short:'Daily',    fa:'fa-bell',             color:'#059669', ids:['morning','supplier-cal','reminders']},
+    {label:'Business',          short:'Business', fa:'fa-building',         color:'#0891B2', ids:['branches']},
+    {label:'Account',           short:'Account',  fa:'fa-cog',              color:'#64748B', ids:['payment','settings','logout']},
   ];
+  if(isOwner()) groups.unshift({label:'Admin',short:'Admin',fa:'fa-shield-alt',color:'#9333EA',ids:['admin']});
+  if(_moreCat>=groups.length) _moreCat=0;
+  const active=groups[_moreCat];
+
   const renderItem=i=>`
     <div class="more-menu-item" onclick="${i.action?i.action:(i.locked?`showUnlockModal('${i.id}')`:`goMore('${i.id}')`)}">
       <div class="more-icon" style="background:${i.color}">${licon(i.icon,20,'color:#fff;')}</div>
@@ -6887,25 +6894,44 @@ function renderMoreMenu(el){
       ${i.badgeId?`<span class="sup-cal-badge" id="${i.badgeId}" style="display:none">0</span>`:''}
       ${i.locked?'<div class="more-lock">PRO</div>':''}
     </div>`;
-  const renderGroup=g=>`
-    <div style="display:flex;align-items:center;gap:7px;padding:12px 12px 4px;margin-top:2px">
-      <i class="fas ${g.fa}" style="font-size:11px;color:${g.color}"></i>
-      <span style="font-size:11px;font-weight:700;color:var(--color-text-secondary);letter-spacing:0.6px;text-transform:uppercase">${g.label}</span>
-      <div style="flex:1;height:1px;background:var(--color-border-tertiary);margin-left:4px"></div>
-    </div>
-    ${g.ids.filter(id=>allItems[id]).map(id=>renderItem({id,...allItems[id]})).join('')}`;
-  el.innerHTML=
-    (isOwner()?renderItem({id:'admin',icon:'shield',color:'#9333EA',label:'Admin Dashboard',desc:'Active users, signups, feature usage (owner only)'}):'')
-    +groups.map(renderGroup).join('')
-    +`<div style="text-align:center;padding:16px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:8px">
-      <div style="font-size:12px;color:var(--color-text-secondary)">Pasal Manager v2.0</div>
-      <a href="https://varaai-final.vercel.app" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 14px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);border-radius:20px;text-decoration:none">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#a78bfa" stroke="#a78bfa" stroke-width="1" stroke-linejoin="round"/></svg>
-        <span style="font-size:11px;color:#c4b5fd;font-weight:600">Powered by</span>
-        <span style="font-size:12px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent">VaraAI</span>
-        <span style="font-size:10px;color:#7c6fba;font-style:italic">Divine Intelligence</span>
-      </a>
+
+  el.innerHTML=`
+    <div style="display:flex;height:calc(100dvh - 116px);overflow:hidden;background:var(--color-background-primary)">
+
+      <!-- LEFT SIDEBAR -->
+      <div style="width:76px;flex-shrink:0;overflow-y:auto;background:var(--color-background-secondary);border-right:1px solid var(--color-border-tertiary)">
+        ${groups.map((g,i)=>`
+          <div onclick="selectMoreCat(${i})" style="padding:12px 4px 10px;cursor:pointer;text-align:center;border-left:3px solid ${_moreCat===i?g.color:'transparent'};background:${_moreCat===i?'var(--color-background-primary)':'transparent'};transition:background 0.15s">
+            <div style="width:38px;height:38px;border-radius:10px;background:${_moreCat===i?g.color+'22':'var(--color-border-tertiary)'};display:flex;align-items:center;justify-content:center;margin:0 auto 5px">
+              <i class="fas ${g.fa}" style="font-size:15px;color:${_moreCat===i?g.color:'var(--color-text-secondary)'}"></i>
+            </div>
+            <div style="font-size:9px;font-weight:700;color:${_moreCat===i?'var(--color-text-primary)':'var(--color-text-secondary)'};line-height:1.3;letter-spacing:0.2px">${g.short}</div>
+          </div>
+        `).join('')}
+        <div style="height:16px"></div>
+      </div>
+
+      <!-- RIGHT CONTENT -->
+      <div style="flex:1;overflow-y:auto;background:var(--color-background-primary)">
+        <div style="padding:10px 12px 4px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--color-border-tertiary);margin-bottom:4px">
+          <i class="fas ${active.fa}" style="font-size:13px;color:${active.color}"></i>
+          <span style="font-size:13px;font-weight:700;color:var(--color-text-primary)">${active.label}</span>
+        </div>
+        ${active.ids.filter(id=>allItems[id]).map(id=>renderItem({id,...allItems[id]})).join('')}
+        ${_moreCat===groups.length-1?`
+          <div style="text-align:center;padding:16px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:8px">
+            <div style="font-size:12px;color:var(--color-text-secondary)">Pasal Manager v2.0</div>
+            <a href="https://varaai-final.vercel.app" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 14px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);border-radius:20px;text-decoration:none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#a78bfa" stroke="#a78bfa" stroke-width="1" stroke-linejoin="round"/></svg>
+              <span style="font-size:11px;color:#c4b5fd;font-weight:600">Powered by</span>
+              <span style="font-size:12px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent">VaraAI</span>
+              <span style="font-size:10px;color:#7c6fba;font-style:italic">Divine Intelligence</span>
+            </a>
+          </div>`:''}
+      </div>
+
     </div>`;
+  _renderIcons();
 }
 
 // =============== ADMIN DASHBOARD (owner-only) ===============
