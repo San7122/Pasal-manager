@@ -6876,7 +6876,7 @@ function renderMoreMenu(el){
   const groups=[
     {label:'Finance & Reports', short:'Finance',  fa:'fa-chart-line',       color:'#4F46E5', ids:['dashboard','pl','cashbook','score','export']},
     {label:'Sales & Customers', short:'Sales',    fa:'fa-shopping-bag',     color:'#7C3AED', ids:['bill','customers','emi']},
-    {label:'Stock & Suppliers', short:'Stock',    fa:'fa-boxes',            color:'#EA580C', ids:['supplier','kharidi','dealer']},
+    {label:'Suppliers & Purchase', short:'Suppliers', fa:'fa-boxes',         color:'#EA580C', ids:['supplier','kharidi','dealer']},
     {label:'Staff & Expenses',  short:'Staff',    fa:'fa-users',            color:'#D97706', ids:['staffBook','expense']},
     {label:'Loans & Credit',    short:'Loans',    fa:'fa-hand-holding-usd', color:'#DC2626', ids:['loan']},
     {label:'Daily Tools',       short:'Daily',    fa:'fa-bell',             color:'#059669', ids:['morning','supplier-cal','reminders']},
@@ -6895,8 +6895,9 @@ function renderMoreMenu(el){
       ${i.locked?'<div class="more-lock">PRO</div>':''}
     </div>`;
 
+  const _bnh=window.innerWidth>=768?0:60;
   el.innerHTML=`
-    <div style="display:flex;height:calc(100dvh - 116px);overflow:hidden;background:var(--color-background-primary)">
+    <div style="display:flex;height:calc(100dvh - ${56+_bnh}px);overflow:hidden;background:var(--color-background-primary)">
 
       <!-- LEFT SIDEBAR -->
       <div style="width:76px;flex-shrink:0;overflow-y:auto;background:var(--color-background-secondary);border-right:1px solid var(--color-border-tertiary)">
