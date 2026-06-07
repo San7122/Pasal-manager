@@ -55,6 +55,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <!-- Deferred — safe to defer (used only after login) -->
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.441.0/dist/umd/lucide.min.js" defer onload="try{lucide.createIcons();}catch(e){}"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" defer></script>
@@ -2217,6 +2218,7 @@ let S = { country:'IN', language:'en', shopName:'', ownName:'', ownPhone:'', rem
 const SUB_GRANDFATHER_CUTOFF_MS = new Date('2000-01-01T00:00:00').getTime(); // Set to past — no free forever users
 const SUB_TRIAL_DAYS = 30;
 const SUB_OWNER_WHATSAPP = '919928095269'; // your number for payment notifications (Sanjana — update if wrong)
+const RAZORPAY_KEY_ID = 'rzp_test_SydkPjTWw79H4K'; // Switch to rzp_live_... when approved
 
 const SUB_TIERS = {
   basic: { label:'Basic', features:'Sales, stock, udhaar', priceIN: 499, priceNP: 899 },
@@ -6613,29 +6615,19 @@ function renderPaymentPage(el){
       </div>
     </div>
   `:`
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
-      <button onclick="openUPIPayment('${upiId}',${price},'gpay')" style="padding:14px 8px;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:#1f2937">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/120px-Google_Pay_Logo.svg.png" style="height:28px;object-fit:contain" onerror="this.style.display='none'">
-        GPay
-      </button>
-      <button onclick="openUPIPayment('${upiId}',${price},'phonepe')" style="padding:14px 8px;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:#1f2937">
-        <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#5f259f"/><text x="50" y="75" font-family="Arial,sans-serif" font-weight="900" font-size="65" fill="white" text-anchor="middle">पे</text></svg>
-        PhonePe
-      </button>
-      <button onclick="openUPIPayment('${upiId}',${price},'paytm')" style="padding:14px 8px;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:#1f2937">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Paytm_Logo_%28standalone%29.svg/120px-Paytm_Logo_%28standalone%29.svg.png" style="height:28px;object-fit:contain" onerror="this.style.display='none'">
-        Paytm
-      </button>
+    <!-- Razorpay — automatic payment (UPI, Cards, Netbanking, Wallets) -->
+    <button onclick="initRazorpayPayment()" style="width:100%;padding:16px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;box-shadow:0 4px 16px rgba(124,58,237,0.3);display:flex;align-items:center;justify-content:center;gap:10px">
+      <i class="fas fa-bolt"></i> Pay ${cur}${price} — Instant & Automatic
+    </button>
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap">
+      <span style="font-size:11px;color:#6b7280">Powered by</span>
+      <img src="https://razorpay.com/assets/razorpay-glyph.svg" style="height:14px" onerror="this.style.display='none'">
+      <span style="font-size:11px;font-weight:700;color:#6b7280">Razorpay</span>
+      <span style="font-size:11px;color:#6b7280">·</span>
+      <span style="font-size:11px;color:#6b7280">UPI · Cards · Netbanking · Wallets</span>
     </div>
-    <button onclick="openUPIPayment('${upiId}',${price},'any')" style="width:100%;padding:14px;background:#3b82f6;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:16px;box-shadow:0 2px 8px rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;gap:8px"><i class="fas fa-credit-card"></i> Any other UPI app</button>
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:14px">
-      <div style="font-size:12px;font-weight:700;color:#6b7280;margin-bottom:8px">Or send manually to UPI ID:</div>
-      <div style="background:#f8fafc;padding:10px 12px;border-radius:8px;font-family:monospace;font-size:14px;font-weight:700;color:#1e293b;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span>${upiId}</span>
-        <button onclick="_copyText('${upiId}','UPI ID copied')" style="background:#3b82f6;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Copy</button>
-      </div>
-      <canvas id="upi-qr" style="display:block;margin:8px auto 4px;max-width:160px;border-radius:8px"></canvas>
-      <div style="font-size:11px;color:#64748b;text-align:center">Scan QR with any UPI app</div>
+    <div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:16px;background:#f0fdf4;border-radius:8px;padding:8px">
+      ✅ Payment is verified automatically — no manual steps needed!
     </div>
   `;
 
@@ -6677,18 +6669,19 @@ function renderPaymentPage(el){
         <div style="font-size:13px;color:#64748b;margin-top:8px">${currencyCode} per month • Cancel anytime</div>
       </div>
 
-      <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;text-transform:uppercase;margin-top:4px">Step 1 · Pay using any of these</div>
+      <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;text-transform:uppercase;margin-top:4px">${isNepal?'Step 1 · Pay using':'Pay using'}</div>
       ${payHTML}
 
+      ${isNepal?`
       <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;text-transform:uppercase">Step 2 · Submit Transaction ID</div>
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px">
-        <div style="font-size:12px;color:#6b7280;margin-bottom:10px">After paying, enter your transaction ID below. Approval usually within a few hours.</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:10px">After paying via eSewa/Khalti, enter your transaction ID below.</div>
         <input id="pay-txn-id" type="text" placeholder="Transaction ID (e.g. 9928095269ABC)" style="width:100%;padding:11px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;margin-bottom:10px;box-sizing:border-box">
-        <textarea id="pay-note" placeholder="Note for admin (optional, e.g. 'Paid via Khalti at 3pm')" style="width:100%;padding:11px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;min-height:60px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+        <textarea id="pay-note" placeholder="Note (optional, e.g. 'Paid via Khalti at 3pm')" style="width:100%;padding:11px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;min-height:60px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
         <button onclick="submitPayment()" id="pay-submit-btn" style="width:100%;padding:13px;background:#3b82f6;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="fas fa-paper-plane"></i> Submit Payment & Notify Owner</button>
       </div>
-
-      ${S.pendingPaymentTxnId?`<div style="background:#fef3c7;color:#92400e;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:600">⏳ Payment under review (Txn: <strong>${esc(S.pendingPaymentTxnId)}</strong>). You'll be notified by the owner within 24h.</div>`:''}
+      ${S.pendingPaymentTxnId?`<div style="background:#fef3c7;color:#92400e;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:600">⏳ Payment under review (Txn: <strong>${esc(S.pendingPaymentTxnId)}</strong>). You'll be notified within 24h.</div>`:''}
+      `:''}
 
       <div style="text-align:center;font-size:11px;color:#9ca3af;margin-top:10px;line-height:1.6">
         Questions? WhatsApp Sanjana<br>
@@ -6707,6 +6700,96 @@ function renderPaymentPage(el){
       QRCode.toCanvas(cvs,upiLink,{width:160,margin:1},err=>{ if(err) console.warn(err); });
     };
     setTimeout(renderQR,300);
+  }
+}
+
+function initRazorpayPayment(){
+  const selectedTier = S.subscriptionTier || 'pro';
+  const tierData = SUB_TIERS[selectedTier];
+  const isNepal = S.country === 'NP';
+  const amount = isNepal ? tierData.priceNP : tierData.priceIN;
+  const currency = isNepal ? 'NPR' : 'INR';
+
+  if(typeof Razorpay === 'undefined'){
+    _showToast('Loading payment gateway...');
+    setTimeout(initRazorpayPayment, 1000);
+    return;
+  }
+
+  const options = {
+    key: RAZORPAY_KEY_ID,
+    amount: amount * 100, // Razorpay expects paise
+    currency,
+    name: 'Pasal Manager',
+    description: tierData.label + ' Plan — Monthly',
+    image: 'https://pasalmanagers.com/logo-icon.svg?v=2',
+    prefill: {
+      name: S.shopName || S.ownName || '',
+      email: currentUser?.email || '',
+      contact: S.ownPhone || '',
+    },
+    notes: { tier: selectedTier, shop: S.shopName || '' },
+    theme: { color: '#7c3aed' },
+    handler: async function(response){
+      await _onRazorpaySuccess(response, amount, currency, selectedTier, tierData.label);
+    },
+    modal: {
+      ondismiss: function(){
+        if(typeof _showToast==='function') _showToast('Payment cancelled');
+      }
+    }
+  };
+
+  const rzp = new Razorpay(options);
+  rzp.on('payment.failed', function(resp){
+    alert('❌ Payment failed: ' + (resp.error.description || 'Unknown error'));
+  });
+  rzp.open();
+}
+
+async function _onRazorpaySuccess(response, amount, currency, tier, tierLabel){
+  try {
+    if(typeof _showToast==='function') _showToast('Verifying payment...');
+    const expiry = new Date(Date.now() + 30*86400000).toISOString();
+
+    // Save approved payment to Supabase
+    if(currentUser && sb){
+      await sb.from('pm_payment_requests').insert({
+        user_id: currentUser.id,
+        email: currentUser.email || '',
+        shop_name: S.shopName || '',
+        country: S.country || 'IN',
+        amount, currency,
+        method: 'razorpay',
+        tier,
+        txn_id: response.razorpay_payment_id,
+        note: JSON.stringify({ payment_id: response.razorpay_payment_id }),
+        status: 'approved',
+        approved_at: new Date().toISOString(),
+        approved_until: expiry,
+        approved_by: 'razorpay_auto',
+      });
+    }
+
+    // Unlock subscription immediately
+    S.subscriptionStatus = 'paid';
+    S.subscriptionExpiry = new Date(expiry).getTime();
+    S.subscriptionTier = tier;
+    S.pendingPaymentTxnId = '';
+    cacheWrite();
+
+    // Remove paywall if showing
+    document.getElementById('paywall-overlay')?.remove();
+    if(typeof _renderTrialBanner==='function') _renderTrialBanner();
+
+    if(typeof _showToast==='function') _showToast('🎉 Payment successful! ' + tierLabel + ' plan activated!');
+
+    // Go back to dashboard
+    setTimeout(()=>{ if(typeof switchTab==='function') switchTab('today'); }, 1500);
+
+  } catch(e){
+    console.error('Razorpay success handler error:', e);
+    if(typeof _showToast==='function') _showToast('✅ Payment received! Activating subscription...');
   }
 }
 
