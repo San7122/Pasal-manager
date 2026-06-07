@@ -6702,10 +6702,18 @@ function renderPaymentPage(el){
 }
 
 function openUPIPayment(upiId, amount, app){
-  // Standard UPI deep link — works for ALL UPI apps (GPay, PhonePe, Paytm, BHIM etc)
-  // App-specific schemes (gpay://, phonepe://) are unreliable and cause "Something went wrong"
-  const upiLink=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent('Pasal Manager')}&am=${amount}&cu=INR`;
-  window.location.href = upiLink;
+  const params=`pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent('Pasal Manager')}&am=${amount}&cu=INR`;
+  const isAndroid=/android/i.test(navigator.userAgent);
+  // Android: use Intent URLs to open specific app directly
+  // iOS: use generic upi:// (iOS doesn't support app-specific UPI schemes)
+  const androidPkgs={ gpay:'com.google.android.apps.nbu.paisa.user', phonepe:'com.phonepe.app', paytm:'net.one97.paytm' };
+  let link;
+  if(isAndroid && app!=='any' && androidPkgs[app]){
+    link=`intent://pay?${params}#Intent;scheme=upi;package=${androidPkgs[app]};end`;
+  } else {
+    link=`upi://pay?${params}`;
+  }
+  window.location.href=link;
   setTimeout(()=>{
     if(typeof _showToast==='function') _showToast('Complete payment in your app, then enter Transaction ID below');
   },1500);
