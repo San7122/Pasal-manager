@@ -6548,8 +6548,8 @@ function renderDashboard(el){
 }
 
 let _showAdvanced=JSON.parse(localStorage.getItem('pm_show_advanced')||'false');
-let _moreCat=0;
-function selectMoreCat(idx){_moreCat=idx;renderMore();}
+let _moreCat='finance';
+function selectMoreCat(id){_moreCat=id;renderMore();}
 function toggleAdvanced(){
   _showAdvanced=!_showAdvanced;
   localStorage.setItem('pm_show_advanced',JSON.stringify(_showAdvanced));
@@ -6874,18 +6874,21 @@ function renderMoreMenu(el){
     admin:{icon:'shield',color:'#9333EA',label:'Admin',desc:'Active users, signups & feature usage'},
   };
   const groups=[
-    {label:'Finance & Reports', short:'Finance',  fa:'fa-chart-line',       color:'#4F46E5', ids:['dashboard','pl','cashbook','score','export']},
-    {label:'Sales & Customers', short:'Sales',    fa:'fa-shopping-bag',     color:'#7C3AED', ids:['bill','customers','emi']},
-    {label:'Suppliers & Purchase', short:'Suppliers', fa:'fa-boxes',         color:'#EA580C', ids:['supplier','kharidi','dealer']},
-    {label:'Staff & Expenses',  short:'Staff',    fa:'fa-users',            color:'#D97706', ids:['staffBook','expense']},
-    {label:'Loans & Credit',    short:'Loans',    fa:'fa-hand-holding-usd', color:'#DC2626', ids:['loan']},
-    {label:'Daily Tools',       short:'Daily',    fa:'fa-bell',             color:'#059669', ids:['morning','supplier-cal','reminders']},
-    {label:'Business',          short:'Business', fa:'fa-building',         color:'#0891B2', ids:['branches']},
-    {label:'Account',           short:'Account',  fa:'fa-cog',              color:'#64748B', ids:['payment','settings','logout']},
+    {id:'today',    label:'Today',              short:'Today',     fa:'fa-store',            color:'#7C3AED', direct:"switchTab('today')"},
+    {id:'katha',    label:'Katha (Sales)',       short:'Katha',     fa:'fa-book-open',        color:'#059669', direct:"switchTab('katha')"},
+    {id:'udhaar',   label:'Udhaar',             short:'Udhaar',    fa:'fa-hand-holding-heart',color:'#E11D48', direct:"switchTab('udhaar')"},
+    {id:'stock',    label:'Stock',              short:'Stock',     fa:'fa-cubes',            color:'#0D9488', direct:"switchTab('stock')"},
+    {id:'finance',  label:'Finance & Reports',  short:'Finance',   fa:'fa-chart-line',       color:'#4F46E5', ids:['dashboard','pl','cashbook','score','export']},
+    {id:'sales',    label:'Sales & Customers',  short:'Sales',     fa:'fa-shopping-bag',     color:'#7C3AED', ids:['bill','customers','emi']},
+    {id:'suppliers',label:'Suppliers & Purchase',short:'Suppliers',fa:'fa-boxes',            color:'#EA580C', ids:['supplier','kharidi','dealer']},
+    {id:'staff',    label:'Staff & Expenses',   short:'Staff',     fa:'fa-users',            color:'#D97706', ids:['staffBook','expense']},
+    {id:'loans',    label:'Loans & Credit',     short:'Loans',     fa:'fa-hand-holding-usd', color:'#DC2626', ids:['loan']},
+    {id:'daily',    label:'Daily Tools',        short:'Daily',     fa:'fa-bell',             color:'#059669', ids:['morning','supplier-cal','reminders']},
+    {id:'business', label:'Business',           short:'Business',  fa:'fa-building',         color:'#0891B2', ids:['branches']},
+    {id:'account',  label:'Account',            short:'Account',   fa:'fa-cog',              color:'#64748B', ids:['payment','settings','logout']},
   ];
-  if(isOwner()) groups.unshift({label:'Admin',short:'Admin',fa:'fa-shield-alt',color:'#9333EA',ids:['admin']});
-  if(_moreCat>=groups.length) _moreCat=0;
-  const active=groups[_moreCat];
+  if(isOwner()) groups.unshift({id:'admin',label:'Admin',short:'Admin',fa:'fa-shield-alt',color:'#9333EA',ids:['admin']});
+  const active=groups.find(g=>g.id===_moreCat && !g.direct) || groups.find(g=>!g.direct);
 
   const renderItem=i=>`
     <div class="more-menu-item" onclick="${i.action?i.action:(i.locked?`showUnlockModal('${i.id}')`:`goMore('${i.id}')`)}">
@@ -6901,14 +6904,14 @@ function renderMoreMenu(el){
 
       <!-- LEFT SIDEBAR -->
       <div style="width:76px;flex-shrink:0;overflow-y:auto;background:var(--color-background-secondary);border-right:1px solid var(--color-border-tertiary)">
-        ${groups.map((g,i)=>`
-          <div onclick="selectMoreCat(${i})" style="padding:12px 4px 10px;cursor:pointer;text-align:center;border-left:3px solid ${_moreCat===i?g.color:'transparent'};background:${_moreCat===i?'var(--color-background-primary)':'transparent'};transition:background 0.15s">
-            <div style="width:38px;height:38px;border-radius:10px;background:${_moreCat===i?g.color+'22':'var(--color-border-tertiary)'};display:flex;align-items:center;justify-content:center;margin:0 auto 5px">
-              <i class="fas ${g.fa}" style="font-size:15px;color:${_moreCat===i?g.color:'var(--color-text-secondary)'}"></i>
+        ${groups.map(g=>`
+          <div onclick="${g.direct?g.direct:`selectMoreCat('${g.id}')`}" style="padding:12px 4px 10px;cursor:pointer;text-align:center;border-left:3px solid ${!g.direct&&_moreCat===g.id?g.color:'transparent'};background:${!g.direct&&_moreCat===g.id?'var(--color-background-primary)':'transparent'};transition:background 0.15s">
+            <div style="width:38px;height:38px;border-radius:10px;background:${!g.direct&&_moreCat===g.id?g.color+'22':g.direct?g.color+'15':'var(--color-border-tertiary)'};display:flex;align-items:center;justify-content:center;margin:0 auto 5px">
+              <i class="fas ${g.fa}" style="font-size:15px;color:${!g.direct&&_moreCat===g.id?g.color:g.direct?g.color:'var(--color-text-secondary)'}"></i>
             </div>
-            <div style="font-size:9px;font-weight:700;color:${_moreCat===i?'var(--color-text-primary)':'var(--color-text-secondary)'};line-height:1.3;letter-spacing:0.2px">${g.short}</div>
+            <div style="font-size:9px;font-weight:700;color:${!g.direct&&_moreCat===g.id?'var(--color-text-primary)':g.direct?g.color:'var(--color-text-secondary)'};line-height:1.3;letter-spacing:0.2px">${g.short}</div>
           </div>
-        `).join('')}
+          ${g.id==='stock'?'<div style="height:1px;background:var(--color-border-tertiary);margin:4px 8px"></div>':''}`).join('')}
         <div style="height:16px"></div>
       </div>
 
@@ -6918,8 +6921,8 @@ function renderMoreMenu(el){
           <i class="fas ${active.fa}" style="font-size:13px;color:${active.color}"></i>
           <span style="font-size:13px;font-weight:700;color:var(--color-text-primary)">${active.label}</span>
         </div>
-        ${active.ids.filter(id=>allItems[id]).map(id=>renderItem({id,...allItems[id]})).join('')}
-        ${_moreCat===groups.length-1?`
+        ${(active.ids||[]).filter(id=>allItems[id]).map(id=>renderItem({id,...allItems[id]})).join('')}
+        ${active.id==='account'?`
           <div style="text-align:center;padding:16px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:8px">
             <div style="font-size:12px;color:var(--color-text-secondary)">Pasal Manager v2.0</div>
             <a href="https://varaai-final.vercel.app" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 14px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);border-radius:20px;text-decoration:none">
