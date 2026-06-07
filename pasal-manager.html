@@ -6901,6 +6901,62 @@ function _adminKpiCard(label, value, sub, color, icon){
   </div>`;
 }
 
+function renderPaymentSettingsPanel(){
+  return `
+    <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:18px;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:800;color:var(--color-text-primary);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+        <i class="fas fa-credit-card" style="color:#3b82f6;font-size:18px"></i> Payment Settings
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:6px">🇮🇳 India UPI ID</label>
+          <input id="admin-upi-id" type="text" placeholder="example@upi" value="${S.upiId||''}" style="width:100%;padding:10px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:6px">🇳🇵 Nepal Payment ID</label>
+          <input id="admin-np-payment-id" type="text" placeholder="9800000000" value="${S.npPaymentId||''}" style="width:100%;padding:10px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box">
+        </div>
+      </div>
+
+      <button onclick="savePaymentSettings()" style="width:100%;padding:12px;background:#3b82f6;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+        💾 Save Payment IDs
+      </button>
+      <div style="font-size:11px;color:var(--color-text-secondary);margin-top:8px">Changes apply to all users immediately</div>
+    </div>
+  `;
+}
+
+async function savePaymentSettings(){
+  const upiId = document.getElementById('admin-upi-id')?.value.trim() || '';
+  const npPaymentId = document.getElementById('admin-np-payment-id')?.value.trim() || '';
+
+  if(!upiId && !npPaymentId){
+    alert('Please enter at least one payment ID');
+    return;
+  }
+
+  try {
+    S.upiId = upiId;
+    S.npPaymentId = npPaymentId;
+    cacheWrite();
+
+    // Also update in Supabase if logged in
+    if(currentUser && sb){
+      await sb.from('analytics_users').update({
+        upi_id: upiId,
+        np_payment_id: npPaymentId,
+        updated_at: new Date().toISOString()
+      }).eq('id', currentUser.id);
+    }
+
+    alert('✅ Payment IDs saved!\n\nIndia UPI: ' + (upiId || 'Not set') + '\nNepal ID: ' + (npPaymentId || 'Not set'));
+  } catch(e){
+    console.error('Error saving payment settings:', e);
+    alert('❌ Error saving: ' + e.message);
+  }
+}
+
 async function renderAdminDashboard(el){
   el=el||document.getElementById('page-more');
   if(!isOwner()){
@@ -6926,6 +6982,9 @@ async function renderAdminDashboard(el){
       </div>
       <div id="admin-loading" style="text-align:center;padding:40px 0;color:var(--color-text-secondary)">Loading metrics…</div>
       <div id="admin-content" style="display:none">
+        <!-- Payment Settings -->
+        ${renderPaymentSettingsPanel()}
+
         <!-- KPI cards -->
         <div id="admin-kpis" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px"></div>
         <!-- Charts row 1: Daily signups + Daily active -->
