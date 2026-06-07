@@ -6554,7 +6554,8 @@ function renderPaymentPage(el){
   const nepalPayId=S.npPaymentId||'9928095269'; // fallback
   const shop=S.shopName||'Pasal Manager';
 
-  // Get price for selected tier
+  // Get price for selected tier — always default to pro unless user explicitly changed it
+  if(!S.subscriptionTier || S.subscriptionTier==='basic' && !S._tierManuallyChanged) S.subscriptionTier='pro';
   const selectedTier = S.subscriptionTier || 'pro';
   const tierData = SUB_TIERS[selectedTier];
   const price = isNepal ? tierData.priceNP : tierData.priceIN;
@@ -6597,19 +6598,29 @@ function renderPaymentPage(el){
       </div>
     </div>
   `:`
-    <button onclick="openUPIPayment('${upiId}',${price})" style="width:100%;padding:14px;background:#3b82f6;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:16px;box-shadow:0 2px 8px rgba(59,130,246,0.2);transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#2563eb';this.style.boxShadow='0 4px 12px rgba(59,130,246,0.3)'" onmouseout="this.style.background='#3b82f6';this.style.boxShadow='0 2px 8px rgba(59,130,246,0.2)'"><i class="fas fa-credit-card"></i> Pay ₹${price} with UPI</button>
-    <div style="background:#fff;border:2px solid #ea580c;border-radius:14px;padding:16px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="background:#ea580c;color:#fff;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800">₹</div>
-        <div style="font-size:15px;font-weight:800;color:#1f2937">Manual Payment (if above didn't work)</div>
-      </div>
-      <div style="font-size:12px;color:#6b7280;margin-bottom:8px">Send to:</div>
-      <div style="background:#fff7ed;padding:10px 12px;border-radius:8px;font-family:monospace;font-size:15px;font-weight:700;color:#9a3412;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+      <button onclick="openUPIPayment('${upiId}',${price},'gpay')" style="padding:14px 8px;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:#1f2937">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/120px-Google_Pay_Logo.svg.png" style="height:28px;object-fit:contain" onerror="this.style.display='none'">
+        GPay
+      </button>
+      <button onclick="openUPIPayment('${upiId}',${price},'phonepe')" style="padding:14px 8px;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:#1f2937">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/PhonePe_Logo.png/120px-PhonePe_Logo.png" style="height:28px;object-fit:contain" onerror="this.style.display='none'">
+        PhonePe
+      </button>
+      <button onclick="openUPIPayment('${upiId}',${price},'paytm')" style="padding:14px 8px;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:#1f2937">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Paytm_Logo_%28standalone%29.svg/120px-Paytm_Logo_%28standalone%29.svg.png" style="height:28px;object-fit:contain" onerror="this.style.display='none'">
+        Paytm
+      </button>
+    </div>
+    <button onclick="openUPIPayment('${upiId}',${price},'any')" style="width:100%;padding:14px;background:#3b82f6;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:16px;box-shadow:0 2px 8px rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;gap:8px"><i class="fas fa-credit-card"></i> Any other UPI app</button>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:#6b7280;margin-bottom:8px">Or send manually to UPI ID:</div>
+      <div style="background:#f8fafc;padding:10px 12px;border-radius:8px;font-family:monospace;font-size:14px;font-weight:700;color:#1e293b;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span>${upiId}</span>
-        <button onclick="_copyText('${upiId}','UPI ID copied')" style="background:#ea580c;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Copy</button>
+        <button onclick="_copyText('${upiId}','UPI ID copied')" style="background:#3b82f6;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Copy</button>
       </div>
-      <div style="margin-top:10px"><canvas id="upi-qr" style="display:block;margin:0 auto;max-width:180px"></canvas></div>
-      <div style="font-size:11px;color:#9a3412;text-align:center;margin-top:6px">Or scan QR code</div>
+      <canvas id="upi-qr" style="display:block;margin:8px auto 4px;max-width:160px;border-radius:8px"></canvas>
+      <div style="font-size:11px;color:#64748b;text-align:center">Scan QR with any UPI app</div>
     </div>
   `;
 
@@ -6620,7 +6631,7 @@ function renderPaymentPage(el){
     const isRecommended = tier.recommended;
     const faIcons = { basic: 'fa-box', pro: 'fa-star', enterprise: 'fa-rocket' };
     return `
-      <div onclick="S.subscriptionTier='${key}';renderPaymentPage(document.getElementById('payment-page'))"
+      <div onclick="S.subscriptionTier='${key}';S._tierManuallyChanged=true;renderPaymentPage(document.getElementById('payment-page'))"
         style="cursor:pointer;padding:18px;border:1px solid ${isSelected?'#3b82f6':'#d1d5db'};border-radius:14px;background:${isSelected?'#f0f9ff':'#ffffff'};transition:all 0.3s;box-shadow:${isSelected?'0 4px 12px rgba(59,130,246,0.1)':'none'}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
           <div style="font-size:15px;font-weight:800;color:#1f2937;display:flex;align-items:center;gap:8px"><i class="fas ${faIcons[key]}" style="color:#3b82f6;font-size:16px"></i> ${tier.label}</div>
@@ -6635,7 +6646,7 @@ function renderPaymentPage(el){
     `;
   }).join('');
 
-  el.innerHTML=backBtn()+`
+  el.innerHTML=`
     <div style="padding:14px 14px 80px;display:flex;flex-direction:column;gap:14px" id="payment-page">
       ${badge}
 
@@ -6659,7 +6670,7 @@ function renderPaymentPage(el){
         <div style="font-size:12px;color:#6b7280;margin-bottom:10px">After paying, enter your transaction ID below. Approval usually within a few hours.</div>
         <input id="pay-txn-id" type="text" placeholder="Transaction ID (e.g. 9928095269ABC)" style="width:100%;padding:11px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;margin-bottom:10px;box-sizing:border-box">
         <textarea id="pay-note" placeholder="Note for admin (optional, e.g. 'Paid via Khalti at 3pm')" style="width:100%;padding:11px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;min-height:60px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
-        <button onclick="submitPayment()" id="pay-submit-btn" style="width:100%;padding:13px;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;margin-top:10px">Submit Payment & Notify Owner</button>
+        <button onclick="submitPayment()" id="pay-submit-btn" style="width:100%;padding:13px;background:#3b82f6;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="fas fa-paper-plane"></i> Submit Payment & Notify Owner</button>
       </div>
 
       ${S.pendingPaymentTxnId?`<div style="background:#fef3c7;color:#92400e;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:600">⏳ Payment under review (Txn: <strong>${esc(S.pendingPaymentTxnId)}</strong>). You'll be notified by the owner within 24h.</div>`:''}
@@ -6671,23 +6682,30 @@ function renderPaymentPage(el){
     </div>
   `;
 
-  // Render UPI QR for India
-  if(!isNepal && typeof QRCode!=='undefined'){
-    setTimeout(()=>{
+  // Render UPI QR — retry until QRCode library loads (it's deferred)
+  if(!isNepal){
+    const renderQR=()=>{
       const cvs=document.getElementById('upi-qr');
       if(!cvs) return;
+      if(typeof QRCode==='undefined'){ setTimeout(renderQR,500); return; }
       const upiLink=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent('Pasal Manager')}&am=${price}&cu=INR&tn=${encodeURIComponent('PM Subscription')}`;
-      QRCode.toCanvas(cvs,upiLink,{width:180,margin:1},err=>{ if(err) console.warn(err); });
-    },100);
+      QRCode.toCanvas(cvs,upiLink,{width:160,margin:1},err=>{ if(err) console.warn(err); });
+    };
+    setTimeout(renderQR,300);
   }
 }
 
-function openUPIPayment(upiId, amount){
-  const upiLink=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent('Pasal Manager')}&am=${amount}&cu=INR&tn=${encodeURIComponent('PM Subscription')}`;
-  window.location.href=upiLink;
-  // Fallback for desktop (show alert if UPI app doesn't open)
+function openUPIPayment(upiId, amount, app){
+  const base=`pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent('Pasal Manager')}&am=${amount}&cu=INR&tn=${encodeURIComponent('PM Subscription')}`;
+  const links={
+    gpay:    `gpay://upi/pay?${base}`,
+    phonepe: `phonepe://pay?${base}`,
+    paytm:   `paytmmp://pay?${base}`,
+    any:     `upi://pay?${base}`,
+  };
+  window.location.href = links[app] || links.any;
   setTimeout(()=>{
-    if(typeof _showToast==='function') _showToast('Open your UPI app and complete payment');
+    if(typeof _showToast==='function') _showToast('Complete payment in your app, then enter Transaction ID below');
   },1500);
 }
 
