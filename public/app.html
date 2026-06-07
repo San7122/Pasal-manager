@@ -2214,7 +2214,7 @@ const UNLOCK_CODE = 'PASAL2025';
 let S = { country:'IN', language:'en', shopName:'', ownName:'', ownPhone:'', reminderTime:'21:00', gstin:'', bizAddress:'', bizState:'', upiId:'', openingCash:0, openingCapital:0, openingStock:0, trialStartDate:0, subscriptionStatus:null, subscriptionExpiry:0, subscriptionTier:'pro', pendingPaymentTxnId:'' };
 
 // ───── SUBSCRIPTION CONSTANTS ─────
-const SUB_GRANDFATHER_CUTOFF_MS = new Date('2026-06-06T00:00:00').getTime(); // Users created before this date = free forever
+const SUB_GRANDFATHER_CUTOFF_MS = new Date('2000-01-01T00:00:00').getTime(); // Set to past — no free forever users
 const SUB_TRIAL_DAYS = 30;
 const SUB_OWNER_WHATSAPP = '919928095269'; // your number for payment notifications (Sanjana — update if wrong)
 
@@ -4538,7 +4538,7 @@ function renderToday(){
         const profit=i.cost>0?i.amt-i.cost:null;
         if(confirmId===i.id) return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${t('delete')}</div></div><div class="confirm-row"><button class="btn-confirm yes" onclick="delSale('${i.id}')">${t('yesDelete')}</button><button class="btn-confirm no" onclick="confirmId=null;renderToday()">${t('cancel')}</button></div></div>`;
         const cust=i.customerId?customers.find(c=>c.id===i.customerId):null;
-        return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.cost>0?' · Cost: '+fmt(i.cost):''}${i.note?' · '+i.note:''}${cust?` · <span style="color:var(--color-accent);font-weight:600;display:inline-flex;align-items:center;gap:3px"><i data-lucide="user" style="width:11px;height:11px"></i>${esc(cust.name)}</span>`:''}</div></div>${profit!==null?`<div style="text-align:center;margin-right:4px"><div style="font-size:13px;font-weight:700;color:${profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(profit)}</div><div style="font-size:10px;color:var(--color-text-secondary)">profit</div></div>`:''}<button class="btn-icon" title="Print receipt" style="background:#EFF6FF;color:#1D4ED8" onclick="printSaleReceipt('${i.id}')"><i data-lucide="printer" style="width:13px;height:13px"></i></button>${S.country==='IN'&&S.upiId?`<button class="btn-icon" title="Collect via UPI" style="background:#ECFDF5;color:#059669" onclick="openUpiModal(${i.amt})"><i data-lucide="qr-code" style="width:13px;height:13px"></i></button>`:''}<button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderToday()">✕</button></div>`;
+        return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.cost>0?' · Cost: '+fmt(i.cost):''}${i.note?' · '+i.note:''}${cust?` · <span style="color:var(--color-accent);font-weight:600;display:inline-flex;align-items:center;gap:3px"><i data-lucide="user" style="width:11px;height:11px"></i>${esc(cust.name)}</span>`:''}</div></div>${profit!==null?`<div style="text-align:center;margin-right:4px"><div style="font-size:13px;font-weight:700;color:${profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(profit)}</div><div style="font-size:10px;color:var(--color-text-secondary)">profit</div></div>`:''}<button class="btn-icon" title="Print receipt" style="background:#EFF6FF;color:#1D4ED8" onclick="printSaleReceipt('${i.id}')"><i data-lucide="printer" style="width:13px;height:13px"></i></button>${(S.country==='IN'&&S.upiId)||(S.country==='NP'&&(S.esewaId||S.npPaymentId))?`<button class="btn-icon" title="${S.country==='NP'?'Collect via eSewa/Khalti':'Collect via UPI'}" style="background:#ECFDF5;color:#059669" onclick="openUpiModal(${i.amt})"><i data-lucide="qr-code" style="width:13px;height:13px"></i></button>`:''}<button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderToday()">✕</button></div>`;
       }).join('')}`;
   _renderIcons();
   setTimeout(()=>{const el=document.getElementById('s-note');if(el&&todayTab==='sale')el.focus();},50);
@@ -4614,6 +4614,10 @@ async function delSale(id){
 }
 // ===== UPI PAYMENT =====
 let _upiAmt=0, _upiLink='';
+function _buildEsewaQR(phone,name){
+  // eSewa QR format: simple JSON with name + eSewa_id
+  return JSON.stringify({"name":name||'Shop',"eSewa_id":phone});
+}
 function _payConfig(){
   if(S.country==='NP'){
     const esewa=S.esewaId||'';
@@ -4626,9 +4630,14 @@ function _payConfig(){
       esewaId:esewa,
       khaltiId:khalti,
       phoneNum:phone,
-      // QR contains phone number — customer manually opens their app & enters it
-      makeLink:(amt,name)=>id, // just the ID, customer types it in their app
-      noIdMsg:'Add your phone number in <b>Settings → Nepal Payment</b> first.'
+      makeLink:(amt,name)=>{
+        // Full EMV payload already (Fonepay or manual paste) — encode as-is
+        if(id.startsWith('000201')) return id;
+        // Plain eSewa phone number — generate proper eSewa JSON QR
+        if(esewa&&/^\d{10}$/.test(esewa)) return _buildEsewaQR(esewa,name||S.shopName||'Shop');
+        return id;
+      },
+      noIdMsg:'Add your eSewa ID in <b>Settings → Nepal Payment / Collect → eSewa ID</b> first.'
     };
   }
   return {
