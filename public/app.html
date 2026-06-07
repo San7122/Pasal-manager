@@ -3827,8 +3827,10 @@ async function afterLogin(){
     setTimeout(_checkGuestNudge, 5000); // Show nudge after 5s if eligible
   }
 
-  // Subscription: check if a pending payment was approved (silently, best-effort)
-  if(S.pendingPaymentTxnId) _checkSubscriptionApproval();
+  // Subscription: check if payment was approved — runs every login so unlock is automatic
+  if(currentUser && S.subscriptionStatus!=='paid' && S.subscriptionStatus!=='grandfathered'){
+    _checkSubscriptionApproval();
+  }
   // Subscription: show trial countdown banner if ≤7 days left
   _renderTrialBanner();
   // Subscription: enforce paywall if expired
@@ -3837,6 +3839,10 @@ async function afterLogin(){
   setTimeout(checkOverdueNotification,1500);
   setTimeout(initReminderCheck,2000);
   setTimeout(_wqFlush,3000);       // Retry any queued offline writes
+  // Poll for payment approval every 5 min while app is open
+  if(currentUser && S.subscriptionStatus!=='paid' && S.subscriptionStatus!=='grandfathered'){
+    setInterval(()=>{ if(S.subscriptionStatus!=='paid') _checkSubscriptionApproval(); }, 5*60*1000);
+  }
   setTimeout(_updateOfflineBadge,3500); // Show offline badge if anything is queued
   setTimeout(() => { if (_shouldShowEveningSummary()) showEveningSummary(); }, 4000);
   setTimeout(_checkBackupReminder,5000); // Weekly backup reminder
