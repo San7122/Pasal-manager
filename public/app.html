@@ -6931,60 +6931,174 @@ function _adminKpiCard(label, value, sub, color, icon){
   </div>`;
 }
 
+function _adminCard(icon, color, title, content){
+  return `<div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:18px;margin-bottom:14px">
+    <div style="font-size:14px;font-weight:800;color:var(--color-text-primary);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+      <i class="fas ${icon}" style="color:${color};font-size:16px"></i> ${title}
+    </div>${content}</div>`;
+}
+
+function _adminInput(id, label, placeholder, value='', type='text'){
+  return `<div style="margin-bottom:10px">
+    <label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">${label}</label>
+    <input id="${id}" type="${type}" placeholder="${placeholder}" value="${esc(value)}" style="width:100%;padding:9px 10px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box">
+  </div>`;
+}
+
+function _adminBtn(onclick, label, color='#3b82f6'){
+  return `<button onclick="${onclick}" style="width:100%;padding:11px;background:${color};color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px">${label}</button>`;
+}
+
 function renderPaymentSettingsPanel(){
   return `
-    <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:18px;margin-bottom:16px">
-      <div style="font-size:15px;font-weight:800;color:var(--color-text-primary);margin-bottom:14px;display:flex;align-items:center;gap:8px">
-        <i class="fas fa-credit-card" style="color:#3b82f6;font-size:18px"></i> Payment Settings
+    ${_adminCard('fa-credit-card','#3b82f6','1. Payment IDs',`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>${_adminInput('admin-upi-id','🇮🇳 India UPI ID','example@upi', S.upiId||'')}</div>
+        <div>${_adminInput('admin-np-payment-id','🇳🇵 Nepal Payment ID','9800000000', S.npPaymentId||'')}</div>
       </div>
+      ${_adminBtn('savePaymentSettings()','💾 Save Payment IDs')}
+    `)}
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-        <div>
-          <label style="font-size:12px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:6px">🇮🇳 India UPI ID</label>
-          <input id="admin-upi-id" type="text" placeholder="example@upi" value="${S.upiId||''}" style="width:100%;padding:10px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box">
-        </div>
-        <div>
-          <label style="font-size:12px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:6px">🇳🇵 Nepal Payment ID</label>
-          <input id="admin-np-payment-id" type="text" placeholder="9800000000" value="${S.npPaymentId||''}" style="width:100%;padding:10px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box">
-        </div>
+    ${_adminCard('fa-tag','#8b5cf6','2. Subscription Prices',`
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div><label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Basic ₹</label><input id="admin-price-basic-in" type="number" value="${SUB_TIERS.basic.priceIN}" style="width:100%;padding:9px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box"></div>
+        <div><label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Pro ₹ ⭐</label><input id="admin-price-pro-in" type="number" value="${SUB_TIERS.pro.priceIN}" style="width:100%;padding:9px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box"></div>
+        <div><label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Ent ₹ 🚀</label><input id="admin-price-ent-in" type="number" value="${SUB_TIERS.enterprise.priceIN}" style="width:100%;padding:9px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box"></div>
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div><label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Basic रू</label><input id="admin-price-basic-np" type="number" value="${SUB_TIERS.basic.priceNP}" style="width:100%;padding:9px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box"></div>
+        <div><label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Pro रू ⭐</label><input id="admin-price-pro-np" type="number" value="${SUB_TIERS.pro.priceNP}" style="width:100%;padding:9px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box"></div>
+        <div><label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Ent रू 🚀</label><input id="admin-price-ent-np" type="number" value="${SUB_TIERS.enterprise.priceNP}" style="width:100%;padding:9px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box"></div>
+      </div>
+      ${_adminBtn('adminSavePrices()','💰 Save Prices','#8b5cf6')}
+    `)}
 
-      <button onclick="savePaymentSettings()" style="width:100%;padding:12px;background:#3b82f6;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
-        💾 Save Payment IDs
+    ${_adminCard('fa-clock','#f59e0b','3. Trial Period',`
+      ${_adminInput('admin-trial-days','Free Trial Days (default: 30)','30', SUB_TRIAL_DAYS+'','number')}
+      ${_adminBtn('adminSaveTrialDays()','⏱ Save Trial Days','#f59e0b')}
+    `)}
+
+    ${_adminCard('fa-gift','#10b981','4. Grant Free Access',`
+      ${_adminInput('admin-free-email','User Email','user@example.com','')}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div><label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Free Days</label><input id="admin-free-days" type="number" placeholder="30" value="30" style="width:100%;padding:9px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box"></div>
+        <div><label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Tier</label><select id="admin-free-tier" style="width:100%;padding:9px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box"><option value="basic">Basic</option><option value="pro" selected>Pro</option><option value="enterprise">Enterprise</option></select></div>
+      </div>
+      ${_adminBtn('adminGrantFreeAccess()','🎁 Grant Free Access','#10b981')}
+    `)}
+
+    ${_adminCard('fa-ban','#ef4444','5. Revoke Subscription',`
+      ${_adminInput('admin-revoke-email','User Email to Revoke','user@example.com','')}
+      <div style="font-size:11px;color:#6b7280;margin-bottom:8px">⚠️ User will immediately lose access and see paywall</div>
+      ${_adminBtn('adminRevokeSubscription()','🚫 Revoke Subscription','#ef4444')}
+    `)}
+
+    ${_adminCard('fa-whatsapp','#25d366','6. WhatsApp Number',`
+      ${_adminInput('admin-whatsapp','Notification WhatsApp (with country code)','919928095269', SUB_OWNER_WHATSAPP)}
+      ${_adminBtn('adminSaveWhatsApp()','📱 Save WhatsApp Number','#25d366')}
+    `)}
+
+    ${_adminCard('fa-bullhorn','#f97316','7. Broadcast Message',`
+      <textarea id="admin-broadcast-msg" placeholder="Type your message..." style="width:100%;padding:10px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;min-height:80px;box-sizing:border-box;font-family:inherit;resize:vertical;margin-bottom:8px">🎉 Pasal Manager Update!\n\nNew features available. Open the app to see what's new!</textarea>
+      ${_adminBtn('adminBroadcast()','📢 Open WhatsApp Broadcast','#f97316')}
+    `)}
+
+    <div id="admin-subscribers-section">
+      <button onclick="adminLoadSubscribers()" style="width:100%;padding:12px;background:#fff;color:#3b82f6;border:2px solid #3b82f6;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:14px">
+        <i class="fas fa-users"></i> 8. View Active Subscribers
       </button>
-      <div style="font-size:11px;color:var(--color-text-secondary);margin-top:8px">Changes apply to all users immediately</div>
+      <div id="admin-subscribers-list"></div>
     </div>
   `;
 }
 
 async function savePaymentSettings(){
-  const upiId = document.getElementById('admin-upi-id')?.value.trim() || '';
-  const npPaymentId = document.getElementById('admin-np-payment-id')?.value.trim() || '';
+  const upiId=document.getElementById('admin-upi-id')?.value.trim()||'';
+  const npPaymentId=document.getElementById('admin-np-payment-id')?.value.trim()||'';
+  if(!upiId&&!npPaymentId){alert('Please enter at least one payment ID');return;}
+  try{
+    S.upiId=upiId;S.npPaymentId=npPaymentId;cacheWrite();
+    if(currentUser&&sb){await sb.from('analytics_users').update({upi_id:upiId,np_payment_id:npPaymentId,updated_at:new Date().toISOString()}).eq('id',currentUser.id);}
+    if(typeof _showToast==='function')_showToast('✅ Payment IDs saved!');
+  }catch(e){alert('❌ Error: '+e.message);}
+}
 
-  if(!upiId && !npPaymentId){
-    alert('Please enter at least one payment ID');
-    return;
-  }
+function adminSavePrices(){
+  const bIN=parseInt(document.getElementById('admin-price-basic-in')?.value)||499;
+  const pIN=parseInt(document.getElementById('admin-price-pro-in')?.value)||999;
+  const eIN=parseInt(document.getElementById('admin-price-ent-in')?.value)||1999;
+  const bNP=parseInt(document.getElementById('admin-price-basic-np')?.value)||899;
+  const pNP=parseInt(document.getElementById('admin-price-pro-np')?.value)||1799;
+  const eNP=parseInt(document.getElementById('admin-price-ent-np')?.value)||3599;
+  SUB_TIERS.basic.priceIN=bIN;SUB_TIERS.pro.priceIN=pIN;SUB_TIERS.enterprise.priceIN=eIN;
+  SUB_TIERS.basic.priceNP=bNP;SUB_TIERS.pro.priceNP=pNP;SUB_TIERS.enterprise.priceNP=eNP;
+  localStorage.setItem('pm_admin_prices',JSON.stringify({bIN,pIN,eIN,bNP,pNP,eNP}));
+  if(typeof _showToast==='function')_showToast('✅ Prices saved! Users will see new prices immediately.');
+}
 
-  try {
-    S.upiId = upiId;
-    S.npPaymentId = npPaymentId;
-    cacheWrite();
+function adminSaveTrialDays(){
+  const days=parseInt(document.getElementById('admin-trial-days')?.value)||30;
+  if(days<1||days>365){alert('Trial days must be between 1 and 365');return;}
+  window.SUB_TRIAL_DAYS_OVERRIDE=days;
+  localStorage.setItem('pm_admin_trial_days',days.toString());
+  if(typeof _showToast==='function')_showToast('✅ Trial period set to '+days+' days');
+}
 
-    // Also update in Supabase if logged in
-    if(currentUser && sb){
-      await sb.from('analytics_users').update({
-        upi_id: upiId,
-        np_payment_id: npPaymentId,
-        updated_at: new Date().toISOString()
-      }).eq('id', currentUser.id);
-    }
+async function adminGrantFreeAccess(){
+  const email=document.getElementById('admin-free-email')?.value.trim();
+  const days=parseInt(document.getElementById('admin-free-days')?.value)||30;
+  const tier=document.getElementById('admin-free-tier')?.value||'pro';
+  if(!email){alert('Please enter user email');return;}
+  try{
+    const expiry=new Date(Date.now()+days*86400000).toISOString();
+    const{data:users}=await sb.from('analytics_users').select('id').eq('email',email).limit(1);
+    if(!users||users.length===0){alert('❌ User not found: '+email+'\n\nMake sure they have logged in at least once.');return;}
+    await sb.from('pm_payment_requests').insert({user_id:users[0].id,email,shop_name:'(admin grant)',country:'IN',amount:0,currency:'INR',method:'admin_grant',tier,txn_id:'ADMIN-'+Date.now(),status:'approved',approved_at:new Date().toISOString(),approved_until:expiry,approved_by:currentUser.email});
+    if(typeof _showToast==='function')_showToast('✅ Free access granted to '+email+' for '+days+' days');
+    document.getElementById('admin-free-email').value='';
+  }catch(e){alert('❌ Error: '+e.message);}
+}
 
-    alert('✅ Payment IDs saved!\n\nIndia UPI: ' + (upiId || 'Not set') + '\nNepal ID: ' + (npPaymentId || 'Not set'));
-  } catch(e){
-    console.error('Error saving payment settings:', e);
-    alert('❌ Error saving: ' + e.message);
-  }
+async function adminRevokeSubscription(){
+  const email=document.getElementById('admin-revoke-email')?.value.trim();
+  if(!email){alert('Please enter user email');return;}
+  if(!confirm('Revoke subscription for '+email+'?\n\nThey will immediately see the paywall.'))return;
+  try{
+    const{error}=await sb.from('pm_payment_requests').update({status:'rejected',rejection_reason:'Admin revoked',approved_by:currentUser.email}).eq('email',email).eq('status','approved');
+    if(error)throw error;
+    if(typeof _showToast==='function')_showToast('✅ Subscription revoked for '+email);
+    document.getElementById('admin-revoke-email').value='';
+  }catch(e){alert('❌ Error: '+e.message);}
+}
+
+function adminSaveWhatsApp(){
+  const num=document.getElementById('admin-whatsapp')?.value.trim().replace(/\D/g,'');
+  if(!num||num.length<10){alert('Please enter valid WhatsApp number with country code');return;}
+  window.SUB_OWNER_WHATSAPP=num;
+  localStorage.setItem('pm_admin_whatsapp',num);
+  if(typeof _showToast==='function')_showToast('✅ WhatsApp number updated to +'+num);
+}
+
+function adminBroadcast(){
+  const msg=document.getElementById('admin-broadcast-msg')?.value.trim();
+  if(!msg){alert('Please type a message first');return;}
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+async function adminLoadSubscribers(){
+  const list=document.getElementById('admin-subscribers-list');
+  if(!list)return;
+  list.innerHTML='<div style="text-align:center;padding:16px;color:#6b7280;font-size:13px">Loading...</div>';
+  try{
+    const{data}=await sb.from('pm_payment_requests').select('email,shop_name,tier,amount,currency,approved_at,approved_until,method').eq('status','approved').order('approved_at',{ascending:false});
+    if(!data||data.length===0){list.innerHTML='<div style="text-align:center;padding:16px;color:#6b7280;font-size:13px">No active subscribers yet</div>';return;}
+    list.innerHTML=`<div style="font-size:13px;font-weight:700;color:#1f2937;margin-bottom:10px"><i class="fas fa-users" style="color:#3b82f6"></i> ${data.length} Active Subscriber${data.length!==1?'s':''}</div>`+data.map(r=>{
+      const expiry=r.approved_until?new Date(r.approved_until):null;
+      const daysLeft=expiry?Math.ceil((expiry-Date.now())/86400000):null;
+      const expired=daysLeft!==null&&daysLeft<=0;
+      return `<div style="background:${expired?'#fef2f2':'#f0f9ff'};border:1px solid ${expired?'#fecaca':'#bfdbfe'};border-radius:10px;padding:12px;margin-bottom:8px"><div style="font-size:13px;font-weight:700;color:#1f2937">${esc(r.email||'Unknown')}</div><div style="font-size:12px;color:#6b7280">${esc(r.shop_name||'')} · ${r.tier||'pro'} · ${r.currency||'INR'} ${r.amount||0}</div><div style="font-size:11px;color:${expired?'#dc2626':'#059669'};margin-top:4px;font-weight:600">${expired?'⚠️ Expired':daysLeft!==null?'✓ '+daysLeft+' days left':'✓ Active'}</div></div>`;
+    }).join('');
+  }catch(e){list.innerHTML='<div style="color:#dc2626;font-size:12px;padding:10px">Error: '+esc(e.message)+'</div>';}
 }
 
 async function renderAdminDashboard(el){
