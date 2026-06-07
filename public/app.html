@@ -2218,7 +2218,7 @@ let S = { country:'IN', language:'en', shopName:'', ownName:'', ownPhone:'', rem
 const SUB_GRANDFATHER_CUTOFF_MS = new Date('2000-01-01T00:00:00').getTime(); // Set to past — no free forever users
 const SUB_TRIAL_DAYS = 30;
 const SUB_OWNER_WHATSAPP = '919928095269'; // your number for payment notifications (Sanjana — update if wrong)
-const RAZORPAY_KEY_ID = 'rzp_test_SydkPjTWw79H4K'; // Switch to rzp_live_... when approved
+let RAZORPAY_KEY_ID = localStorage.getItem('pm_razorpay_key') || 'rzp_test_SydkPjTWw79H4K';
 
 const SUB_TIERS = {
   basic: { label:'Basic', features:'Sales, stock, udhaar', priceIN: 499, priceNP: 899 },
@@ -7019,7 +7019,13 @@ function renderPaymentSettingsPanel(){
       ${_adminBtn('savePaymentSettings()','💾 Save Payment IDs')}
     `)}
 
-    ${_adminCard('fa-tag','#8b5cf6','2. Subscription Prices',`
+    ${_adminCard('fa-key','#0ea5e9','2. Razorpay Key',`
+      ${_adminInput('admin-razorpay-key','Razorpay Key ID (India payments)','rzp_test_... or rzp_live_...', RAZORPAY_KEY_ID)}
+      <div style="font-size:11px;color:#6b7280;margin-bottom:8px">🔴 Test mode: rzp_test_...&nbsp;&nbsp;|&nbsp;&nbsp;🟢 Live mode: rzp_live_...</div>
+      ${_adminBtn('adminSaveRazorpayKey()','🔑 Save Razorpay Key','#0ea5e9')}
+    `)}
+
+    ${_adminCard('fa-tag','#8b5cf6','3. Subscription Prices',`
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
         <div><label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Basic ₹</label><input id="admin-price-basic-in" type="number" value="${SUB_TIERS.basic.priceIN}" style="width:100%;padding:9px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box"></div>
         <div><label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Pro ₹ ⭐</label><input id="admin-price-pro-in" type="number" value="${SUB_TIERS.pro.priceIN}" style="width:100%;padding:9px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;box-sizing:border-box"></div>
@@ -7081,6 +7087,15 @@ async function savePaymentSettings(){
     if(currentUser&&sb){await sb.from('analytics_users').update({upi_id:upiId,np_payment_id:npPaymentId,updated_at:new Date().toISOString()}).eq('id',currentUser.id);}
     if(typeof _showToast==='function')_showToast('✅ Payment IDs saved!');
   }catch(e){alert('❌ Error: '+e.message);}
+}
+
+function adminSaveRazorpayKey(){
+  const key=document.getElementById('admin-razorpay-key')?.value.trim();
+  if(!key||(!key.startsWith('rzp_test_')&&!key.startsWith('rzp_live_'))){alert('❌ Invalid key. Must start with rzp_test_ or rzp_live_');return;}
+  RAZORPAY_KEY_ID=key;
+  localStorage.setItem('pm_razorpay_key',key);
+  const isLive=key.startsWith('rzp_live_');
+  if(typeof _showToast==='function')_showToast((isLive?'🟢 Live':'🔴 Test')+' Razorpay key saved!');
 }
 
 function adminSavePrices(){

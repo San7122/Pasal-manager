@@ -2218,7 +2218,7 @@ let S = { country:'IN', language:'en', shopName:'', ownName:'', ownPhone:'', rem
 const SUB_GRANDFATHER_CUTOFF_MS = new Date('2000-01-01T00:00:00').getTime(); // Set to past — no free forever users
 const SUB_TRIAL_DAYS = 30;
 const SUB_OWNER_WHATSAPP = '919928095269'; // your number for payment notifications (Sanjana — update if wrong)
-const RAZORPAY_KEY_ID = 'rzp_test_SydkPjTWw79H4K'; // Switch to rzp_live_... when approved
+let RAZORPAY_KEY_ID = localStorage.getItem('pm_razorpay_key') || 'rzp_test_SydkPjTWw79H4K';
 
 const SUB_TIERS = {
   basic: { label:'Basic', features:'Sales, stock, udhaar', priceIN: 499, priceNP: 899 },
@@ -7065,7 +7065,13 @@ function renderPaymentSettingsPanel(){
       ${_adminBtn('savePaymentSettings()','💾 Save Payment IDs')}
     `)}
 
-    ${_adminCard('fa-tag','#8b5cf6','2. Subscription Prices',`
+    ${_adminCard('fa-key','#0ea5e9','2. Razorpay Key',`
+      ${_adminInput('admin-razorpay-key','Razorpay Key ID (India payments)','rzp_test_... or rzp_live_...', RAZORPAY_KEY_ID)}
+      <div style="font-size:11px;color:#6b7280;margin-bottom:8px">🔴 Test mode: rzp_test_...&nbsp;&nbsp;|&nbsp;&nbsp;🟢 Live mode: rzp_live_...</div>
+      ${_adminBtn('adminSaveRazorpayKey()','🔑 Save Razorpay Key','#0ea5e9')}
+    `)}
+
+    ${_adminCard('fa-tag','#8b5cf6','3. Subscription Prices',`
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
         <div>
           <label style="font-size:11px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px">Basic ₹</label>
@@ -7098,13 +7104,13 @@ function renderPaymentSettingsPanel(){
       ${_adminBtn('adminSavePrices()','💰 Save Prices','#8b5cf6')}
     `)}
 
-    ${_adminCard('fa-clock','#f59e0b','3. Trial Period',`
+    ${_adminCard('fa-clock','#f59e0b','4. Trial Period',`
       ${_adminInput('admin-trial-days','Free Trial Days (default: 30)','30', SUB_TRIAL_DAYS+'','number')}
       <div style="font-size:11px;color:#6b7280;margin-bottom:8px">New users get this many free days before payment required</div>
       ${_adminBtn('adminSaveTrialDays()','⏱ Save Trial Days','#f59e0b')}
     `)}
 
-    ${_adminCard('fa-gift','#10b981','4. Grant Free Access',`
+    ${_adminCard('fa-gift','#10b981','5. Grant Free Access',`
       ${_adminInput('admin-free-email','User Email','user@example.com','')}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div>
@@ -7123,19 +7129,19 @@ function renderPaymentSettingsPanel(){
       ${_adminBtn('adminGrantFreeAccess()','🎁 Grant Free Access','#10b981')}
     `)}
 
-    ${_adminCard('fa-ban','#ef4444','5. Revoke Subscription',`
+    ${_adminCard('fa-ban','#ef4444','6. Revoke Subscription',`
       ${_adminInput('admin-revoke-email','User Email to Revoke','user@example.com','')}
       <div style="font-size:11px;color:#6b7280;margin-bottom:8px">⚠️ User will immediately lose access and see paywall</div>
       ${_adminBtn('adminRevokeSubscription()','🚫 Revoke Subscription','#ef4444')}
     `)}
 
-    ${_adminCard('fa-whatsapp','#25d366','6. WhatsApp Number',`
+    ${_adminCard('fa-whatsapp','#25d366','7. WhatsApp Number',`
       ${_adminInput('admin-whatsapp','Notification WhatsApp (with country code)','919928095269', SUB_OWNER_WHATSAPP)}
       <div style="font-size:11px;color:#6b7280;margin-bottom:8px">Payment notifications are sent to this number</div>
       ${_adminBtn('adminSaveWhatsApp()','📱 Save WhatsApp Number','#25d366')}
     `)}
 
-    ${_adminCard('fa-bullhorn','#f97316','7. Broadcast Message',`
+    ${_adminCard('fa-bullhorn','#f97316','8. Broadcast Message',`
       <textarea id="admin-broadcast-msg" placeholder="Type your message to all users..." style="width:100%;padding:10px;border:1px solid var(--color-border-tertiary);border-radius:8px;font-size:13px;min-height:80px;box-sizing:border-box;font-family:inherit;resize:vertical;margin-bottom:8px">🎉 Pasal Manager Update!\n\nNew features available. Open the app to see what's new!</textarea>
       ${_adminBtn('adminBroadcast()','📢 Open WhatsApp Broadcast','#f97316')}
       <div style="font-size:11px;color:#6b7280;margin-top:6px">Opens WhatsApp with pre-filled message for you to forward</div>
@@ -7143,7 +7149,7 @@ function renderPaymentSettingsPanel(){
 
     <div id="admin-subscribers-section">
       <button onclick="adminLoadSubscribers()" style="width:100%;padding:12px;background:#fff;color:#3b82f6;border:2px solid #3b82f6;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:14px">
-        <i class="fas fa-users"></i> 8. View Active Subscribers
+        <i class="fas fa-users"></i> 9. View Active Subscribers
       </button>
       <div id="admin-subscribers-list"></div>
     </div>
@@ -7161,6 +7167,18 @@ async function savePaymentSettings(){
     }
     if(typeof _showToast==='function') _showToast('✅ Payment IDs saved!');
   } catch(e){ alert('❌ Error: ' + e.message); }
+}
+
+function adminSaveRazorpayKey(){
+  const key=document.getElementById('admin-razorpay-key')?.value.trim();
+  if(!key||(!key.startsWith('rzp_test_')&&!key.startsWith('rzp_live_'))){
+    alert('❌ Invalid key. Must start with rzp_test_ or rzp_live_');
+    return;
+  }
+  RAZORPAY_KEY_ID=key;
+  localStorage.setItem('pm_razorpay_key',key);
+  const isLive=key.startsWith('rzp_live_');
+  if(typeof _showToast==='function')_showToast((isLive?'🟢 Live':'🔴 Test')+' Razorpay key saved!');
 }
 
 function adminSavePrices(){
