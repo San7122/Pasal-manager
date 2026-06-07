@@ -6847,34 +6847,38 @@ async function submitPayment(){
   },500);
 }
 function renderMoreMenu(el){
-  const basicItems=[
-    {id:'dashboard',icon:'layout-dashboard',color:'#4F46E5',label:'Dashboard',desc:'Sales charts & business overview'},
-    {id:'customers',icon:'users',color:'#7C3AED',label:t('customers'),desc:'Customer list & purchase history'},
-    {id:'cashbook',icon:'book-open',color:'#0D9488',label:'Cash Book',desc:'Daily cash in & out record'},
-    {id:'expense',icon:'receipt',color:'#E11D48',label:'Expenses',desc:'Record shop expenses'},
-    {id:'supplier',icon:'truck',color:'#8B5CF6',label:'Suppliers',desc:'Your wholesale contacts'},
-    {id:'kharidi',icon:'shopping-cart',color:'#EA580C',label:'Purchase Book',desc:'Track what you owe each supplier · auto-balance after every payment'},
-    {id:'bill',icon:'file-text',color:'#0EA5E9',label:'Digital Bill',desc:'Make & share customer bills'},
-    {id:'staffBook',icon:'clipboard-list',color:'#D97706',label:t('staffBook'),desc:'Attendance, salary & advances'},
-    {id:'score',icon:'star',color:'#7C3AED',label:t('scoreTitle'),desc:'Financial health score & bank loan certificate'},
-    {id:'morning',icon:'sunrise',color:'#F59E0B',label:t('briefingTitle'),desc:'Daily top debtors, yesterday\'s profit & quick actions'},
-    {id:'supplier-cal',icon:'calendar',color:'#E53935',label:t('supCalTitle'),desc:'Track when supplier payments are due',badgeId:'sup-cal-badge'},
-    {id:'reminders',icon:'bell',color:'#1E88E5',label:t('remindersTitle'),desc:'Auto-scheduled WhatsApp reminders from payment history'},
-    {id:'pl',icon:'trending-up',color:'#059669',label:'P&L Report',desc:'Monthly profit & loss summary'},
-    {id:'export',icon:'download',color:'#D97706',label:'Export & Audit',desc:'Download Excel & audit report'},
-    {id:'payment',icon:'credit-card',color:'#16A34A',label:'Subscription',desc:(()=>{ const st=getSubscriptionState(); if(st.status==='grandfathered') return 'Free forever — founding user 🎉'; if(st.status==='paid') return `Active · ${st.daysLeft} days left`; if(st.status==='trial') return `Free trial · ${st.daysLeft} days left`; return '🔒 Pay to unlock'; })()},
-    {id:'settings',icon:'settings',color:'#64748B',label:t('settings'),desc:''},
-    {id:'logout',icon:'log-out',color:'#DC2626',label:'Logout',desc:'Sign out of your account',action:'signOut()'}
-  ];
-  // Owner-only Admin Dashboard menu item (hidden for normal users)
-  if(isOwner()){
-    basicItems.splice(1, 0, {id:'admin',icon:'shield',color:'#9333EA',label:'Admin Dashboard',desc:'Active users, signups, feature usage (owner only)'});
-  }
-  const advancedItems=[
-    {id:'dealer',icon:'handshake',color:'#0891B2',label:'Dealer Book',desc:'Credit you give to wholesale dealers'},
-    {id:'emi',icon:'credit-card',color:'#059669',label:'EMI Tracker',desc:'Installment plans for high-value items sold'},
-    {id:'loan',icon:'banknote',color:'#DC2626',label:'Loan Manager',desc:'Track bank loans & monthly repayments'},
-    {id:'branches',icon:'building-2',color:'#7C3AED',label:'Multi-Branch',desc:'Manage 2-3 shop locations separately'},
+  const allItems={
+    dashboard:{icon:'layout-dashboard',color:'#4F46E5',label:'Dashboard',desc:'Sales charts & business overview'},
+    pl:{icon:'trending-up',color:'#059669',label:'P&L Report',desc:'Monthly profit & loss summary'},
+    cashbook:{icon:'book-open',color:'#0D9488',label:'Cash Book',desc:'Daily cash in & out record'},
+    score:{icon:'star',color:'#7C3AED',label:t('scoreTitle'),desc:'Financial health score & bank loan certificate'},
+    export:{icon:'download',color:'#D97706',label:'Export & Audit',desc:'Download Excel & audit report'},
+    bill:{icon:'file-text',color:'#0EA5E9',label:'Digital Bill',desc:'Make & share customer bills'},
+    customers:{icon:'users',color:'#7C3AED',label:t('customers'),desc:'Customer list & purchase history'},
+    emi:{icon:'credit-card',color:'#059669',label:'EMI Tracker',desc:'Installment plans for high-value items sold'},
+    supplier:{icon:'truck',color:'#8B5CF6',label:'Suppliers',desc:'Your wholesale contacts'},
+    kharidi:{icon:'shopping-cart',color:'#EA580C',label:'Purchase Book',desc:'Track what you owe each supplier · auto-balance after every payment'},
+    dealer:{icon:'handshake',color:'#0891B2',label:'Dealer Book',desc:'Credit you give to wholesale dealers'},
+    staffBook:{icon:'clipboard-list',color:'#D97706',label:t('staffBook'),desc:'Attendance, salary & advances'},
+    expense:{icon:'receipt',color:'#E11D48',label:'Expenses',desc:'Record shop expenses'},
+    loan:{icon:'banknote',color:'#DC2626',label:'Loan Manager',desc:'Track bank loans & monthly repayments'},
+    morning:{icon:'sunrise',color:'#F59E0B',label:t('briefingTitle'),desc:'Daily top debtors, yesterday\'s profit & quick actions'},
+    'supplier-cal':{icon:'calendar',color:'#E53935',label:t('supCalTitle'),desc:'Track when supplier payments are due',badgeId:'sup-cal-badge'},
+    reminders:{icon:'bell',color:'#1E88E5',label:t('remindersTitle'),desc:'Auto-scheduled WhatsApp reminders from payment history'},
+    branches:{icon:'building-2',color:'#7C3AED',label:'Multi-Branch',desc:'Manage 2-3 shop locations separately'},
+    payment:{icon:'credit-card',color:'#16A34A',label:'Subscription',desc:(()=>{ const st=getSubscriptionState(); if(st.status==='grandfathered') return 'Free forever — founding user 🎉'; if(st.status==='paid') return `Active · ${st.daysLeft} days left`; if(st.status==='trial') return `Free trial · ${st.daysLeft} days left`; return '🔒 Pay to unlock'; })()},
+    settings:{icon:'settings',color:'#64748B',label:t('settings'),desc:''},
+    logout:{icon:'log-out',color:'#DC2626',label:'Logout',desc:'Sign out of your account',action:'signOut()'},
+  };
+  const groups=[
+    {label:'Finance & Reports', fa:'fa-chart-line',   color:'#4F46E5', ids:['dashboard','pl','cashbook','score','export']},
+    {label:'Sales & Customers', fa:'fa-shopping-bag', color:'#7C3AED', ids:['bill','customers','emi']},
+    {label:'Stock & Suppliers', fa:'fa-boxes',        color:'#EA580C', ids:['supplier','kharidi','dealer']},
+    {label:'Staff & Expenses',  fa:'fa-users',        color:'#D97706', ids:['staffBook','expense']},
+    {label:'Loans & Credit',    fa:'fa-hand-holding-usd', color:'#DC2626', ids:['loan']},
+    {label:'Daily Tools',       fa:'fa-bell',         color:'#059669', ids:['morning','supplier-cal','reminders']},
+    {label:'Business',          fa:'fa-building',     color:'#0891B2', ids:['branches']},
+    {label:'Account',           fa:'fa-cog',          color:'#64748B', ids:['payment','settings','logout']},
   ];
   const renderItem=i=>`
     <div class="more-menu-item" onclick="${i.action?i.action:(i.locked?`showUnlockModal('${i.id}')`:`goMore('${i.id}')`)}">
@@ -6883,20 +6887,17 @@ function renderMoreMenu(el){
       ${i.badgeId?`<span class="sup-cal-badge" id="${i.badgeId}" style="display:none">0</span>`:''}
       ${i.locked?'<div class="more-lock">PRO</div>':''}
     </div>`;
+  const renderGroup=g=>`
+    <div style="display:flex;align-items:center;gap:7px;padding:12px 12px 4px;margin-top:2px">
+      <i class="fas ${g.fa}" style="font-size:11px;color:${g.color}"></i>
+      <span style="font-size:11px;font-weight:700;color:var(--color-text-secondary);letter-spacing:0.6px;text-transform:uppercase">${g.label}</span>
+      <div style="flex:1;height:1px;background:var(--color-border-tertiary);margin-left:4px"></div>
+    </div>
+    ${g.ids.filter(id=>allItems[id]).map(id=>renderItem({id,...allItems[id]})).join('')}`;
   el.innerHTML=
-    basicItems.map(renderItem).join('')+
-    `<div style="margin:8px 12px 0">
-      <button onclick="toggleAdvanced()" style="width:100%;padding:12px;background:${_showAdvanced?'var(--color-accent-light)':'var(--color-background-secondary)'};border:1.5px solid ${_showAdvanced?'var(--color-accent)':'var(--color-border-tertiary)'};border-radius:12px;color:${_showAdvanced?'var(--color-accent)':'var(--color-text-secondary)'};font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-        ${licon(_showAdvanced?'settings-2':'cpu',16)}
-        ${_showAdvanced?'Hide Advanced Features':'Show Advanced Features'}
-        ${licon(_showAdvanced?'chevron-up':'chevron-down',14)}
-      </button>
-    </div>`+
-    (_showAdvanced?`
-      <div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--color-text-secondary);letter-spacing:0.5px;text-transform:uppercase">Advanced Features</div>`+
-      advancedItems.map(renderItem).join('')
-    :'')+
-    `<div style="text-align:center;padding:16px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:8px">
+    (isOwner()?renderItem({id:'admin',icon:'shield',color:'#9333EA',label:'Admin Dashboard',desc:'Active users, signups, feature usage (owner only)'}):'')
+    +groups.map(renderGroup).join('')
+    +`<div style="text-align:center;padding:16px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:8px">
       <div style="font-size:12px;color:var(--color-text-secondary)">Pasal Manager v2.0</div>
       <a href="https://varaai-final.vercel.app" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 14px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);border-radius:20px;text-decoration:none">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#a78bfa" stroke="#a78bfa" stroke-width="1" stroke-linejoin="round"/></svg>
@@ -9247,7 +9248,7 @@ function renderExport(el){
       <!-- Page title -->
       <div style="display:flex;align-items:center;gap:10px;padding:2px 0 4px">
         <div style="width:36px;height:36px;border-radius:10px;background:var(--pm-purple-light);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          ${licon('download',18,'color:var(--pm-purple)')}
+          <i class="fas fa-file-export" style="font-size:18px;color:var(--pm-purple)"></i>
         </div>
         <div>
           <div style="font-size:17px;font-weight:800;color:var(--color-text-primary);letter-spacing:-0.3px">${shop}</div>
@@ -9259,7 +9260,7 @@ function renderExport(el){
       <div style="background:linear-gradient(145deg,#312E81,#4338CA);border-radius:18px;padding:18px;color:#fff">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <div style="width:34px;height:34px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            ${licon('file-spreadsheet',18,'color:#fff')}
+            <i class="fas fa-file-excel" style="font-size:18px;color:#fff"></i>
           </div>
           <div>
             <div style="font-size:15px;font-weight:800;letter-spacing:-0.2px">Full Audit Report</div>
@@ -9281,7 +9282,7 @@ function renderExport(el){
           ${['thisMonth','lastMonth','thisYear','all'].map((r,i)=>`<button onclick="setAuditRange('${r}')" style="background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);color:#fff;border-radius:20px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer">${['This Month','Last Month','This Year','All Time'][i]}</button>`).join('')}
         </div>
         <button onclick="downloadAuditReport()" style="width:100%;padding:13px;background:#fff;color:#4338CA;border:none;border-radius:11px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-          ${licon('download',16,'color:#4338CA')} Download Audit Report (.xlsx)
+          <i class="fas fa-download" style="font-size:16px;color:#4338CA"></i> Download Audit Report (.xlsx)
         </button>
       </div>
 
@@ -9289,7 +9290,7 @@ function renderExport(el){
       <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <div style="width:34px;height:34px;background:var(--color-accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            ${licon('table',18,'color:var(--pm-purple)')}
+            <i class="fas fa-table" style="font-size:18px;color:var(--pm-purple)"></i>
           </div>
           <div>
             <div style="font-size:14px;font-weight:700;color:var(--color-text-primary)">Excel Download (All Data)</div>
@@ -9297,7 +9298,7 @@ function renderExport(el){
           </div>
         </div>
         <button class="btn-block" style="background:var(--pm-purple);border-radius:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px" onclick="downloadExcel('all')">
-          ${licon('download',15,'color:#fff')} Download Full Excel
+          <i class="fas fa-download" style="font-size:15px;color:#fff"></i> Download Full Excel
         </button>
       </div>
 
@@ -9305,7 +9306,7 @@ function renderExport(el){
       <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <div style="width:34px;height:34px;background:#F0FDF4;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            ${licon('calendar',18,'color:#059669')}
+            <i class="fas fa-calendar-alt" style="font-size:18px;color:#059669"></i>
           </div>
           <div>
             <div style="font-size:14px;font-weight:700;color:var(--color-text-primary)">This Month Only</div>
@@ -9314,10 +9315,10 @@ function renderExport(el){
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn-block" style="background:var(--pm-purple);border-radius:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px" onclick="downloadExcel('month')">
-            ${licon('file-down',15,'color:#fff')} Excel
+            <i class="fas fa-file-download" style="font-size:15px;color:#fff"></i> Excel
           </button>
           <button class="btn-block" style="background:#25D366;border-radius:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px" onclick="shareMonthWA()">
-            ${licon('message-circle',15,'color:#fff')} WhatsApp
+            <i class="fab fa-whatsapp" style="font-size:15px;color:#fff"></i> WhatsApp
           </button>
         </div>
       </div>
@@ -9326,7 +9327,7 @@ function renderExport(el){
       <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <div style="width:34px;height:34px;background:#F0FDF4;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            ${licon('bar-chart-2',18,'color:#059669')}
+            <i class="fas fa-chart-bar" style="font-size:18px;color:#059669"></i>
           </div>
           <div>
             <div style="font-size:14px;font-weight:700;color:var(--color-text-primary)">${t('dailyReport')}</div>
@@ -9334,7 +9335,7 @@ function renderExport(el){
           </div>
         </div>
         <button class="btn-block" style="background:#25D366;border-radius:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px" onclick="sendDailyWA()">
-          ${licon('send',15,'color:#fff')} ${t('sendReport')}
+          <i class="fab fa-whatsapp" style="font-size:15px;color:#fff"></i> ${t('sendReport')}
         </button>
       </div>
 
@@ -10149,7 +10150,7 @@ async function downloadExcel(mode){
   await _lazyLoad(_XLSX_URL);
   const wb=XLSX.utils.book_new();
   const shop=S.shopName||'Pasal Manager';
-  const cur=S.country==='NP'?'Rs':'Rs';
+  const cur=S.country==='NP'?'रू':'₹';
 
   // helper: amt formatter without symbol for Excel
   const n=v=>v||0;
@@ -10170,7 +10171,7 @@ async function downloadExcel(mode){
     const tAmt=sData.reduce((a,s)=>a+n(s.amt),0);
     const tCost=sData.reduce((a,s)=>a+n(s.cost),0);
     const tProfit=tCost>0?tAmt-tCost:'';
-    salesRows.push(['','','TOTAL →',tAmt,tCost>0?tCost:'',tProfit,'']);
+    salesRows.push(['TOTAL','','',tAmt,tCost>0?tCost:'',tProfit,'']);
     const wsSales=XLSX.utils.aoa_to_sheet(salesRows);
     wsSales['!cols']=[{wch:12},{wch:10},{wch:12},{wch:12},{wch:12},{wch:14},{wch:20}];
     XLSX.utils.book_append_sheet(wb,wsSales,'Sales');
@@ -10181,7 +10182,7 @@ async function downloadExcel(mode){
       expRows.push([e.date,e.ts?new Date(e.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'',n(e.amt),e.category||'Shop',e.note||'']);
     });
     const tExp=eData.reduce((a,e)=>a+n(e.amt),0);
-    expRows.push(['','','TOTAL →',tExp,'','']);
+    expRows.push(['TOTAL','','',tExp,'']);
     const wsExp=XLSX.utils.aoa_to_sheet(expRows);
     wsExp['!cols']=[{wch:12},{wch:10},{wch:12},{wch:14},{wch:24}];
     XLSX.utils.book_append_sheet(wb,wsExp,'Expenses');
@@ -10194,7 +10195,7 @@ async function downloadExcel(mode){
       uRows.push([u.name,u.phone||'',n(u.amt),u.date,u.paid?'Paid':'Pending']);
     });
     const tPending=udhaars.filter(u=>!u.paid).reduce((a,u)=>a+n(u.amt),0);
-    uRows.push(['','','PENDING →',tPending,'']);
+    uRows.push(['PENDING TOTAL','','',tPending,'']);
     const wsU=XLSX.utils.aoa_to_sheet(uRows);
     wsU['!cols']=[{wch:18},{wch:14},{wch:12},{wch:12},{wch:10}];
     XLSX.utils.book_append_sheet(wb,wsU,'Udhaar');
@@ -10277,8 +10278,10 @@ function shareMonthWA(){
   const me=expenses.filter(e=>e.date.substring(0,7)===mk);
   const totalS=ms.reduce((a,s)=>a+s.amt,0);
   const totalE=me.reduce((a,e)=>a+e.amt,0);
+  const totalCost=ms.reduce((a,s)=>a+(s.cost||0),0);
+  const profit=totalCost>0?(totalS-totalCost-totalE):(totalS-totalE);
   const shop=S.shopName||'Pasal Manager';
-  const report=`${shop} — ${fmtMonth(mk)}\nSales: ${fmt(totalS)}\nExpenses: ${fmt(totalE)}\nProfit: ${fmt(totalS-totalE)}\n\nGenerated by Pasal Manager`;
+  const report=`${shop} — ${fmtMonth(mk)}\nSales: ${fmt(totalS)}\nExpenses: ${fmt(totalE)}\nProfit: ${fmt(profit)}\n\nGenerated by Pasal Manager`;
   window.open('https://wa.me/?text='+encodeURIComponent(report),'_blank');
 }
 function copyText(text){try{navigator.clipboard.writeText(text);showSaved();}catch(e){console.error(e);}}
