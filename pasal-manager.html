@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <!-- Cache Busting: Force browsers to download fresh version -->
-<!-- Version: 2.0 (Tiered Pricing + Admin Settings) | Updated: 2026-06-07 -->
-<meta name="cache-version" content="v4.0-20260607-gpay-autounlock">
+<!-- Version: 3.0 (Fintech UI Redesign) | Updated: 2026-06-08 -->
+<meta name="cache-version" content="v5.0-20260608-ui-redesign">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
@@ -588,23 +588,25 @@ body {
 
 .date-nav {
   display: flex;
-  align-items: center; justify-content: center;
-  gap: 16px; padding: 10px 16px;
-  background: var(--color-background-secondary);
+  align-items: center; justify-content: space-between;
+  gap: 12px; padding: 10px 16px;
+  background: var(--color-background-primary);
   border-bottom: 1px solid var(--color-border-tertiary);
 }
 .date-nav-btn {
   width: 36px; height: 36px;
-  background: var(--color-background-primary);
-  border: 1px solid var(--color-border-secondary);
-  border-radius: 4px; font-size: 18px;
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: 10px; font-size: 16px;
   cursor: pointer; display: flex;
   align-items: center; justify-content: center;
   color: var(--color-text-primary);
+  transition: background 0.15s;
 }
+.date-nav-btn:active { background: var(--pm-purple-light); color: var(--pm-purple); }
 .date-nav-label {
   font-size: 15px; font-weight: 700;
-  min-width: 120px; text-align: center;
+  flex: 1; text-align: center;
 }
 
 /* ===== KATHA TABS ===== */
@@ -628,17 +630,17 @@ body {
 .stats-row {
   display: flex; gap: 8px;
   padding: 12px 16px;
-  background: var(--color-background-secondary);
 }
 .stat-card {
   flex: 1; text-align: center;
-  padding: 10px 4px;
+  padding: 14px 6px;
   background: var(--color-background-primary);
   border: 1px solid var(--color-border-tertiary);
-  border-radius: 6px;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
-.stat-val { font-size: 17px; font-weight: 800; }
-.stat-label { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+.stat-val { font-size: 18px; font-weight: 800; }
+.stat-label { font-size: 11px; color: var(--color-text-secondary); margin-top: 3px; font-weight: 500; }
 
 /* ===== LOCKED OVERLAY ===== */
 .locked-overlay { text-align: center; padding: 40px 24px; }
@@ -671,8 +673,28 @@ body {
 .udhaar-total-bar {
   display: flex; justify-content: space-between;
   align-items: center; padding: 10px 16px;
-  background: var(--color-danger-light);
+  background: var(--color-background-secondary);
   font-size: 14px; font-weight: 700;
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+.udhaar-summary-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 8px; padding: 14px 16px 8px;
+}
+.udhaar-summary-card {
+  text-align: center; padding: 12px 6px;
+  border-radius: 14px; background: var(--color-background-primary);
+  border: 1px solid var(--color-border-tertiary);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.udhaar-summary-val { font-size: 19px; font-weight: 800; line-height: 1.1; }
+.udhaar-summary-label { font-size: 10px; color: var(--color-text-secondary); margin-top: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+.udhaar-entry-card {
+  margin: 0 16px 12px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #7c3aed, #4c1d95);
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.25);
 }
 .udhaar-actions { display: flex; gap: 6px; }
 .udhaar-action-btn {
@@ -704,19 +726,31 @@ body {
 .stock-item-profit {
   font-size: 12px; color: var(--color-success); font-weight: 600;
 }
+.stock-overview-grid {
+  display: grid; grid-template-columns: repeat(2,1fr);
+  gap: 10px; padding: 14px 16px 4px;
+}
+.stock-overview-card {
+  padding: 14px; border-radius: 16px;
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-tertiary);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.stock-overview-val { font-size: 24px; font-weight: 900; line-height: 1.1; }
+.stock-overview-label { font-size: 11px; color: var(--color-text-secondary); margin-top: 3px; font-weight: 500; }
 
 /* ===== MORE PAGE ===== */
 .more-menu-item {
   display: flex; align-items: center;
-  gap: 14px; padding: 14px 16px;
+  gap: 14px; padding: 13px 16px;
   border-bottom: 1px solid var(--color-border-tertiary);
-  cursor: pointer; min-height: 60px;
+  cursor: pointer; min-height: 56px;
   transition: background 0.15s;
 }
 .more-menu-item:hover { background: var(--color-background-secondary); }
 .more-menu-item:active { background: var(--color-accent-light); }
 .more-icon {
-  width: 44px; height: 44px;
+  width: 42px; height: 42px;
   border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
@@ -730,10 +764,87 @@ body {
 .more-menu-desc { font-size: 12px; color: var(--color-text-secondary); }
 .more-lock {
   margin-left: auto;
-  font-size: 12px; color: var(--color-text-secondary);
+  font-size: 11px; color: var(--color-text-secondary);
   background: var(--color-background-tertiary);
   padding: 2px 8px; border-radius: 4px;
 }
+/* More page search */
+.more-search-wrap {
+  padding: 12px 16px 8px;
+  position: sticky; top: 0; z-index: 10;
+  background: var(--color-background-primary);
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+.more-search-inner {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: 12px; padding: 10px 14px;
+}
+.more-search-input {
+  flex: 1; border: none; background: transparent;
+  font-size: 14px; color: var(--color-text-primary); outline: none;
+}
+/* Quick Access */
+.more-quick-section {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+.more-quick-title {
+  font-size: 11px; font-weight: 700; color: var(--color-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.more-quick-grid {
+  display: grid; grid-template-columns: repeat(5,1fr); gap: 6px;
+}
+.more-quick-item {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 10px 4px; background: var(--color-background-secondary);
+  border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--color-border-tertiary);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.more-quick-item:active { background: var(--color-accent-light); box-shadow: 0 0 0 2px var(--pm-purple-mid); }
+.more-quick-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.more-quick-label {
+  font-size: 9px; font-weight: 600; color: var(--color-text-secondary);
+  text-align: center; line-height: 1.3; word-break: break-word;
+}
+/* Category header */
+.more-cat-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 16px 10px; cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+.more-cat-header:active { background: var(--color-background-secondary); }
+.more-cat-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.more-cat-label { font-size: 14px; font-weight: 700; color: var(--color-text-primary); flex: 1; }
+.more-cat-count {
+  font-size: 11px; color: var(--color-text-secondary);
+  background: var(--color-background-tertiary);
+  padding: 2px 8px; border-radius: 99px; font-weight: 600;
+}
+.more-cat-chevron { transition: transform 0.2s; display: inline-flex; }
+.more-cat-chevron.open { transform: rotate(90deg); }
+/* Health card */
+.more-health-card {
+  margin: 14px 16px 4px; padding: 14px 16px;
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  border-radius: 16px; color: #fff;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; box-shadow: 0 4px 16px rgba(124,58,237,0.25);
+  transition: filter 0.15s;
+}
+.more-health-card:active { filter: brightness(0.92); }
 .back-btn {
   display: flex; align-items: center;
   gap: 6px; padding: 10px 16px;
@@ -1044,35 +1155,62 @@ body {
 .today-alert-success .today-alert-sub { color: #065F46; }
 
 .today-hero {
-  text-align: center; padding: 32px 24px 24px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  border-bottom: 1px solid var(--color-border-tertiary);
-  position: relative;
+  margin: 12px 16px 4px;
+  border-radius: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
+  position: relative; overflow: hidden;
+  box-shadow: 0 8px 28px rgba(124,58,237,0.28);
 }
 .today-hero::before {
-  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  width: 60px; height: 3px; background: linear-gradient(90deg, #7c3aed, #5b21b6);
-  border-radius: 0 0 4px 4px;
+  content: ''; position: absolute; top: -28px; right: -28px;
+  width: 110px; height: 110px; background: rgba(255,255,255,0.08);
+  border-radius: 50%; pointer-events: none;
 }
-.today-hero-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 10px; }
-.today-hero-amt { font-size: 48px; font-weight: 900; color: #0f172a; letter-spacing: -1.5px; line-height: 1; background: linear-gradient(135deg, #0f172a, #2e1a6e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.today-hero-sub { font-size: 13px; color: #64748b; margin-top: 8px; font-weight: 500; }
-.today-hero-stats { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+.today-hero::after {
+  content: ''; position: absolute; bottom: -36px; left: -16px;
+  width: 90px; height: 90px; background: rgba(255,255,255,0.05);
+  border-radius: 50%; pointer-events: none;
+}
+.today-hero-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 0; }
+.today-hero-amt { font-size: 38px; font-weight: 900; color: #fff; letter-spacing: -1px; line-height: 1.1; background: none; -webkit-background-clip: initial; -webkit-text-fill-color: initial; background-clip: initial; }
+.today-hero-sub { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 3px; font-weight: 500; }
+.today-hero-stats { display: flex; gap: 8px; justify-content: flex-start; margin-top: 10px; flex-wrap: wrap; }
 .today-stat-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
 }
-.today-stat-green { background: #ECFDF5; color: #059669; }
-.today-stat-red { background: #FFF1F2; color: #E11D48; }
+.today-stat-green { background: rgba(255,255,255,0.15); color: #fff; }
+.today-stat-red { background: rgba(255,255,255,0.15); color: #fff; }
 .today-report-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  margin-top: 14px; padding: 11px 18px; min-height: 44px;
-  background: var(--color-background-tertiary); color: var(--color-text-secondary);
-  border: 1px solid var(--color-border-tertiary); border-radius: 22px;
+  margin-top: 12px; padding: 10px 18px; min-height: 42px;
+  background: rgba(255,255,255,0.15); color: #fff;
+  border: 1px solid rgba(255,255,255,0.25); border-radius: 22px;
   font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s;
 }
-.today-report-btn:hover { background: var(--pm-purple-light); color: var(--pm-purple); border-color: var(--pm-purple-light); }
+.today-report-btn:hover { background: rgba(255,255,255,0.25); }
+/* Home quick actions row */
+.home-quick-actions {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; padding: 12px 16px 4px;
+}
+.home-quick-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px; border-radius: 16px;
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-tertiary);
+  cursor: pointer; transition: box-shadow 0.15s, background 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.home-quick-btn:active { background: var(--color-accent-light); box-shadow: 0 0 0 2px var(--pm-purple-mid); }
+.home-quick-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.home-quick-label { font-size: 13px; font-weight: 700; color: var(--color-text-primary); line-height: 1.2; }
+.home-quick-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 1px; }
 
 /* ===== VOICE / MIC ===== */
 .mic-fab {
@@ -1819,12 +1957,12 @@ body {
 
     <div class="bottom-nav">
       <button class="nav-btn active" onclick="switchTab('today')" id="nav-today">
-        <i data-lucide="clock" style="width:22px;height:22px"></i>
-        <span>Today</span>
+        <i data-lucide="home" style="width:22px;height:22px"></i>
+        <span>Home</span>
       </button>
       <button class="nav-btn" onclick="switchTab('katha')" id="nav-katha">
-        <i data-lucide="book-open" style="width:22px;height:22px"></i>
-        <span>Katha</span>
+        <i data-lucide="history" style="width:22px;height:22px"></i>
+        <span>History</span>
       </button>
       <button class="nav-btn" onclick="switchTab('udhaar')" id="nav-udhaar">
         <div style="position:relative;display:inline-flex">
@@ -2519,7 +2657,7 @@ let _pkSelectedType='expense', _pkImageDataURL=null;
 // ===== I18N =====
 const LANG = {
   en:{
-    today:'Today',katha:'Katha',udhaar:'Udhaar',stock:'Stock',more:'More',
+    today:'Home',katha:'History',udhaar:'Udhaar',stock:'Stock',more:'More',
     todaySales:"Today's Sales",entries:'entries',entry:'entry',recent:'Recent',
     amount:'Amount',note:'Note (optional)',whatFor:'What for?',
     todayExp:"Today's Expenses",shopName:'Shop Name',shopInfo:'Used in bills & WhatsApp',
@@ -4473,7 +4611,7 @@ function _syncSidebarActive(tab){
 function switchTab(tab){
   destroyCharts();
   currentTab=tab;
-  if(tab==='more') moreSubPage='menu';
+  if(tab==='more'){moreSubPage='menu';_moreSearch='';}
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+tab).classList.add('active');
@@ -4576,27 +4714,54 @@ function renderToday(){
     </div>`:''}
 
     <div class="today-hero">
-      <div class="today-hero-label">${totalRetAmt>0?t('netSales'):t('todaySales')}</div>
-      <div class="today-hero-amt">${isStaffMode?'— hidden —':fmt(netAmt)}</div>
-      <div class="today-hero-sub">${cnt} ${cnt===1?t('entry'):t('entries')}${!isStaffMode&&totalRetAmt>0?` · Returns: −${fmt(totalRetAmt)}`:''}</div>
-      ${hasCost||totalRetAmt>0?`<div class="today-hero-stats">
-        ${hasCost?`<div class="today-stat-chip today-stat-red"><i data-lucide="trending-down" style="width:13px;height:13px"></i> Cost ${fmt(totalCost)}</div>
-        <div class="today-stat-chip ${totalProfit>=0?'today-stat-green':'today-stat-red'}"><i data-lucide="trending-up" style="width:13px;height:13px"></i> Profit ${fmt(totalProfit)}</div>`:''}
-        ${totalRetAmt>0?`<div class="today-stat-chip today-stat-red"><i data-lucide="rotate-ccw" style="width:13px;height:13px"></i> Returns ${fmt(totalRetAmt)}</div>`:''}
-      </div>`:''}
-      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-        <button onclick="sendDailyWA()" class="today-report-btn">
-          <i data-lucide="send" style="width:14px;height:14px"></i> ${t('sendReport')}
-        </button>
-        ${cnt>0?`<button onclick="printDaySummary()" class="today-report-btn" style="background:var(--color-background-secondary);color:var(--color-text-primary);border:1px solid var(--color-border)">
-          <i data-lucide="printer" style="width:14px;height:14px"></i> Print Summary
-        </button>`:''}
-        <button onclick="openUpiModal(0)" class="today-report-btn" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-color:#7c3aed;box-shadow:0 2px 8px rgba(124,58,237,0.25)">
-          <i data-lucide="qr-code" style="width:14px;height:14px"></i> Collect Payment
-        </button>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;position:relative;z-index:1">
+        <div class="today-hero-label">Today's Business</div>
+        <div style="width:30px;height:30px;background:rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="sendDailyWA()">
+          <i data-lucide="send" style="width:14px;height:14px;color:rgba(255,255,255,0.85)"></i>
+        </div>
       </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;position:relative;z-index:1">
+        <div>
+          <div style="font-size:22px;font-weight:900;color:#fff;line-height:1.1">${isStaffMode?'—':fmt(netAmt)}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.65);font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:0.4px">Total Sales</div>
+          ${totalRetAmt>0?`<div style="font-size:9px;color:rgba(255,255,255,0.5);margin-top:1px">↩ −${fmt(totalRetAmt)}</div>`:''}
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:900;color:#fff;line-height:1.1">${isStaffMode?'—':(hasCost?fmt(totalProfit):'—')}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.65);font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:0.4px">Profit</div>
+          ${hasCost?`<div style="font-size:9px;color:rgba(255,255,255,0.5);margin-top:1px">Cost ${fmt(totalCost)}</div>`:''}
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:900;color:#fff;line-height:1.1">${cnt}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.65);font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:0.4px">Transactions</div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('s-note')?.focus();document.getElementById('s-note')?.scrollIntoView({behavior:'smooth',block:'center'})" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
+        <i data-lucide="plus-circle" style="width:18px;height:18px"></i> Record Sale
+      </button>
     </div>
-    <div class="sub-tabs" style="border-top:1px solid var(--color-border-tertiary)">
+    <div class="home-quick-actions">
+      <button class="home-quick-btn" onclick="openUpiModal(0)">
+        <div class="home-quick-icon" style="background:#ede9fe">
+          <i data-lucide="qr-code" style="width:18px;height:18px;color:#7c3aed"></i>
+        </div>
+        <div>
+          <div class="home-quick-label">Collect Payment</div>
+          <div class="home-quick-sub">QR / UPI</div>
+        </div>
+      </button>
+      <button class="home-quick-btn" onclick="goMore('customers');switchTab('more')">
+        <div class="home-quick-icon" style="background:#ecfdf5">
+          <i data-lucide="user-plus" style="width:18px;height:18px;color:#059669"></i>
+        </div>
+        <div>
+          <div class="home-quick-label">Add Customer</div>
+          <div class="home-quick-sub">New Customer</div>
+        </div>
+      </button>
+    </div>
+    <div class="section-header" style="margin-top:4px"><span>Record Sale</span><span style="color:var(--color-text-secondary);font-size:11px;font-weight:500">Recent Items</span></div>
+    <div class="sub-tabs">
       <button class="sub-tab-btn${todayTab==='sale'?' active':''}" onclick="todayTab='sale';renderToday()">${t('todaySales')}</button>
       <button class="sub-tab-btn${todayTab==='return'?' active':''}" onclick="todayTab='return';renderToday()" style="color:${todayTab==='return'?'var(--color-danger)':''};display:inline-flex;align-items:center;justify-content:center;gap:6px">${licon('undo-2',15,'')} ${t('addReturn')}</button>
     </div>
@@ -4646,7 +4811,7 @@ function renderToday(){
       </div>
       <button id="btn-add-sale" class="btn-add" onclick="addSale()">+</button>
     </div>`}
-    <div class="section-header"><span>${t('recent')}</span><span class="count-badge">${combined.length}</span></div>
+    <div class="section-header"><span>Recent Activity</span><button onclick="switchTab('katha')" style="background:none;border:none;color:var(--color-accent);font-size:12px;font-weight:700;cursor:pointer;padding:0">View All</button></div>
     ${combined.length===0?_emptyState('shopping-bag',t('noEntries'),'Record your first sale above','',''):
       combined.map(i=>{
         if(i._type==='return'){
@@ -4981,20 +5146,21 @@ function renderKatha(){
   const combined=[...filtered.map(s=>({...s,_type:'sale'})),...expF.map(e=>({...e,_type:'exp'})),...retF.map(r=>({...r,_type:'return'}))].sort((a,b)=>(b.ts||0)-(a.ts||0));
   document.getElementById('page-katha').innerHTML=`
     <div class="sub-tabs">
-      ${['daily','monthly','yearly'].map((m,i)=>`<button class="sub-tab-btn${kathaMode===m?' active':''}" onclick="switchKatha('${m}')">${[t('daily'),t('monthly'),t('yearly')][i]}</button>`).join('')}
+      ${['daily','monthly','yearly'].map((m,i)=>`<button class="sub-tab-btn${kathaMode===m?' active':''}" onclick="switchKatha('${m}')">${['Today','This Month','This Year'][i]}</button>`).join('')}
     </div>
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-val" style="color:var(--color-success)">${fmt(netSales)}</div><div class="stat-label">${t('netSales')}</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:var(--color-danger)">${fmt(tExp)}</div><div class="stat-label">${t('expensesL')}</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:${trueProfit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(trueProfit)}</div><div class="stat-label">${t('profit')}</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--color-success)">${fmt(netSales)}</div><div class="stat-label">Net Sales</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--color-danger)">${fmt(tExp)}</div><div class="stat-label">Expenses</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${trueProfit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(trueProfit)}</div><div class="stat-label">Profit</div></div>
     </div>
-    ${tReturns>0?`<div style="margin:0 12px 4px;background:var(--color-danger-light);border-radius:10px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--color-danger)">↩ ${t('totalReturns')}</span><span style="font-weight:700;color:var(--color-danger)">−${fmt(tReturns)}</span></div>`:''}
-    ${hasCost?`<div style="margin:0 12px 8px;background:var(--color-accent-light);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--color-text-secondary)">Cost / Investment</span><span style="font-weight:700;color:var(--color-accent)">${fmt(tCost)}</span></div>`:''}
+    ${tReturns>0?`<div style="margin:0 16px 4px;background:var(--color-danger-light);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--color-danger);font-weight:600">↩ Returns</span><span style="font-weight:800;color:var(--color-danger)">−${fmt(tReturns)}</span></div>`:''}
+    ${hasCost?`<div style="margin:0 16px 8px;background:var(--color-accent-light);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--color-text-secondary);font-weight:600">Cost / Investment</span><span style="font-weight:800;color:var(--color-accent)">${fmt(tCost)}</span></div>`:''}
     <div class="date-nav">
-      <button class="date-nav-btn" onclick="kathaNav(-1)">&lt;</button>
+      <button class="date-nav-btn" onclick="kathaNav(-1)">${licon('chevron-left',16,'')}</button>
       <div class="date-nav-label">${label}</div>
-      <button class="date-nav-btn" onclick="kathaNav(1)">&gt;</button>
+      <button class="date-nav-btn" onclick="kathaNav(1)">${licon('chevron-right',16,'')}</button>
     </div>
+    <div class="section-header"><span>Transactions</span><span class="count-badge">${combined.length}</span></div>
     ${combined.length===0?_emptyState('book-open',t('noEntries'),'No entries for this period','',''):
       combined.map(i=>{
         if(i._type==='return') return`<div class="list-item" style="background:var(--color-danger-light)"><div class="list-item-left"><div class="list-item-amt" style="color:var(--color-danger)">↩ −${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)} · ${i.type==='customer'?t('custReturn'):t('suppReturn')}${i.reason?' · '+i.reason:''}${i.refName?' · '+esc(i.refName):''}${i.note?' · '+i.note:''}</div></div></div>`;
@@ -5047,29 +5213,51 @@ function renderUdhaar(){
     return rank(sa)-rank(sb);
   });
   const overdueWithPhone=sorted.filter(u=>{const ds=udhaarDueStatus(u);return u.phone&&ds&&(ds.type==='overdue'||ds.type==='today');});
+  const overdueAmt=sorted.filter(u=>{const ds=udhaarDueStatus(u);return ds&&ds.type==='overdue';}).reduce((a,u)=>a+u.amt,0);
+  const pendingAmt=sorted.filter(u=>{const ds=udhaarDueStatus(u);return !ds||ds.type!=='overdue';}).reduce((a,u)=>a+u.amt,0);
   el.innerHTML=`
-    <div class="udhaar-total-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <span>${t('total')}: ${active.length} · ${fmt(totalU)}</span>
-      ${overdueWithPhone.length>0?`<button onclick="sendBulkReminders()" style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#DCFCE7;border:1.5px solid #86EFAC;border-radius:10px;color:#15803D;font-size:12px;font-weight:700;cursor:pointer">
+    <div class="udhaar-summary-grid">
+      <div class="udhaar-summary-card">
+        <div class="udhaar-summary-val" style="color:var(--color-text-primary)">${fmt(totalU)}</div>
+        <div class="udhaar-summary-label">Total Udhaar</div>
+      </div>
+      <div class="udhaar-summary-card">
+        <div class="udhaar-summary-val" style="color:var(--color-warning)">${fmt(pendingAmt)}</div>
+        <div class="udhaar-summary-label">Pending</div>
+      </div>
+      <div class="udhaar-summary-card">
+        <div class="udhaar-summary-val" style="color:var(--color-danger)">${fmt(overdueAmt)}</div>
+        <div class="udhaar-summary-label">Overdue</div>
+      </div>
+    </div>
+    ${overdueWithPhone.length>0?`<div class="udhaar-total-bar">
+      <span style="font-size:13px">${active.length} customers · ${fmt(totalU)}</span>
+      <button onclick="sendBulkReminders()" style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#DCFCE7;border:1.5px solid #86EFAC;border-radius:10px;color:#15803D;font-size:12px;font-weight:700;cursor:pointer">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
         Send ${overdueWithPhone.length} Reminder${overdueWithPhone.length>1?'s':''}
-      </button>`:''}
-    </div>
-    <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--color-border-tertiary)">
-      <div style="display:flex;gap:8px">
-        <input class="input-md" id="u-name" placeholder="${t('name')}" oninput="checkSupplierDueRow()">
-        <input class="input-md" id="u-phone" inputmode="tel" placeholder="${t('phone')}" style="max-width:110px">
+      </button>
+    </div>`:''}
+    <div class="udhaar-entry-card">
+      <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.9);margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        <i data-lucide="credit-card" style="width:16px;height:16px;color:rgba(255,255,255,0.8)"></i> Add Udhaar (Credit)
       </div>
-      <div style="display:flex;gap:8px">
-        <input class="input-md" id="u-amt" inputmode="numeric" placeholder="${t('amount')}" onkeydown="if(event.key==='Enter')addUdhaar()">
-        <input class="input-md" id="u-due" type="date" style="max-width:140px" title="Due date (when they will pay)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <input class="input-md" id="u-name" placeholder="${t('name')}" oninput="checkSupplierDueRow()" style="background:rgba(255,255,255,0.95);border-color:transparent">
+        <input class="input-md" id="u-phone" inputmode="tel" placeholder="${t('phone')}" style="background:rgba(255,255,255,0.95);border-color:transparent">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <input class="input-md" id="u-amt" inputmode="numeric" placeholder="${t('amount')}" onkeydown="if(event.key==='Enter')addUdhaar()" style="background:rgba(255,255,255,0.95);border-color:transparent">
+        <input class="input-md" id="u-due" type="date" title="Due date (when they will pay)" style="background:rgba(255,255,255,0.95);border-color:transparent">
       </div>
       <div id="sup-due-row" class="sup-due-row" style="display:none">
         <label id="sup-due-label">${t('supCalDueDate')}</label>
         <input type="date" id="sup-due-input" class="sup-due-input">
       </div>
-      <button id="btn-add-udhaar" class="btn-block" onclick="addUdhaar()">${t('add')}</button>
+      <button id="btn-add-udhaar" onclick="addUdhaar()" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        <i data-lucide="plus-circle" style="width:16px;height:16px"></i> Add Udhaar
+      </button>
     </div>
+    <div class="section-header"><span>Recent Udhaar</span><span class="count-badge">${sorted.length}</span></div>
     ${sorted.length===0?_emptyState('users',t('noUdhaar'),'Customers you give credit to will appear here','',''):
       sorted.map(u=>{
         const ds=udhaarDueStatus(u);
@@ -5839,7 +6027,42 @@ function _flushToast(){
 function renderStock(){
   const lowStock=stock.filter(i=>i.qty<=5&&i.qty>0);
   const outStock=stock.filter(i=>i.qty<=0);
+  const totalValue=stock.reduce((a,i)=>a+(i.buy||0)*(i.qty||0),0);
   document.getElementById('page-stock').innerHTML=`
+    <div class="stock-overview-grid">
+      <div class="stock-overview-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--pm-purple-light);display:flex;align-items:center;justify-content:center">${licon('package',16,'color:var(--pm-purple)')}</div>
+          <div class="stock-overview-label" style="margin:0">Total Products</div>
+        </div>
+        <div class="stock-overview-val">${stock.length}</div>
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">All items</div>
+      </div>
+      <div class="stock-overview-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--color-warning-light);display:flex;align-items:center;justify-content:center">${licon('alert-triangle',16,'color:var(--color-warning)')}</div>
+          <div class="stock-overview-label" style="margin:0">Low Stock</div>
+        </div>
+        <div class="stock-overview-val" style="color:var(--color-warning)">${lowStock.length}</div>
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Reorder soon</div>
+      </div>
+      <div class="stock-overview-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--color-danger-light);display:flex;align-items:center;justify-content:center">${licon('x-circle',16,'color:var(--color-danger)')}</div>
+          <div class="stock-overview-label" style="margin:0">Out of Stock</div>
+        </div>
+        <div class="stock-overview-val" style="color:var(--color-danger)">${outStock.length}</div>
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Out of stock</div>
+      </div>
+      <div class="stock-overview-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--color-success-light);display:flex;align-items:center;justify-content:center">${licon('indian-rupee',16,'color:var(--color-success)')}</div>
+          <div class="stock-overview-label" style="margin:0">Inventory Value</div>
+        </div>
+        <div class="stock-overview-val" style="font-size:18px;color:var(--color-success)">${fmt(totalValue)}</div>
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">At cost price</div>
+      </div>
+    </div>
     ${lowStock.length>0?`<div class="stock-alert">${t('lowStockAlert')}: ${lowStock.map(i=>i.name+' ('+i.qty+')').join(', ')}</div>`:''}
     ${outStock.length>0?`<div class="stock-alert" style="background:var(--color-danger-light);color:var(--color-danger)">Out of stock: ${outStock.map(i=>i.name).join(', ')}</div>`:''}
     <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--color-border-tertiary)">
@@ -5875,7 +6098,7 @@ function renderStock(){
       <input class="input-sm" placeholder="Search items..." value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStock()" style="flex:1;border:none;background:transparent;font-size:14px;outline:none;height:36px;padding:0">
       ${stockSearch?`<button onclick="stockSearch='';renderStock()" style="background:none;border:none;font-size:16px;color:var(--color-text-secondary);cursor:pointer;padding:0 4px">✕</button>`:''}
     </div>
-    <div class="section-header"><span>${t('stock')}</span><span style="display:flex;align-items:center;gap:8px"><span class="count-badge">${stock.length}</span><button class="scan-btn" style="padding:5px 10px;font-size:11px" onclick="openScanner('stockFind')">🔍 Scan</button></span></div>
+    <div class="section-header"><span>All Products</span><span style="display:flex;align-items:center;gap:8px"><span class="count-badge">${stock.length}</span><button class="scan-btn" style="padding:5px 10px;font-size:11px;display:inline-flex;align-items:center;gap:4px" onclick="openScanner('stockFind')">${licon('scan-barcode',12,'')} Scan</button></span></div>
     ${(()=>{
       if(stock.length===0) return _emptyState('package',t('noStock'),'Add items to track inventory and profit','','');
       const filtered=stockSearch?stock.filter(i=>i.name.toLowerCase().includes(stockSearch.toLowerCase())||(i.barcode||'').includes(stockSearch)):stock;
@@ -5884,10 +6107,11 @@ function renderStock(){
         const profit=Math.round(i.sell-i.buy);
         const qtyColor=i.qty<=0?'var(--color-danger)':i.qty<=5?'var(--color-warning)':'var(--color-success)';
         if(confirmId===i.id) return `<div class="list-item"><div class="list-item-left"><div class="list-item-title">${esc(i.name)}</div><div class="list-item-meta">${t('delete')}</div></div><div class="confirm-row"><button class="btn-confirm yes" onclick="delStock('${i.id}')">${t('yesDelete')}</button><button class="btn-confirm no" onclick="confirmId=null;renderStock()">${t('cancel')}</button></div></div>`;
+        const statusChip=i.qty<=0?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--color-danger-light);color:var(--color-danger);margin-left:6px">Out of Stock</span>`:i.qty<=5?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--color-warning-light);color:var(--color-warning);margin-left:6px">Low Stock</span>`:`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--color-success-light);color:var(--color-success);margin-left:6px">In Stock</span>`;
         return `<div class="list-item"${i.barcode?` data-barcode="${esc(i.barcode)}"`:''}>
           <div class="list-item-left">
-            <div class="list-item-title">${esc(i.name)}${i.size?' · '+esc(i.size):''}</div>
-            <div class="list-item-meta">${t('buyPrice')}: ${fmt(i.buy)} · ${t('sellPrice')}: ${fmt(i.sell)} · <span class="stock-item-profit">${t('profit')}: ${fmt(profit)}</span>${i.barcode?` · <span style="font-family:monospace;color:var(--color-text-secondary)">▦ ${i.barcode}</span>`:''}</div>
+            <div class="list-item-title">${esc(i.name)}${i.size?' · '+esc(i.size):''}${statusChip}</div>
+            <div class="list-item-meta">Buy ${fmt(i.buy)} · Sell ${fmt(i.sell)} · <span class="stock-item-profit">Profit ${fmt(profit)}</span>${i.barcode?` · <span style="font-family:monospace;color:var(--color-text-secondary);font-size:11px">▦ ${i.barcode}</span>`:''}</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="text-align:center"><div style="font-size:18px;font-weight:800;color:${qtyColor}">${i.qty}</div><div style="font-size:10px;color:var(--color-text-secondary)">${t('inStock')}</div></div>
@@ -6666,6 +6890,10 @@ function renderDashboard(el){
 let _showAdvanced=JSON.parse(localStorage.getItem('pm_show_advanced')||'false');
 let _moreCat='finance';
 function selectMoreCat(id){_moreCat=id;renderMore();}
+let _moreExpandedCats=new Set(['Finance & Reports','Sales & Customers']);
+let _moreSearch='';
+function toggleMoreCat(label){if(_moreExpandedCats.has(label))_moreExpandedCats.delete(label);else _moreExpandedCats.add(label);renderMore();}
+function setMoreSearch(v){_moreSearch=v;renderMore();}
 function toggleAdvanced(){
   _showAdvanced=!_showAdvanced;
   localStorage.setItem('pm_show_advanced',JSON.stringify(_showAdvanced));
@@ -7035,8 +7263,8 @@ function renderMoreMenu(el){
     {label:'Sales & Customers',   fa:'fa-shopping-bag',     color:'#7C3AED', ids:['bill','customers','emi']},
     {label:'Stock & Suppliers',   fa:'fa-boxes',            color:'#EA580C', ids:['supplier','kharidi','dealer']},
     {label:'Staff & Expenses',    fa:'fa-users',            color:'#D97706', ids:['staffBook','expense']},
-    {label:'Daily Tools',         fa:'fa-bell',             color:'#059669', ids:['morning','supplier-cal','reminders']},
     {label:'Loans & Credit',      fa:'fa-hand-holding-usd', color:'#DC2626', ids:['loan']},
+    {label:'Daily Tools',         fa:'fa-bell',             color:'#059669', ids:['morning','supplier-cal','reminders']},
     {label:'Business',            fa:'fa-building',         color:'#0891B2', ids:['branches']},
     {label:'Account',             fa:'fa-cog',              color:'#64748B', ids:['payment','settings','logout']},
   ];
@@ -7047,23 +7275,85 @@ function renderMoreMenu(el){
       <div class="more-icon" style="background:${i.color}">${licon(i.icon,20,'color:#fff;')}</div>
       <div style="flex:1;min-width:0"><div class="more-menu-title">${i.label}</div>${i.desc?`<div class="more-menu-desc">${i.desc}</div>`:''}</div>
       ${i.badgeId?`<span class="sup-cal-badge" id="${i.badgeId}" style="display:none">0</span>`:''}
-      ${i.locked?'<div class="more-lock">PRO</div>':''}
+      ${i.locked?'<div class="more-lock">PRO</div>':'<i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--color-text-secondary);opacity:0.5;flex-shrink:0"></i>'}
     </div>`;
 
-  const renderGroup=g=>`
-    <div style="display:flex;align-items:center;gap:9px;padding:18px 16px 8px">
-      <div style="width:26px;height:26px;border-radius:7px;background:${g.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <i class="fas ${g.fa}" style="font-size:12px;color:#fff"></i>
+  const quickItems=[
+    {id:'dashboard',icon:'layout-dashboard',color:'#4F46E5',label:'Dashboard'},
+    {id:'bill',icon:'file-text',color:'#0EA5E9',label:'Digital Bill'},
+    {id:'customers',icon:'users',color:'#7C3AED',label:'Customers'},
+    {id:'cashbook',icon:'book-open',color:'#0D9488',label:'Cash Book'},
+  ];
+
+  const sq=_moreSearch.toLowerCase().trim();
+  const isSearching=sq.length>0;
+
+  const renderGroup=g=>{
+    const items=g.ids.filter(id=>allItems[id]).map(id=>({id,...allItems[id]}));
+    const filteredItems=isSearching?items.filter(i=>i.label.toLowerCase().includes(sq)||(i.desc||'').toLowerCase().includes(sq)):items;
+    if(filteredItems.length===0) return '';
+    const isOpen=isSearching||_moreExpandedCats.has(g.label);
+    return `
+      <div class="more-cat-header" onclick="toggleMoreCat('${g.label.replace(/'/g,"\\'")}')">
+        <div class="more-cat-icon" style="background:${g.color}1A">
+          <i class="fas ${g.fa}" style="font-size:12px;color:${g.color}"></i>
+        </div>
+        <span class="more-cat-label">${g.label}</span>
+        <span class="more-cat-count">${items.length}</span>
+        <span class="more-cat-chevron${isOpen?' open':''}">
+          ${licon('chevron-right',14,'color:var(--color-text-secondary)')}
+        </span>
       </div>
-      <span style="font-size:13px;font-weight:700;color:var(--color-text-primary)">${g.label}</span>
-      <div style="flex:1;height:1px;background:var(--color-border-tertiary)"></div>
-    </div>
-    ${g.ids.filter(id=>allItems[id]).map(id=>renderItem({id,...allItems[id]})).join('')}`;
+      ${isOpen?filteredItems.map(renderItem).join(''):''}`;
+  };
+
+  const st=getSubscriptionState();
+  const healthColor=st.status==='grandfathered'||st.status==='paid'?'#059669':st.status==='trial'?'#D97706':'#DC2626';
+  const healthLabel=st.status==='grandfathered'?'Free Forever':st.status==='paid'?`Active · ${st.daysLeft}d left`:st.status==='trial'?`Trial · ${st.daysLeft}d left`:'Subscription Required';
 
   el.innerHTML=`
+    <div class="more-search-wrap">
+      <div class="more-search-inner">
+        ${licon('search',16,'color:var(--color-text-secondary);flex-shrink:0')}
+        <input class="more-search-input" placeholder="Search features..." value="${esc(_moreSearch)}" oninput="setMoreSearch(this.value)">
+        ${_moreSearch?`<button onclick="setMoreSearch('')" style="background:none;border:none;font-size:16px;color:var(--color-text-secondary);cursor:pointer;padding:0 2px;line-height:1">✕</button>`:''}
+      </div>
+    </div>
+    ${!isSearching?`
+    <div class="more-quick-section">
+      <div class="more-quick-title">
+        <span>Quick Access</span>
+        <button onclick="goMore('settings')" style="background:none;border:none;color:var(--color-accent);font-size:12px;font-weight:700;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:4px">${licon('settings',12,'')} Edit</button>
+      </div>
+      <div class="more-quick-grid">
+        ${quickItems.map(q=>`
+          <div class="more-quick-item" onclick="goMore('${q.id}')">
+            <div class="more-quick-icon" style="background:${q.color}1A">
+              ${licon(q.icon,16,`color:${q.color}`)}
+            </div>
+            <div class="more-quick-label">${q.label}</div>
+          </div>`).join('')}
+        <div class="more-quick-item" onclick="switchTab('stock')">
+          <div class="more-quick-icon" style="background:#EA580C1A">
+            ${licon('package',16,'color:#EA580C')}
+          </div>
+          <div class="more-quick-label">Stock</div>
+        </div>
+      </div>
+    </div>`:''}
     <div style="padding-bottom:24px">
       ${groups.map(renderGroup).join('')}
-      <div style="text-align:center;padding:20px 20px 8px;display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div class="more-health-card" onclick="goMore('score')">
+        <div style="width:42px;height:42px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          ${licon('trending-up',22,'color:#fff')}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:#fff">Business Health Score</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:2px">Financial health score & bank loan certificate</div>
+        </div>
+        <button onclick="goMore('score');event.stopPropagation()" style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;padding:8px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Check Now</button>
+      </div>
+      <div style="text-align:center;padding:16px 20px 8px;display:flex;flex-direction:column;align-items:center;gap:8px">
         <div style="font-size:12px;color:var(--color-text-secondary)">Pasal Manager v2.0</div>
         <a href="https://varaai-final.vercel.app" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 14px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);border-radius:20px;text-decoration:none">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#a78bfa" stroke="#a78bfa" stroke-width="1" stroke-linejoin="round"/></svg>
