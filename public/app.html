@@ -3,7 +3,7 @@
 <head>
 <!-- Cache Busting: Force browsers to download fresh version -->
 <!-- Version: 3.0 (Fintech UI Redesign) | Updated: 2026-06-08 -->
-<meta name="cache-version" content="v5.2-20260609-ux-phase2a">
+<meta name="cache-version" content="v5.3-20260609-ux-phase2b">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
@@ -4746,27 +4746,6 @@ function renderToday(){
         <i data-lucide="plus-circle" style="width:18px;height:18px"></i> Record Sale
       </button>
     </div>
-    <div class="home-quick-actions">
-      <button class="home-quick-btn" onclick="${_payConfig().hasId ? 'openUpiModal(0)' : "goMore('settings');switchTab('more')"}">
-        <div class="home-quick-icon" style="background:#ede9fe">
-          <i data-lucide="qr-code" style="width:18px;height:18px;color:#7c3aed"></i>
-        </div>
-        <div>
-          <div class="home-quick-label">Collect Payment</div>
-          <div class="home-quick-sub">${_payConfig().hasId ? 'QR / UPI' : 'Setup required'}</div>
-        </div>
-      </button>
-      <button class="home-quick-btn" onclick="goMore('customers');switchTab('more')">
-        <div class="home-quick-icon" style="background:#ecfdf5">
-          <i data-lucide="user-plus" style="width:18px;height:18px;color:#059669"></i>
-        </div>
-        <div>
-          <div class="home-quick-label">Add Customer</div>
-          <div class="home-quick-sub">New Customer</div>
-        </div>
-      </button>
-    </div>
-    <div class="section-header" style="margin-top:4px"><span>Record Sale</span><span style="color:var(--color-text-secondary);font-size:11px;font-weight:500">Recent Items</span></div>
     <div class="sub-tabs">
       <button class="sub-tab-btn${todayTab==='sale'?' active':''}" onclick="todayTab='sale';renderToday()">${t('todaySales')}</button>
       <button class="sub-tab-btn${todayTab==='return'?' active':''}" onclick="todayTab='return';renderToday()" style="color:${todayTab==='return'?'var(--color-danger)':''};display:inline-flex;align-items:center;justify-content:center;gap:6px">${licon('undo-2',15,'')} ${t('addReturn')}</button>
@@ -4828,7 +4807,27 @@ function renderToday(){
         if(confirmId===i.id) return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${t('delete')}</div></div><div class="confirm-row"><button class="btn-confirm yes" onclick="delSale('${i.id}')">${t('yesDelete')}</button><button class="btn-confirm no" onclick="confirmId=null;renderToday()">${t('cancel')}</button></div></div>`;
         const cust=i.customerId?customers.find(c=>c.id===i.customerId):null;
         return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.cost>0?' · Cost: '+fmt(i.cost):''}${i.note?' · '+i.note:''}${cust?` · <span style="color:var(--color-accent);font-weight:600;display:inline-flex;align-items:center;gap:3px"><i data-lucide="user" style="width:11px;height:11px"></i>${esc(cust.name)}</span>`:''}</div></div>${profit!==null?`<div style="text-align:center;margin-right:4px"><div style="font-size:13px;font-weight:700;color:${profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(profit)}</div><div style="font-size:10px;color:var(--color-text-secondary)">profit</div></div>`:''}<button class="btn-icon" title="Print receipt" style="background:#EFF6FF;color:#1D4ED8" onclick="printSaleReceipt('${i.id}')"><i data-lucide="printer" style="width:13px;height:13px"></i></button>${(S.country==='IN'&&S.upiId)||(S.country==='NP'&&(S.esewaId||S.npPaymentId))?`<button class="btn-icon" title="${S.country==='NP'?'Collect via eSewa/Khalti':'Collect via UPI'}" style="background:#ECFDF5;color:#059669" onclick="openUpiModal(${i.amt})"><i data-lucide="qr-code" style="width:13px;height:13px"></i></button>`:''}<button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderToday()">✕</button></div>`;
-      }).join('')}`;
+      }).join('')}
+    <div class="home-quick-actions">
+      <button class="home-quick-btn" onclick="${_payConfig().hasId ? 'openUpiModal(0)' : "goMore('settings');switchTab('more')"}">
+        <div class="home-quick-icon" style="background:#ede9fe">
+          <i data-lucide="qr-code" style="width:18px;height:18px;color:#7c3aed"></i>
+        </div>
+        <div>
+          <div class="home-quick-label">Collect Payment</div>
+          <div class="home-quick-sub">${_payConfig().hasId ? 'QR / UPI' : 'Setup required'}</div>
+        </div>
+      </button>
+      <button class="home-quick-btn" onclick="goMore('customers');switchTab('more')">
+        <div class="home-quick-icon" style="background:#ecfdf5">
+          <i data-lucide="user-plus" style="width:18px;height:18px;color:#059669"></i>
+        </div>
+        <div>
+          <div class="home-quick-label">Add Customer</div>
+          <div class="home-quick-sub">New Customer</div>
+        </div>
+      </button>
+    </div>`;
   _renderIcons();
   setTimeout(()=>{const el=document.getElementById('s-note');if(el&&todayTab==='sale')el.focus();},50);
 }
@@ -6030,6 +6029,8 @@ function _flushToast(){
 }
 
 // =============== STOCK ===============
+let _stockFormOpen=false;
+function toggleStockForm(){_stockFormOpen=!_stockFormOpen;renderStock();}
 function renderStock(){
   const lowStock=stock.filter(i=>i.qty<=5&&i.qty>0);
   const outStock=stock.filter(i=>i.qty<=0);
@@ -6071,34 +6072,6 @@ function renderStock(){
     </div>
     ${lowStock.length>0?`<div class="stock-alert">${t('lowStockAlert')}: ${lowStock.map(i=>i.name+' ('+i.qty+')').join(', ')}</div>`:''}
     ${outStock.length>0?`<div class="stock-alert" style="background:var(--color-danger-light);color:var(--color-danger)">Out of stock: ${outStock.map(i=>i.name).join(', ')}</div>`:''}
-    <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--color-border-tertiary)">
-      <div style="display:flex;gap:8px">
-        <input class="input-md" id="st-name" placeholder="${t('itemName')}" style="flex:1" onkeydown="if(event.key==='Enter')addStock()">
-        <input class="input-md" id="st-size" placeholder="${t('size')}" style="max-width:70px">
-      </div>
-      <div style="display:flex;gap:8px">
-        <input class="input-md" id="st-qty" inputmode="numeric" placeholder="${t('qty')}" style="max-width:60px">
-        <input class="input-md" id="st-buy" inputmode="numeric" placeholder="${t('buyPrice')}">
-        <input class="input-md" id="st-sell" inputmode="numeric" placeholder="${t('sellPrice')}">
-      </div>
-      <div style="display:flex;gap:8px">
-        <input class="input-md" id="st-barcode" placeholder="${t('itemBarcode')}" style="flex:1">
-        <button class="scan-btn" onclick="openScanner('stock')" style="flex-shrink:0">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="7" y2="12.01"/><line x1="12" y1="12" x2="17" y2="12"/><line x1="12" y1="8" x2="17" y2="8"/><line x1="12" y1="16" x2="17" y2="16"/></svg>
-          ${t('scanBarcode')}
-        </button>
-      </div>
-      <button id="btn-add-stock" class="btn-block" onclick="addStock()">${t('addItem')}</button>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;flex:1;padding:10px;background:var(--color-background-secondary);border:1.5px dashed var(--color-border);border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-secondary)">
-          ${licon('upload',14,'color:var(--color-text-secondary)')} Import CSV
-          <input type="file" accept=".csv,.txt" onchange="importStockCSV(this)" style="display:none">
-        </label>
-        <button onclick="downloadSampleCSV('stock')" style="flex:1;padding:10px;background:var(--color-background-secondary);border:1.5px dashed var(--color-border);border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-secondary);display:flex;align-items:center;justify-content:center;gap:6px">
-          ${licon('download',14,'color:var(--color-text-secondary)')} Sample CSV
-        </button>
-      </div>
-    </div>
     <div style="padding:8px 16px 4px;border-bottom:1px solid var(--color-border-tertiary);display:flex;gap:8px;align-items:center;background:var(--color-background-secondary)">
       <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--color-text-secondary);fill:none;stroke-width:2;flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input class="input-sm" placeholder="Search items..." value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStock()" style="flex:1;border:none;background:transparent;font-size:14px;outline:none;height:36px;padding:0">
@@ -6131,7 +6104,42 @@ function renderStock(){
           </div>
         </div>`;
       }).join('');
-    })()}`;
+    })()}
+    ${(stock.length===0||_stockFormOpen)?`
+    <div style="border-top:1px solid var(--color-border-tertiary);padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+      ${stock.length>0?`<div style="display:flex;justify-content:flex-end"><button onclick="toggleStockForm()" style="background:none;border:none;color:var(--color-text-secondary);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 0">${licon('x',14,'color:var(--color-text-secondary)')} Close</button></div>`:''}
+      <div style="display:flex;gap:8px">
+        <input class="input-md" id="st-name" placeholder="${t('itemName')}" style="flex:1" onkeydown="if(event.key==='Enter')addStock()">
+        <input class="input-md" id="st-size" placeholder="${t('size')}" style="max-width:70px">
+      </div>
+      <div style="display:flex;gap:8px">
+        <input class="input-md" id="st-qty" inputmode="numeric" placeholder="${t('qty')}" style="max-width:60px">
+        <input class="input-md" id="st-buy" inputmode="numeric" placeholder="${t('buyPrice')}">
+        <input class="input-md" id="st-sell" inputmode="numeric" placeholder="${t('sellPrice')}">
+      </div>
+      <div style="display:flex;gap:8px">
+        <input class="input-md" id="st-barcode" placeholder="${t('itemBarcode')}" style="flex:1">
+        <button class="scan-btn" onclick="openScanner('stock')" style="flex-shrink:0">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="7" y2="12.01"/><line x1="12" y1="12" x2="17" y2="12"/><line x1="12" y1="8" x2="17" y2="8"/><line x1="12" y1="16" x2="17" y2="16"/></svg>
+          ${t('scanBarcode')}
+        </button>
+      </div>
+      <button id="btn-add-stock" class="btn-block" onclick="addStock()">${t('addItem')}</button>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;flex:1;padding:10px;background:var(--color-background-secondary);border:1.5px dashed var(--color-border);border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-secondary)">
+          ${licon('upload',14,'color:var(--color-text-secondary)')} Import CSV
+          <input type="file" accept=".csv,.txt" onchange="importStockCSV(this)" style="display:none">
+        </label>
+        <button onclick="downloadSampleCSV('stock')" style="flex:1;padding:10px;background:var(--color-background-secondary);border:1.5px dashed var(--color-border);border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-secondary);display:flex;align-items:center;justify-content:center;gap:6px">
+          ${licon('download',14,'color:var(--color-text-secondary)')} Sample CSV
+        </button>
+      </div>
+    </div>`:`
+    <div style="border-top:1px solid var(--color-border-tertiary)">
+      <button onclick="toggleStockForm()" style="width:100%;padding:14px 16px;background:none;border:none;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--color-accent);text-align:left">
+        ${licon('plus',16,'color:var(--color-accent)')} + Add Product
+      </button>
+    </div>`}`;
   _renderIcons();
 }
 function _autoBarcode(){
@@ -7286,9 +7294,10 @@ function renderMoreMenu(el){
 
   const quickItems=[
     {id:'dashboard',icon:'layout-dashboard',color:'#4F46E5',label:'Dashboard'},
-    {id:'bill',icon:'file-text',color:'#0EA5E9',label:'Digital Bill'},
-    {id:'customers',icon:'users',color:'#7C3AED',label:'Customers'},
     {id:'cashbook',icon:'book-open',color:'#0D9488',label:'Cash Book'},
+    {id:'customers',icon:'users',color:'#7C3AED',label:'Customers'},
+    {id:'stock',icon:'package',color:'#EA580C',label:'Stock',isTab:true},
+    {id:'bill',icon:'file-text',color:'#0EA5E9',label:'Digital Bill'},
   ];
 
   const sq=_moreSearch.toLowerCase().trim();
@@ -7333,18 +7342,12 @@ function renderMoreMenu(el){
       </div>
       <div class="more-quick-grid">
         ${quickItems.map(q=>`
-          <div class="more-quick-item" onclick="goMore('${q.id}')">
+          <div class="more-quick-item" onclick="${q.isTab?`switchTab('${q.id}')`:`goMore('${q.id}')`}">
             <div class="more-quick-icon" style="background:${q.color}1A">
               ${licon(q.icon,16,`color:${q.color}`)}
             </div>
             <div class="more-quick-label">${q.label}</div>
           </div>`).join('')}
-        <div class="more-quick-item" onclick="switchTab('stock')">
-          <div class="more-quick-icon" style="background:#EA580C1A">
-            ${licon('package',16,'color:#EA580C')}
-          </div>
-          <div class="more-quick-label">Stock</div>
-        </div>
       </div>
     </div>`:''}
     <div style="padding-bottom:24px">
