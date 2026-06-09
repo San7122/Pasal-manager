@@ -167,6 +167,11 @@ body {
   display: none;
 }
 
+.mobile-menu-toggle,
+.mobile-sidebar-backdrop {
+  display: none;
+}
+
 /* Main content area */
 .main-area {
   flex: 1;
@@ -197,6 +202,64 @@ body {
 
   .bottom-nav { display: none !important; }
   .topbar { padding: 0 20px; }
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    display: flex;
+    flex-direction: column;
+    width: var(--sidebar-width);
+    max-width: 86vw;
+    background: var(--sidebar-bg);
+    overflow: hidden;
+    z-index: 700;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar.mobile-open .sidebar-label {
+    display: inline-flex !important;
+  }
+
+  .sidebar.mobile-open .sidebar-logo .sidebar-label {
+    display: block !important;
+  }
+
+  .mobile-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.32);
+    z-index: 650;
+  }
+
+  .mobile-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--color-border-tertiary);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .bottom-nav {
+    display: none !important;
+  }
+
+  .scroll-area {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
 }
 
 /* ── Desktop: expanded sidebar ── */
@@ -1915,10 +1978,16 @@ body {
     </nav>
     <div class="sidebar-bottom"></div>
   </div>
+  <div class="mobile-sidebar-backdrop" id="mobile-sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 
   <!-- ── Main area ── -->
   <div class="main-area">
     <div class="topbar">
+      <button class="mobile-menu-toggle" id="mobile-menu-toggle" onclick="toggleSidebar()" aria-label="Open menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
       <div class="topbar-brand" id="topbar-brand">
         <div class="topbar-logo-mark">
           <img src="logo-icon.svg" alt="Pasal Manager" style="width:32px;height:32px;border-radius:8px;object-fit:cover">
@@ -4618,17 +4687,45 @@ async function _migrateGuestData(){
 // ===== SIDEBAR =====
 let _sidebarExpanded = window.innerWidth >= 1100;
 let _sidebarOpenCat = null;
-function toggleSidebar(){
-  _sidebarExpanded=!_sidebarExpanded;
+let _mobileSidebarOpen = false;
+function _setSidebarLabels(show){
   const sb=document.getElementById('sidebar');
   if(!sb) return;
-  sb.classList.toggle('expanded',_sidebarExpanded);
   sb.querySelectorAll('.sidebar-label').forEach(el=>{
-    el.style.display=_sidebarExpanded?'':'none';
+    el.style.display=show?'':'none';
   });
 }
+function closeMobileSidebar(){
+  _mobileSidebarOpen=false;
+  const sb=document.getElementById('sidebar');
+  const backdrop=document.getElementById('mobile-sidebar-backdrop');
+  const btn=document.getElementById('mobile-menu-toggle');
+  if(sb) sb.classList.remove('mobile-open');
+  if(backdrop) backdrop.style.display='none';
+  if(btn) btn.setAttribute('aria-expanded','false');
+  _setSidebarLabels(window.innerWidth >= 1100);
+}
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  if(!sb) return;
+  if(window.innerWidth < 768){
+    _mobileSidebarOpen=!_mobileSidebarOpen;
+    sb.classList.toggle('mobile-open',_mobileSidebarOpen);
+    const backdrop=document.getElementById('mobile-sidebar-backdrop');
+    const btn=document.getElementById('mobile-menu-toggle');
+    if(backdrop) backdrop.style.display=_mobileSidebarOpen?'block':'none';
+    if(btn) btn.setAttribute('aria-expanded',_mobileSidebarOpen?'true':'false');
+    _setSidebarLabels(_mobileSidebarOpen);
+    return;
+  }
+  _sidebarExpanded=!_sidebarExpanded;
+  sb.classList.toggle('expanded',_sidebarExpanded);
+  _setSidebarLabels(_sidebarExpanded);
+}
 function toggleSidebarCat(cat){
-  if(!_sidebarExpanded) toggleSidebar();
+  if(window.innerWidth < 768){
+    if(!_mobileSidebarOpen) toggleSidebar();
+  } else if(!_sidebarExpanded) toggleSidebar();
   const prev=_sidebarOpenCat;
   if(prev){
     const pp=document.getElementById('scat-'+prev+'-panel');
@@ -4643,6 +4740,13 @@ function toggleSidebarCat(cat){
   if(panel) panel.style.display='block';
   if(chevron) chevron.style.transform='rotate(90deg)';
 }
+document.addEventListener('click',e=>{
+  if(window.innerWidth >= 768) return;
+  if(e.target.closest('.sidebar-subitem')) closeMobileSidebar();
+});
+window.addEventListener('resize',()=>{
+  if(window.innerWidth >= 768) closeMobileSidebar();
+});
 function _syncSidebarActive(tab){
   document.querySelectorAll('.sidebar-item[id^="snav-"]').forEach(b=>b.classList.remove('active'));
   const map={today:'sales',katha:'sales',udhaar:'udhaar',stock:'stock',more:'finance'};
