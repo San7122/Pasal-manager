@@ -2088,26 +2088,26 @@ body {
     </div>
 
     <div class="bottom-nav">
-      <button class="nav-btn active" onclick="switchTab('today')" id="nav-today">
+      <button class="nav-btn active" onclick="ANALYTICS.track('bottomNavClick',{tab:'Home'});switchTab('today')" id="nav-today">
         <i data-lucide="home" style="width:22px;height:22px"></i>
         <span>Home</span>
       </button>
-      <button class="nav-btn" onclick="switchTab('katha')" id="nav-katha">
+      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'Sales'});switchTab('katha')" id="nav-katha">
         <i data-lucide="list" style="width:22px;height:22px"></i>
         <span>Sales</span>
       </button>
-      <button class="nav-btn" onclick="switchTab('udhaar')" id="nav-udhaar">
+      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'Udhaar'});switchTab('udhaar')" id="nav-udhaar">
         <div style="position:relative;display:inline-flex">
           <i data-lucide="users" style="width:22px;height:22px"></i>
           <span id="udhaar-badge" style="display:none;position:absolute;top:-4px;right:-6px;background:#E11D48;color:#fff;border-radius:999px;font-size:9px;font-weight:800;min-width:14px;height:14px;line-height:14px;text-align:center;padding:0 3px"></span>
         </div>
         <span>Udhaar</span>
       </button>
-      <button class="nav-btn" onclick="switchTab('stock')" id="nav-stock">
+      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'Stock'});switchTab('stock')" id="nav-stock">
         <i data-lucide="package" style="width:22px;height:22px"></i>
         <span>Stock</span>
       </button>
-      <button class="nav-btn" onclick="switchTab('more')" id="nav-more">
+      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'More'});switchTab('more')" id="nav-more">
         <i data-lucide="layout-grid" style="width:22px;height:22px"></i>
         <span>More</span>
       </button>
@@ -2519,6 +2519,21 @@ function _trackLocal(eventName, data){
     localStorage.setItem(KEY,JSON.stringify(ev));
   }catch(_){}
 }
+
+// ===== MINIMAL ANALYTICS (FIRE-AND-FORGET) =====
+// Tracks 6 core metrics: moduleGridClick, sidebarOpen, bottomNavClick, recordSaleClick, dashboardOpen, financeOpen
+// Non-blocking, silent failures, uses existing Supabase client
+const ANALYTICS = {
+  track(eventType, eventData = {}) {
+    // Fire-and-forget: do not await, do not block user action
+    sb.from('analytics_events').insert({
+      user_id: currentUser?.id || 'guest',
+      event_type: eventType,
+      event_data: eventData,
+      device_type: window.innerWidth < 768 ? 'mobile' : 'desktop'
+    }).catch(() => {}); // Silent failure
+  }
+};
 
 // Call pm_debugUsage() in the browser console to see your local usage stats.
 // Works for any user — reads from the localStorage ring-buffer above.
@@ -4769,6 +4784,7 @@ function toggleSidebar(){
   if(!sb) return;
   if(window.innerWidth < 768){
     _mobileSidebarOpen=!_mobileSidebarOpen;
+    if(_mobileSidebarOpen) ANALYTICS.track('sidebarOpen');
     sb.classList.toggle('mobile-open',_mobileSidebarOpen);
     const backdrop=document.getElementById('mobile-sidebar-backdrop');
     const btn=document.getElementById('mobile-menu-toggle');
@@ -5014,55 +5030,55 @@ function renderToday(){
           <div style="font-size:10px;color:rgba(255,255,255,0.65);font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:0.4px">Transactions</div>
         </div>
       </div>
-      <button onclick="document.getElementById('s-note')?.focus();document.getElementById('s-note')?.scrollIntoView({behavior:'smooth',block:'center'})" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
+      <button onclick="ANALYTICS.track('recordSaleClick');document.getElementById('s-note')?.focus();document.getElementById('s-note')?.scrollIntoView({behavior:'smooth',block:'center'})" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
         <i data-lucide="plus-circle" style="width:18px;height:18px"></i> Record Sale
       </button>
     </div>
     <div class="module-grid">
-      <button class="module-grid-card" onclick="switchTab('katha')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Sales'});switchTab('katha')">
         <div class="module-grid-icon" style="background: #7C3AED1A">
           <i data-lucide="shopping-bag" style="color: #7C3AED"></i>
         </div>
         <div class="module-grid-label">Sales</div>
       </button>
-      <button class="module-grid-card" onclick="switchTab('stock')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Stock'});switchTab('stock')">
         <div class="module-grid-icon" style="background: #8B5CF61A">
           <i data-lucide="package" style="color: #8B5CF6"></i>
         </div>
         <div class="module-grid-label">Stock</div>
       </button>
-      <button class="module-grid-card" onclick="goMore('pl')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Finance'});ANALYTICS.track('financeOpen');goMore('pl')">
         <div class="module-grid-icon" style="background: #0596691A">
           <i data-lucide="trending-up" style="color: #059669"></i>
         </div>
         <div class="module-grid-label">Finance</div>
       </button>
-      <button class="module-grid-card" onclick="switchTab('udhaar')" style="position: relative;">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Udhaar'});switchTab('udhaar')" style="position: relative;">
         <div class="module-grid-icon" style="background: #E11D481A">
           <i data-lucide="users" style="color: #E11D48"></i>
         </div>
         <div class="module-grid-label">Udhaar</div>
         ${udhaarCount > 0 ? '<div class="module-grid-badge"></div>' : ''}
       </button>
-      <button class="module-grid-card" onclick="goMore('staffBook')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Staff'});goMore('staffBook')">
         <div class="module-grid-icon" style="background: #D976061A">
           <i data-lucide="users-3" style="color: #D97706"></i>
         </div>
         <div class="module-grid-label">Staff</div>
       </button>
-      <button class="module-grid-card" onclick="goMore('loan')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Loans'});goMore('loan')">
         <div class="module-grid-icon" style="background: #DC26261A">
           <i data-lucide="building-bank" style="color: #DC2626"></i>
         </div>
         <div class="module-grid-label">Loans</div>
       </button>
-      <button class="module-grid-card" onclick="goMore('dashboard')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Dashboard'});ANALYTICS.track('dashboardOpen');goMore('dashboard')">
         <div class="module-grid-icon" style="background: #4F46E51A">
           <i data-lucide="chart-line" style="color: #4F46E5"></i>
         </div>
         <div class="module-grid-label">Dashboard</div>
       </button>
-      <button class="module-grid-card" onclick="goMore('settings')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Account'});goMore('settings')">
         <div class="module-grid-icon" style="background: #64748B1A">
           <i data-lucide="settings" style="color: #64748B"></i>
         </div>
