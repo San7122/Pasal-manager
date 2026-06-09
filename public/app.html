@@ -269,8 +269,23 @@ body {
     display: flex !important;
   }
 
+  .topbar {
+    height: auto !important;
+    min-height: auto !important;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 10px 20px !important;
+  }
+
   .topbar-date {
-    max-width: 75px !important;
+    order: 10;
+    flex-basis: 100%;
+    width: 100%;
+    margin-top: 8px;
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap;
   }
 }
 
