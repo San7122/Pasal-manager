@@ -1792,6 +1792,17 @@ body {
 .ksd-option{display:flex;align-items:center;gap:10px;cursor:pointer;}
 .ksd-option span{background:#fff;font-size:13px;font-weight:600;color:#0F172A;padding:6px 14px;border-radius:99px;box-shadow:0 2px 10px rgba(0,0,0,0.12);white-space:nowrap;}
 .ksd-icon{width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);flex-shrink:0;}
+/* ===== STOCK PAGE REDESIGN ===== */
+.sk-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:14px 14px 6px}
+.sk-card{background:#fff;border-radius:16px;padding:14px;border:1px solid #E2E8F0;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+.sk-card-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.sk-card-label{font-size:11px;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:4px}
+.sk-card-val{font-size:26px;font-weight:900;line-height:1;margin-bottom:2px}
+.sk-card-sub{font-size:11px;color:#94A3B8}
+.sk-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;margin-top:2px}
+.sk-alert{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #FEE2E2;background:#FFF5F5}
+.sk-search{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-top:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0;position:sticky;top:0;z-index:10}
+.sk-product-card{background:#fff;border-radius:16px;border:1px solid #E2E8F0;padding:14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.04)}
 /* Bottom nav — squircle active + center FAB */
 .nav-btn{border-radius:12px;transition:color 0.18s;}
 .nav-icon-wrap{display:flex;align-items:center;justify-content:center;width:44px;height:30px;border-radius:10px;transition:background 0.18s;}
@@ -2267,6 +2278,18 @@ body {
   </div>
   <button class="ksd-main-btn" id="ksd-main-btn" onclick="_ksdToggle()">
     <i class="fa-solid fa-plus" style="font-size:20px" id="ksd-plus-icon"></i>
+  </button>
+</div>
+
+<!-- ===== STOCK SPEED-DIAL FAB ===== -->
+<div id="stock-speed-dial" style="display:none;position:fixed;bottom:80px;right:16px;z-index:600;flex-direction:column;align-items:flex-end;gap:12px">
+  <div id="ssd-options" style="display:none;flex-direction:column;gap:10px;align-items:flex-end">
+    <div class="ksd-option" onclick="_ssdClose();if(!_stockFormOpen)toggleStockForm();setTimeout(()=>document.getElementById('st-name')?.focus(),80)"><span>Add Product</span><div class="ksd-icon"><i class="fa-solid fa-plus" style="font-size:16px;color:#7C3AED"></i></div></div>
+    <div class="ksd-option" onclick="_ssdClose();openVoice()"><span>Voice Entry</span><div class="ksd-icon"><i class="fa-solid fa-microphone" style="font-size:16px;color:#059669"></i></div></div>
+    <div class="ksd-option" onclick="_ssdClose();document.querySelector('#page-stock input[type=file]')?.click()"><span>Import CSV</span><div class="ksd-icon"><i class="fa-solid fa-file-arrow-up" style="font-size:16px;color:#F59E0B"></i></div></div>
+  </div>
+  <button class="ksd-main-btn" id="ssd-main-btn" onclick="_ssdToggle()">
+    <i class="fa-solid fa-plus" style="font-size:20px"></i>
   </button>
 </div>
 
@@ -4869,6 +4892,21 @@ function _ksdClose(){
   if(opts) opts.style.display='none';
   if(btn) btn.style.transform='';
 }
+function _osToggle(){_osExpanded=!_osExpanded;renderStock();}
+function _ssdToggle(){
+  _ssdOpen=!_ssdOpen;
+  const opts=document.getElementById('ssd-options');
+  const btn=document.getElementById('ssd-main-btn');
+  if(opts) opts.style.display=_ssdOpen?'flex':'none';
+  if(btn) btn.style.transform=_ssdOpen?'rotate(45deg)':'';
+}
+function _ssdClose(){
+  _ssdOpen=false;
+  const opts=document.getElementById('ssd-options');
+  const btn=document.getElementById('ssd-main-btn');
+  if(opts) opts.style.display='none';
+  if(btn) btn.style.transform='';
+}
 function toggleSidebar(){
   const sb=document.getElementById('sidebar');
   if(!sb) return;
@@ -4932,9 +4970,11 @@ function switchTab(tab){
   _syncSidebarActive(tab);
   document.getElementById('scroll-area').scrollTop=0;
   const _fp=document.getElementById('fab-photo');
-  if(_fp) _fp.style.display=(tab==='today'||tab==='stock')?'flex':'none';
+  if(_fp) _fp.style.display=tab==='today'?'flex':'none';
   const _kf=document.getElementById('katha-speed-dial');
   if(_kf){_kf.style.display=tab==='katha'?'flex':'none';if(tab!=='katha')_ksdClose();}
+  const _sf=document.getElementById('stock-speed-dial');
+  if(_sf){_sf.style.display=tab==='stock'?'flex':'none';if(tab!=='stock')_ssdClose();}
 
   confirmId=null;
   const tabNames={today:t('today'),katha:t('katha'),udhaar:t('udhaar'),stock:t('stock'),more:t('more')};
@@ -6550,84 +6590,135 @@ function _flushToast(){
 
 // =============== STOCK ===============
 let _stockFormOpen=false;
+let _osExpanded=false;
+let _ssdOpen=false;
 function toggleStockForm(){_stockFormOpen=!_stockFormOpen;renderStock();}
 function renderStock(){
   const lowStock=stock.filter(i=>i.qty<=5&&i.qty>0);
   const outStock=stock.filter(i=>i.qty<=0);
   const totalValue=stock.reduce((a,i)=>a+(i.buy||0)*(i.qty||0),0);
+
+  const kpiCards=`<div class="sk-grid">
+    <div class="sk-card">
+      <div class="sk-card-icon" style="background:#EDE9FE"><i class="fa-solid fa-boxes-stacked" style="font-size:16px;color:#7C3AED"></i></div>
+      <div class="sk-card-label">Total Products</div>
+      <div class="sk-card-val" style="color:#7C3AED">${stock.length}</div>
+      <div class="sk-card-sub">All items</div>
+    </div>
+    <div class="sk-card">
+      <div class="sk-card-icon" style="background:#FEF3C7"><i class="fa-solid fa-triangle-exclamation" style="font-size:16px;color:#F59E0B"></i></div>
+      <div class="sk-card-label">Low Stock</div>
+      <div class="sk-card-val" style="color:#F59E0B">${lowStock.length}</div>
+      <div class="sk-card-sub">Reorder soon</div>
+    </div>
+    <div class="sk-card">
+      <div class="sk-card-icon" style="background:#FEE2E2"><i class="fa-solid fa-circle-xmark" style="font-size:16px;color:#EF4444"></i></div>
+      <div class="sk-card-label">Out of Stock</div>
+      <div class="sk-card-val" style="color:#EF4444">${outStock.length}</div>
+      <div class="sk-card-sub">Needs restock</div>
+    </div>
+    <div class="sk-card">
+      <div class="sk-card-icon" style="background:#D1FAE5"><i class="fa-solid fa-indian-rupee-sign" style="font-size:16px;color:#10B981"></i></div>
+      <div class="sk-card-label">Inventory Value</div>
+      <div class="sk-card-val" style="color:#10B981;font-size:18px">${fmt(totalValue)}</div>
+      <div class="sk-card-sub">At cost price</div>
+    </div>
+  </div>`;
+
+  const alertSection=outStock.length>0?`
+  <div class="sk-alert" onclick="_osToggle()" style="cursor:pointer">
+    <div style="display:flex;align-items:center;gap:10px;flex:1">
+      <i class="fa-solid fa-triangle-exclamation" style="font-size:16px;color:#EF4444;flex-shrink:0"></i>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#0F172A">Out of Stock Products</div>
+        <div style="font-size:12px;color:#64748B;margin-top:1px">${outStock.length} items · Tap to ${_osExpanded?'hide':'view'}</div>
+      </div>
+    </div>
+    <i class="fa-solid fa-chevron-${_osExpanded?'up':'down'}" style="font-size:12px;color:#94A3B8"></i>
+  </div>
+  ${_osExpanded?`<div style="padding:10px 14px 12px;display:flex;flex-wrap:wrap;gap:6px;background:#FFF5F5;border-bottom:1px solid #FEE2E2">${outStock.map(i=>`<span style="padding:4px 10px;border-radius:99px;background:#fff;border:1px solid #FCA5A5;font-size:12px;font-weight:600;color:#EF4444">${esc(i.name)}</span>`).join('')}</div>`:''}`
+  :lowStock.length>0?`<div class="sk-alert" style="background:#FFFBEB;border-bottom-color:#FDE68A">
+    <div style="display:flex;align-items:center;gap:10px;flex:1">
+      <i class="fa-solid fa-triangle-exclamation" style="font-size:15px;color:#F59E0B;flex-shrink:0"></i>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#0F172A">Low Stock Warning</div>
+        <div style="font-size:12px;color:#64748B">${lowStock.map(i=>esc(i.name)+' ('+i.qty+')').join(', ')}</div>
+      </div>
+    </div>
+  </div>`:'';
+
+  const productsHtml=(()=>{
+    if(stock.length===0) return _emptyState('package',t('noStock'),'Add items to track inventory and profit','','');
+    const filtered=stockSearch?stock.filter(i=>i.name.toLowerCase().includes(stockSearch.toLowerCase())||(i.barcode||'').includes(stockSearch)):stock;
+    if(filtered.length===0) return _emptyState('search','No results','Try a different item name','','');
+    return filtered.map(i=>{
+      const profit=Math.round(i.sell-i.buy);
+      const qtyColor=i.qty<=0?'#EF4444':i.qty<=5?'#F59E0B':'#10B981';
+      const qtyBg=i.qty<=0?'#FEE2E2':i.qty<=5?'#FEF3C7':'#D1FAE5';
+      const statusChip=i.qty<=0
+        ?`<span class="sk-badge" style="background:#FEE2E2;color:#EF4444"><i class="fa-solid fa-circle-xmark" style="font-size:9px;margin-right:4px"></i>Out of Stock</span>`
+        :i.qty<=5
+        ?`<span class="sk-badge" style="background:#FEF3C7;color:#F59E0B"><i class="fa-solid fa-triangle-exclamation" style="font-size:9px;margin-right:4px"></i>Low Stock</span>`
+        :`<span class="sk-badge" style="background:#D1FAE5;color:#10B981"><i class="fa-solid fa-circle-check" style="font-size:9px;margin-right:4px"></i>In Stock</span>`;
+      if(confirmId===i.id) return `<div class="sk-product-card"><div style="font-size:15px;font-weight:700;color:#0F172A;margin-bottom:6px">${esc(i.name)}</div><div style="font-size:13px;color:#EF4444;font-weight:600;margin-bottom:12px">${t('delete')}</div><div style="display:flex;gap:8px"><button class="btn-confirm yes" onclick="delStock('${i.id}')">${t('yesDelete')}</button><button class="btn-confirm no" onclick="confirmId=null;renderStock()">${t('cancel')}</button></div></div>`;
+      return `<div class="sk-product-card"${i.barcode?` data-barcode="${esc(i.barcode)}"`:''}>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+          <div style="flex:1;min-width:0;margin-right:10px">
+            <div style="font-size:15px;font-weight:700;color:#0F172A;margin-bottom:4px">${esc(i.name)}${i.size?`<span style="font-size:12px;font-weight:500;color:#64748B;margin-left:6px">${esc(i.size)}</span>`:''}</div>
+            ${statusChip}
+          </div>
+          <div style="text-align:center;background:${qtyBg};border-radius:12px;padding:7px 12px;min-width:52px;flex-shrink:0">
+            <div style="font-size:22px;font-weight:900;color:${qtyColor};line-height:1">${i.qty}</div>
+            <div style="font-size:10px;color:${qtyColor};font-weight:600;margin-top:2px">${t('inStock')}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-bottom:12px;background:#F8FAFC;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0">
+          <div style="padding:9px 6px;text-align:center">
+            <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px">BUY</div>
+            <div style="font-size:13px;font-weight:700;color:#0F172A">${fmt(i.buy)}</div>
+          </div>
+          <div style="padding:9px 6px;text-align:center;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0">
+            <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px">SELL</div>
+            <div style="font-size:13px;font-weight:700;color:#0F172A">${fmt(i.sell)}</div>
+          </div>
+          <div style="padding:9px 6px;text-align:center">
+            <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px">PROFIT</div>
+            <div style="font-size:13px;font-weight:700;color:${profit>=0?'#10B981':'#EF4444'}">${fmt(profit)}</div>
+          </div>
+        </div>
+        ${i.barcode?`<div style="font-size:11px;color:#64748B;font-family:monospace;margin-bottom:10px;background:#F1F5F9;padding:4px 10px;border-radius:8px;display:inline-block"><i class="fa-solid fa-barcode" style="margin-right:4px"></i>${esc(i.barcode)}</div>`:''}
+        <div style="display:flex;gap:6px">
+          <button style="flex:1;height:40px;border-radius:10px;background:#D1FAE5;color:#059669;border:none;font-size:22px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="updateQty('${i.id}',1)">+</button>
+          <button style="flex:1;height:40px;border-radius:10px;background:#FEE2E2;color:#EF4444;border:none;font-size:22px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="updateQty('${i.id}',-1)">−</button>
+          <button style="width:40px;height:40px;border-radius:10px;background:#EDE9FE;color:#7C3AED;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" onclick="showBarcodeModal('${i.id}')" title="View Barcode"><i class="fa-solid fa-barcode" style="font-size:15px"></i></button>
+          <button style="width:40px;height:40px;border-radius:10px;background:#F1F5F9;color:#475569;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" onclick="showStockHistory('${i.id}')" title="History"><i class="fa-solid fa-clock-rotate-left" style="font-size:14px"></i></button>
+          <button style="width:40px;height:40px;border-radius:10px;background:#FEE2E2;color:#EF4444;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" onclick="confirmId='${i.id}';renderStock()"><i class="fa-solid fa-trash" style="font-size:13px"></i></button>
+        </div>
+      </div>`;
+    }).join('');
+  })();
+
   document.getElementById('page-stock').innerHTML=`
-    <div class="stock-overview-grid">
-      <div class="stock-overview-card">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="width:32px;height:32px;border-radius:8px;background:var(--pm-purple-light);display:flex;align-items:center;justify-content:center">${licon('package',16,'color:var(--pm-purple)')}</div>
-          <div class="stock-overview-label" style="margin:0">Total Products</div>
-        </div>
-        <div class="stock-overview-val">${stock.length}</div>
-        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">All items</div>
-      </div>
-      <div class="stock-overview-card">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="width:32px;height:32px;border-radius:8px;background:var(--color-warning-light);display:flex;align-items:center;justify-content:center">${licon('alert-triangle',16,'color:var(--color-warning)')}</div>
-          <div class="stock-overview-label" style="margin:0">Low Stock</div>
-        </div>
-        <div class="stock-overview-val" style="color:var(--color-warning)">${lowStock.length}</div>
-        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Reorder soon</div>
-      </div>
-      <div class="stock-overview-card">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="width:32px;height:32px;border-radius:8px;background:var(--color-danger-light);display:flex;align-items:center;justify-content:center">${licon('x-circle',16,'color:var(--color-danger)')}</div>
-          <div class="stock-overview-label" style="margin:0">Out of Stock</div>
-        </div>
-        <div class="stock-overview-val" style="color:var(--color-danger)">${outStock.length}</div>
-        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Out of stock</div>
-      </div>
-      <div class="stock-overview-card">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="width:32px;height:32px;border-radius:8px;background:var(--color-success-light);display:flex;align-items:center;justify-content:center">${licon('indian-rupee',16,'color:var(--color-success)')}</div>
-          <div class="stock-overview-label" style="margin:0">Inventory Value</div>
-        </div>
-        <div class="stock-overview-val" style="font-size:18px;color:var(--color-success)">${fmt(totalValue)}</div>
-        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">At cost price</div>
-      </div>
+    ${kpiCards}
+    ${alertSection}
+    <div class="sk-search">
+      <i class="fa-solid fa-magnifying-glass" style="font-size:14px;color:#94A3B8;flex-shrink:0"></i>
+      <input class="input-sm" placeholder="Search products..." value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStock()" style="flex:1;border:none;background:transparent;font-size:14px;outline:none;height:40px;padding:0">
+      ${stockSearch?`<button onclick="stockSearch='';renderStock()" style="background:none;border:none;color:#94A3B8;cursor:pointer;padding:0 4px;font-size:16px"><i class="fa-solid fa-xmark"></i></button>`:'<i class="fa-solid fa-sliders" style="font-size:14px;color:#94A3B8"></i>'}
     </div>
-    ${lowStock.length>0?`<div class="stock-alert">${t('lowStockAlert')}: ${lowStock.map(i=>i.name+' ('+i.qty+')').join(', ')}</div>`:''}
-    ${outStock.length>0?`<div class="stock-alert" style="background:var(--color-danger-light);color:var(--color-danger)">Out of stock: ${outStock.map(i=>i.name).join(', ')}</div>`:''}
-    <div style="padding:8px 16px 4px;border-bottom:1px solid var(--color-border-tertiary);display:flex;gap:8px;align-items:center;background:var(--color-background-secondary)">
-      <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--color-text-secondary);fill:none;stroke-width:2;flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="input-sm" placeholder="Search items..." value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStock()" style="flex:1;border:none;background:transparent;font-size:14px;outline:none;height:36px;padding:0">
-      ${stockSearch?`<button onclick="stockSearch='';renderStock()" style="background:none;border:none;font-size:16px;color:var(--color-text-secondary);cursor:pointer;padding:0 4px">✕</button>`:''}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 14px 8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:17px;font-weight:800;color:#0F172A">All Products</span>
+        <span style="font-size:11px;font-weight:700;color:#7C3AED;background:#EDE9FE;padding:2px 9px;border-radius:99px">${stock.length} Products</span>
+      </div>
+      <button class="scan-btn" onclick="openScanner('stockFind')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:13px;font-weight:700">
+        <i class="fa-solid fa-barcode" style="font-size:13px"></i> Scan
+      </button>
     </div>
-    <div class="section-header"><span>All Products</span><span style="display:flex;align-items:center;gap:8px"><span class="count-badge">${stock.length}</span><button class="scan-btn" style="padding:5px 10px;font-size:11px;display:inline-flex;align-items:center;gap:4px" onclick="openScanner('stockFind')">${licon('scan-barcode',12,'')} Scan</button></span></div>
-    ${(()=>{
-      if(stock.length===0) return _emptyState('package',t('noStock'),'Add items to track inventory and profit','','');
-      const filtered=stockSearch?stock.filter(i=>i.name.toLowerCase().includes(stockSearch.toLowerCase())||(i.barcode||'').includes(stockSearch)):stock;
-      if(filtered.length===0) return _emptyState('search','No results','Try a different item name','','');
-      return filtered.map(i=>{
-        const profit=Math.round(i.sell-i.buy);
-        const qtyColor=i.qty<=0?'var(--color-danger)':i.qty<=5?'var(--color-warning)':'var(--color-success)';
-        if(confirmId===i.id) return `<div class="list-item"><div class="list-item-left"><div class="list-item-title">${esc(i.name)}</div><div class="list-item-meta">${t('delete')}</div></div><div class="confirm-row"><button class="btn-confirm yes" onclick="delStock('${i.id}')">${t('yesDelete')}</button><button class="btn-confirm no" onclick="confirmId=null;renderStock()">${t('cancel')}</button></div></div>`;
-        const statusChip=i.qty<=0?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--color-danger-light);color:var(--color-danger);margin-left:6px">Out of Stock</span>`:i.qty<=5?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--color-warning-light);color:var(--color-warning);margin-left:6px">Low Stock</span>`:`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--color-success-light);color:var(--color-success);margin-left:6px">In Stock</span>`;
-        return `<div class="list-item"${i.barcode?` data-barcode="${esc(i.barcode)}"`:''}>
-          <div class="list-item-left">
-            <div class="list-item-title">${esc(i.name)}${i.size?' · '+esc(i.size):''}${statusChip}</div>
-            <div class="list-item-meta">Buy ${fmt(i.buy)} · Sell ${fmt(i.sell)} · <span class="stock-item-profit">Profit ${fmt(profit)}</span>${i.barcode?` · <span style="font-family:monospace;color:var(--color-text-secondary);font-size:11px">▦ ${i.barcode}</span>`:''}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="text-align:center"><div style="font-size:18px;font-weight:800;color:${qtyColor}">${i.qty}</div><div style="font-size:10px;color:var(--color-text-secondary)">${t('inStock')}</div></div>
-            <div style="display:flex;flex-direction:column;gap:4px">
-              <button class="btn-icon" style="background:var(--color-success-light);color:var(--color-success);width:44px;height:44px" onclick="updateQty('${i.id}',1)">+</button>
-              <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger);width:44px;height:44px" onclick="updateQty('${i.id}',-1)">−</button>
-            </div>
-            <button class="btn-icon" style="background:var(--pm-purple-light);color:var(--pm-purple)" onclick="showBarcodeModal('${i.id}')" title="View Barcode"><i data-lucide="scan-barcode" style="width:16px;height:16px"></i></button>
-            <button class="btn-icon" style="background:#F1F5F9;color:#475569" onclick="showStockHistory('${i.id}')" title="Adjustment history"><i data-lucide="history" style="width:16px;height:16px"></i></button>
-            <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderStock()">✕</button>
-          </div>
-        </div>`;
-      }).join('');
-    })()}
+    <div style="padding:0 12px 100px">${productsHtml}</div>
     ${(stock.length===0||_stockFormOpen)?`
-    <div style="border-top:1px solid var(--color-border-tertiary);padding:12px 16px;display:flex;flex-direction:column;gap:8px">
-      ${stock.length>0?`<div style="display:flex;justify-content:flex-end"><button onclick="toggleStockForm()" style="background:none;border:none;color:var(--color-text-secondary);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 0">${licon('x',14,'color:var(--color-text-secondary)')} Close</button></div>`:''}
+    <div style="border-top:1px solid var(--color-border-tertiary);padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:#fff">
+      ${stock.length>0?`<div style="display:flex;justify-content:flex-end"><button onclick="toggleStockForm()" style="background:none;border:none;color:var(--color-text-secondary);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 0"><i class="fa-solid fa-xmark" style="font-size:14px"></i> Close</button></div>`:''}
       <div style="display:flex;gap:8px">
         <input class="input-md" id="st-name" placeholder="${t('itemName')}" style="flex:1" onkeydown="if(event.key==='Enter')addStock()">
         <input class="input-md" id="st-size" placeholder="${t('size')}" style="max-width:70px">
@@ -6645,21 +6736,16 @@ function renderStock(){
         </button>
       </div>
       <button id="btn-add-stock" class="btn-block" onclick="addStock()">${t('addItem')}</button>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;flex:1;padding:10px;background:var(--color-background-secondary);border:1.5px dashed var(--color-border);border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-secondary)">
-          ${licon('upload',14,'color:var(--color-text-secondary)')} Import CSV
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;flex:1;padding:10px;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:#64748B">
+          <i class="fa-solid fa-upload" style="font-size:13px"></i> Import CSV
           <input type="file" accept=".csv,.txt" onchange="importStockCSV(this)" style="display:none">
         </label>
-        <button onclick="downloadSampleCSV('stock')" style="flex:1;padding:10px;background:var(--color-background-secondary);border:1.5px dashed var(--color-border);border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-secondary);display:flex;align-items:center;justify-content:center;gap:6px">
-          ${licon('download',14,'color:var(--color-text-secondary)')} Sample CSV
+        <button onclick="downloadSampleCSV('stock')" style="flex:1;padding:10px;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:11px;cursor:pointer;font-size:13px;font-weight:600;color:#64748B;display:flex;align-items:center;justify-content:center;gap:6px">
+          <i class="fa-solid fa-download" style="font-size:13px"></i> Sample CSV
         </button>
       </div>
-    </div>`:`
-    <div style="border-top:1px solid var(--color-border-tertiary)">
-      <button onclick="toggleStockForm()" style="width:100%;padding:14px 16px;background:none;border:none;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--color-accent);text-align:left">
-        ${licon('plus',16,'color:var(--color-accent)')} + Add Product
-      </button>
-    </div>`}`;
+    </div>`:``}`;
   _renderIcons();
 }
 function _autoBarcode(){
