@@ -3,7 +3,7 @@
 <head>
 <!-- Cache Busting: Force browsers to download fresh version -->
 <!-- Version: 3.0 (Fintech UI Redesign) | Updated: 2026-06-08 -->
-<meta name="cache-version" content="v5.3-20260609-ux-phase2b">
+<meta name="cache-version" content="v5.4-20260609-usage-analytics">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
@@ -2380,8 +2380,48 @@ window._pmSessionId = window._pmSessionId || (crypto.randomUUID
   ? crypto.randomUUID()
   : (Date.now().toString(36) + Math.random().toString(36).substr(2)));
 
+// Local analytics ring-buffer — survives offline / guest mode.
+// Stores up to 500 events in localStorage as compact {n,d,t} objects.
+function _trackLocal(eventName, data){
+  try{
+    const KEY='pm_local_analytics';
+    const ev=JSON.parse(localStorage.getItem(KEY)||'[]');
+    ev.push({n:eventName,d:data||{},t:Date.now()});
+    if(ev.length>500) ev.splice(0,ev.length-500);
+    localStorage.setItem(KEY,JSON.stringify(ev));
+  }catch(_){}
+}
+
+// Call pm_debugUsage() in the browser console to see your local usage stats.
+// Works for any user — reads from the localStorage ring-buffer above.
+window.pm_debugUsage=function(){
+  try{
+    const ev=JSON.parse(localStorage.getItem('pm_local_analytics')||'[]');
+    if(!ev.length){console.log('[Pasal] No local analytics data yet — use the app first.');return;}
+    const counts={};
+    ev.forEach(e=>{counts[e.n]=(counts[e.n]||0)+1;});
+    const tabCounts={}, qaCounts={};
+    ev.filter(e=>e.n==='tab_switch').forEach(e=>{const tab=(e.d&&e.d.tab)||'?';tabCounts[tab]=(tabCounts[tab]||0)+1;});
+    ev.filter(e=>e.n==='quick_access_click').forEach(e=>{const item=(e.d&&e.d.item)||'?';qaCounts[item]=(qaCounts[item]||0)+1;});
+    const sortedPages=Object.entries(tabCounts).sort((a,b)=>b[1]-a[1]);
+    const sortedActions=Object.entries(counts).filter(([k])=>k!=='tab_switch'&&k!=='quick_access_click').sort((a,b)=>b[1]-a[1]);
+    console.group('%cPasal Manager — Usage Analytics (local storage)','color:#7c3aed;font-weight:bold;font-size:14px');
+    console.log(`Events stored: ${ev.length}/500 | ${new Date(ev[0].t).toLocaleString()} → ${new Date(ev[ev.length-1].t).toLocaleString()}`);
+    console.group('📱 Pages — most → least used');
+    console.table(sortedPages.map(([page,visits])=>({page,visits})));
+    console.groupEnd();
+    if(Object.keys(qaCounts).length){console.group('⚡ Quick Access clicks');console.table(Object.entries(qaCounts).sort((a,b)=>b[1]-a[1]).map(([item,clicks])=>({item,clicks})));console.groupEnd();}
+    console.group('🎯 Actions — most → least used');
+    console.table(sortedActions.map(([action,count])=>({action,count})));
+    console.groupEnd();
+    console.groupEnd();
+    return {pages:tabCounts,quickAccess:qaCounts,actions:counts};
+  }catch(e){console.error('pm_debugUsage error:',e);}
+};
+
 // Lightweight event tracker. Never blocks the UI; failures are silent.
 async function trackEvent(eventName, data){
+  _trackLocal(eventName, data);
   try {
     const ua = navigator.userAgent;
     const device = /iPad/i.test(ua) ? 'tablet'
@@ -4627,6 +4667,7 @@ function switchTab(tab){
   confirmId=null;
   const tabNames={today:t('today'),katha:t('katha'),udhaar:t('udhaar'),stock:t('stock'),more:t('more')};
   document.title=(tabNames[tab]||tab)+' — '+(S.shopName||'Pasal Manager');
+  trackEvent('tab_switch',{tab});
   renderTab();
 }
 // ── Lucide icon helper ──
@@ -4940,6 +4981,7 @@ function _payConfig(){
 }
 
 function openUpiModal(amt){
+  trackEvent('collect_payment_click',{hasAmt:(amt||0)>0});
   _upiAmt=amt||0;
   const cfg=_payConfig();
   const modal=document.getElementById('upi-modal');
@@ -7247,6 +7289,10 @@ async function submitPayment(){
     renderMore(); // re-render to show "under review" state
   },500);
 }
+function _trackQuickAccess(id, isTab){
+  trackEvent('quick_access_click',{item:id});
+  if(isTab) switchTab(id); else goMore(id);
+}
 function renderMoreMenu(el){
   const allItems={
     dashboard:{icon:'layout-dashboard',color:'#4F46E5',label:'Dashboard',desc:'Sales charts & business overview'},
@@ -7342,7 +7388,7 @@ function renderMoreMenu(el){
       </div>
       <div class="more-quick-grid">
         ${quickItems.map(q=>`
-          <div class="more-quick-item" onclick="${q.isTab?`switchTab('${q.id}')`:`goMore('${q.id}')`}">
+          <div class="more-quick-item" onclick="_trackQuickAccess('${q.id}',${q.isTab?'true':'false'})">
             <div class="more-quick-icon" style="background:${q.color}1A">
               ${licon(q.icon,16,`color:${q.color}`)}
             </div>
@@ -7788,6 +7834,14 @@ async function renderAdminDashboard(el){
           </div>
           <div style="height:240px"><canvas id="admin-chart-events"></canvas></div>
         </div>
+        <!-- Usage Analytics -->
+        <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+            <div style="width:26px;height:26px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center">${licon('bar-chart-2',14,'color:#16a34a;')}</div>
+            <div style="font-size:13px;font-weight:700">Usage Analytics <span style="color:var(--color-text-secondary);font-weight:500">· last 30 days · all users</span></div>
+          </div>
+          <div id="admin-usage-analytics" style="font-size:13px">Loading…</div>
+        </div>
         <!-- Recent signups table -->
         <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -7859,12 +7913,13 @@ async function _renderAdminMetrics(){
   const t1=new Date(now-1*day),  t7=new Date(now-7*day),  t30=new Date(now-30*day);
 
   // ===== Fetch in parallel =====
-  const [users, events7d, events30d, visits30d, recentSignups] = await Promise.all([
+  const [users, events7d, events30d, visits30d, recentSignups, usageEvents30] = await Promise.all([
     sb.from('analytics_users').select('user_id,email,shop_name,country,signed_up_at,last_seen_at').order('signed_up_at',{ascending:false}),
     sb.from('analytics_events').select('user_id,event_name,ts,device_type,country').gte('ts',_iso(t7)),
     sb.from('analytics_events').select('event_name,ts').gte('ts',_iso(t30)),
     sb.from('analytics_visits').select('user_id,device_type,country,visited_at,is_landing').gte('visited_at',_iso(t30)),
     sb.from('analytics_users').select('user_id,email,shop_name,country,signed_up_at,last_seen_at').order('signed_up_at',{ascending:false}).limit(20),
+    sb.from('analytics_events').select('event_name,event_data').in('event_name',['tab_switch','quick_access_click','sale_added','stock_added','udhaar_added','collect_payment_click','return_added']).gte('ts',_iso(t30)).limit(5000),
   ]);
 
   const allUsers       = users.data || [];
@@ -7945,6 +8000,45 @@ async function _renderAdminMetrics(){
   const sortedFeatures = Object.entries(evCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const ctxEv=document.getElementById('admin-chart-events').getContext('2d');
   _adminCharts.push(new Chart(ctxEv,{type:'bar',data:{labels:sortedFeatures.map(f=>f[0]),datasets:[{label:'Count',data:sortedFeatures.map(f=>f[1]),backgroundColor:'#0ea5e9'}]},options:{maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}}}}));
+
+  // ===== Usage analytics: pages + actions (last 30d, all users) =====
+  const usageEv=usageEvents30.data||[];
+  const _tabCounts={},_qaCounts={};
+  usageEv.filter(e=>e.event_name==='tab_switch').forEach(e=>{const tab=(e.event_data&&e.event_data.tab)||'?';_tabCounts[tab]=(_tabCounts[tab]||0)+1;});
+  usageEv.filter(e=>e.event_name==='quick_access_click').forEach(e=>{const item=(e.event_data&&e.event_data.item)||'?';_qaCounts[item]=(_qaCounts[item]||0)+1;});
+  const _sortedPages=Object.entries(_tabCounts).sort((a,b)=>b[1]-a[1]);
+  const _actionNames=['sale_added','stock_added','udhaar_added','collect_payment_click','return_added'];
+  const _actionCounts=_actionNames.map(n=>({label:n.replace(/_/g,' '),count:usageEv.filter(e=>e.event_name===n).length})).sort((a,b)=>b.count-a.count);
+  const _pgMax=(_sortedPages[0]?.[1])||1, _acMax=(_actionCounts[0]?.count)||1;
+  const _bar=(v,max)=>`<div style="flex:1;background:var(--color-border-tertiary);border-radius:4px;height:7px"><div style="width:${max?Math.round(v/max*100):0}%;min-width:3px;height:7px;background:var(--color-accent);border-radius:4px"></div></div>`;
+  document.getElementById('admin-usage-analytics').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Pages (tab switches)</div>
+        ${_sortedPages.length?_sortedPages.map(([page,count])=>`
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
+            <div style="width:56px;font-size:12px;font-weight:600;color:var(--color-text-primary);text-transform:capitalize;flex-shrink:0">${esc(page)}</div>
+            ${_bar(count,_pgMax)}
+            <div style="width:30px;text-align:right;font-size:11px;font-weight:700;color:var(--color-accent);flex-shrink:0">${count}</div>
+          </div>`).join(''):'<div style="color:var(--color-text-secondary);font-size:12px">No data yet — tab_switch events will appear here once users switch tabs</div>'}
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Actions</div>
+        ${_actionCounts.map(({label,count})=>`
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
+            <div style="width:56px;font-size:12px;font-weight:600;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">${esc(label)}</div>
+            ${_bar(count,_acMax)}
+            <div style="width:30px;text-align:right;font-size:11px;font-weight:700;color:var(--color-accent);flex-shrink:0">${count}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    ${Object.keys(_qaCounts).length?`
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--color-border-tertiary)">
+      <div style="font-size:10px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Quick Access clicks</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${Object.entries(_qaCounts).sort((a,b)=>b[1]-a[1]).map(([item,count])=>`<span style="padding:3px 10px;background:var(--pm-purple-light);border-radius:99px;font-size:12px;font-weight:600;color:var(--pm-purple)">${esc(item)} · ${count}</span>`).join('')}
+      </div>
+    </div>`:''}`;
 
   // ===== Recent signups table =====
   const fmtRel=(iso)=>{
