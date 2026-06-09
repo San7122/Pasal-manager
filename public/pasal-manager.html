@@ -5618,7 +5618,7 @@ function renderKatha(){
   // UI-only computed vars — no backend logic changes
   const _heroTitle=kathaMode==='daily'?"Today's Revenue":kathaMode==='monthly'?"This Month's Revenue":"This Year's Revenue";
   const _margin=netSales>0?Math.max(0,Math.round((trueProfit/netSales)*100)):0;
-  const _motiv=netSales>0?(trueProfit>0?'Great start! Keep it up 🚀':'Covering costs — keep pushing 💡'):'No entries yet 📋';
+  const _motiv=netSales>0?(trueProfit>0?'Great start! Keep it up <i class="fa-solid fa-rocket" style="font-size:13px"></i>':'Covering costs — keep pushing <i class="fa-solid fa-lightbulb" style="font-size:13px"></i>'):'No entries yet <i class="fa-solid fa-book-open" style="font-size:13px"></i>';
   const _barMax=Math.max(netSales,trueProfit,1);
   const _salesBarW=Math.min(100,Math.round((netSales/_barMax)*100));
   const _profitBarW=Math.min(100,Math.max(0,Math.round((trueProfit/_barMax)*100)));
