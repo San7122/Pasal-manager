@@ -1753,15 +1753,15 @@ body {
       </a>
     </div>
     <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="renderAuthForm('login')">Login</button>
-      <button class="auth-tab" id="tab-signup" onclick="renderAuthForm('signup')">Sign Up</button>
+      <button type="button" class="auth-tab active" id="tab-login" onclick="renderAuthForm('login')">Login</button>
+      <button type="button" class="auth-tab" id="tab-signup" onclick="renderAuthForm('signup')">Sign Up</button>
     </div>
     <div id="auth-form-area"></div>
 
     <!-- Guest entry — shown below login form -->
     <div id="guest-section">
       <div class="auth-divider">or</div>
-      <button class="btn-guest" onclick="showGuestSetup()">
+      <button type="button" class="btn-guest" onclick="showGuestSetup()">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
         Start as Guest — No signup needed
       </button>
@@ -1781,10 +1781,10 @@ body {
              maxlength="40"
              style="width:100%;font-size:19px;font-weight:700;text-align:center;height:52px"
              onkeydown="if(event.key==='Enter')confirmGuest()">
-      <button class="btn-block" style="margin-top:12px;font-size:17px" onclick="confirmGuest()" id="guest-start-btn">
+      <button type="button" class="btn-block" style="margin-top:12px;font-size:17px" onclick="confirmGuest()" id="guest-start-btn">
         Start →
       </button>
-      <button onclick="hideGuestSetup()"
+      <button type="button" onclick="hideGuestSetup()"
               style="width:100%;padding:10px;background:none;border:none;color:#aaa;font-size:14px;cursor:pointer;margin-top:2px">
         ← Back to Login
       </button>
@@ -3940,7 +3940,7 @@ function renderAuthForm(mode){
     <input class="input-md" id="a-email" type="email" placeholder="Email" aria-label="Email address" autocomplete="email" style="width:100%;margin-top:${authMode==='signup'?'8px':'0'}" onkeydown="if(event.key==='Enter')document.getElementById('a-pass').focus()">
     <input class="input-md" id="a-pass" type="password" placeholder="Password" aria-label="Password" autocomplete="${authMode==='login'?'current-password':'new-password'}" style="width:100%;margin-top:8px" onkeydown="if(event.key==='Enter')${authMode==='login'?'doLogin()':'doSignup()'}">
     <div id="auth-err" role="alert" style="color:#DC2626;font-size:13px;display:none;margin-top:4px"></div>
-    <button class="btn-block" id="auth-btn" onclick="${authMode==='login'?'doLogin()':'doSignup()'}" style="margin-top:8px">${authMode==='login'?'Login':'Create Account'}</button>
+    <button type="button" class="btn-block" id="auth-btn" onclick="${authMode==='login'?'doLogin()':'doSignup()'}" style="margin-top:8px">${authMode==='login'?'Login':'Create Account'}</button>
     ${authMode==='login'?`<div style="text-align:center;font-size:13px;color:#666;margin-top:4px">New here? <span style="color:var(--pm-purple);cursor:pointer;font-weight:600" onclick="renderAuthForm('signup')">Create account</span></div>`:`<div style="text-align:center;font-size:13px;color:#666;margin-top:4px">Already have account? <span style="color:var(--pm-purple);cursor:pointer;font-weight:600" onclick="renderAuthForm('login')">Login</span></div>`}
   `;
   setTimeout(()=>{
