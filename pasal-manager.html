@@ -2112,7 +2112,7 @@ body {
         <i data-lucide="package" style="width:22px;height:22px"></i>
         <span>Stock</span>
       </button>
-      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'More'});switchTab('more')" id="nav-more">
+      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'More'});moreSubPage='menu';switchTab('more')" id="nav-more">
         <i data-lucide="layout-grid" style="width:22px;height:22px"></i>
         <span>More</span>
       </button>
@@ -4841,7 +4841,7 @@ function _syncSidebarActive(tab){
 function switchTab(tab){
   destroyCharts();
   currentTab=tab;
-  if(tab==='more'){moreSubPage='menu';_moreSearch='';}
+  if(tab==='more'){_moreSearch='';if(!moreSubPage)moreSubPage='menu';}
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+tab).classList.add('active');
