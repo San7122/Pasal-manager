@@ -3,7 +3,7 @@
 <head>
 <!-- Cache Busting: Force browsers to download fresh version -->
 <!-- Version: 3.0 (Fintech UI Redesign) | Updated: 2026-06-08 -->
-<meta name="cache-version" content="v5.5-20260609-analytics-phase">
+<meta name="cache-version" content="v5.6-20260609-onboarding-checklist">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
@@ -4685,6 +4685,72 @@ function renderTab(){
 }
 
 // =============== TODAY ===============
+
+// ===== ONBOARDING CHECKLIST =====
+let _clTrackedSession=false;
+function _getClState(){
+  const hasPay=S.country==='NP'?!!(S.esewaId||S.npPaymentId):!!S.upiId;
+  return{product:stock.length>0,sale:sales.length>0,payment:hasPay,customer:customers.length>0,udhaar:udhaars.length>0};
+}
+function _shouldShowChecklist(){
+  if(localStorage.getItem('pm_cl_dismissed')==='1') return false;
+  const s=_getClState();
+  return!(s.product&&s.sale&&s.payment&&s.customer&&s.udhaar);
+}
+function _dismissChecklist(){
+  localStorage.setItem('pm_cl_dismissed','1');
+  renderToday();
+}
+function _renderChecklist(){
+  if(!_shouldShowChecklist()) return '';
+  const st=_getClState();
+  const done=Object.values(st).filter(Boolean).length;
+  if(!_clTrackedSession){_clTrackedSession=true;trackEvent('checklist_viewed',{done,total:5});}
+  try{
+    const prev=JSON.parse(localStorage.getItem('pm_cl_prev')||'{}');
+    let chg=false;
+    ['product','sale','payment','customer','udhaar'].forEach(k=>{if(st[k]&&!prev[k]){trackEvent('checklist_item_completed',{item:k});chg=true;}});
+    if(chg) localStorage.setItem('pm_cl_prev',JSON.stringify(st));
+    if(done===5&&!prev._done){trackEvent('checklist_completed',{});localStorage.setItem('pm_cl_prev',JSON.stringify({...st,_done:true}));}
+  }catch(e){}
+  if(done===5) return '';
+  const payLabel=S.country==='NP'?'eSewa / Khalti':'UPI / QR Code';
+  const ITEMS=[
+    {key:'product', done:st.product, label:'Add First Product',         sub:'Add items to track inventory',              cta:'Add',    action:"switchTab('stock')"},
+    {key:'sale',    done:st.sale,    label:'Record First Sale',          sub:'Tap the Record Sale button above',          cta:'Record', action:"document.getElementById('s-note')?.focus();document.getElementById('s-note')?.scrollIntoView({behavior:'smooth',block:'center'})"},
+    {key:'payment', done:st.payment, label:'Setup Payment Collection',   sub:'Accept '+payLabel,                          cta:'Setup',  action:"goMore('settings');switchTab('more')"},
+    {key:'customer',done:st.customer,label:'Add First Customer',         sub:'Build your customer list',                  cta:'Add',    action:"goMore('customers');switchTab('more')"},
+    {key:'udhaar',  done:st.udhaar,  label:'Record First Udhaar',        sub:'Track credit given to customers',           cta:'Go',     action:"switchTab('udhaar')"},
+  ];
+  const pct=Math.round(done/5*100);
+  const emoji=done===0?'👋':done>=4?'🔥':done>=2?'⚡':'';
+  return '<div id="pm-checklist" style="margin:0 0 10px;border-radius:16px;overflow:hidden;border:1.5px solid #ede9fe;background:var(--color-card)">'+
+    '<div style="background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between">'+
+      '<div><div style="color:#fff;font-size:14px;font-weight:800;letter-spacing:-0.2px">Setup your shop '+emoji+'</div>'+
+      '<div style="color:rgba(255,255,255,0.78);font-size:12px;margin-top:2px">'+done+' of 5 steps complete</div></div>'+
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        '<div style="width:52px"><div style="height:5px;background:rgba(255,255,255,0.25);border-radius:3px"><div style="width:'+pct+'%;height:5px;background:#fff;border-radius:3px"></div></div>'+
+        '<div style="color:rgba(255,255,255,0.7);font-size:10px;font-weight:700;text-align:right;margin-top:3px">'+pct+'%</div></div>'+
+        '<button onclick="_dismissChecklist()" style="width:26px;height:26px;border:none;background:rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.75);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Dismiss">✕</button>'+
+      '</div>'+
+    '</div>'+
+    '<div>'+
+    ITEMS.map((item,i)=>
+      '<div onclick="'+(item.done?'':item.action)+'" style="padding:11px 16px;display:flex;align-items:center;gap:12px;'+(i<ITEMS.length-1?'border-bottom:1px solid var(--color-border-tertiary);':'')+
+      (item.done?'opacity:0.55':'cursor:pointer')+'" '+
+      (!item.done?'onmouseenter="this.style.background='var(--color-background-secondary)'" onmouseleave="this.style.background=''"':'')+'>'+
+        '<div style="width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;'+(item.done?'background:#10b981':'border:2px solid #d1d5db')+'">'+
+          (item.done?'<i data-lucide="check" style="width:11px;height:11px;color:#fff"></i>':'')+
+        '</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:13px;font-weight:'+(item.done?'500':'600')+';'+(item.done?'text-decoration:line-through;color:var(--color-text-secondary)':'color:var(--color-text-primary)')+'">'+item.label+'</div>'+
+          (!item.done?'<div style="font-size:11px;color:var(--color-text-secondary);margin-top:1px">'+item.sub+'</div>':'')+
+        '</div>'+
+        (!item.done?'<div style="font-size:11px;font-weight:700;color:var(--color-accent);white-space:nowrap;flex-shrink:0">'+item.cta+' →</div>':'')+
+      '</div>'
+    ).join('')+
+    '</div></div>';
+}
 function renderToday(){
   const td=todayStr();
   const ts=sales.filter(s=>s.date===td);
@@ -4760,6 +4826,7 @@ function renderToday(){
       <i data-lucide="chevron-right" style="width:16px;height:16px;opacity:0.5;flex-shrink:0"></i>
     </div>`:''}
 
+    ${_renderChecklist()}
     <div class="today-hero">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;position:relative;z-index:1">
         <div class="today-hero-label">Today's Business</div>
