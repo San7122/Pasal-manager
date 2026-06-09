@@ -370,17 +370,19 @@ body {
   .fab-main:active { transform: scale(0.93); }
 
   .fab-sub {
-    width: 40px; height: 40px; border-radius: 50%;
+    width: auto; min-width: 100px; height: 40px; border-radius: 8px;
     border: none; cursor: pointer; z-index: 350;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 12px; font-weight: 500;
+    display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+    padding: 0 12px; color: #fff; font-size: 12px; font-weight: 500;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     transition: opacity 0.2s, transform 0.2s;
     opacity: 0;
     transform: translateY(40px);
   }
 
-  .fab-sub:active { transform: scale(0.92); }
+  .fab-sub:active { transform: scale(0.95); }
+
+  .fab-label { white-space: nowrap; }
 
   .fab-voice { background: #7C3AED; }
   .fab-photo { background: #a78bfa; }
@@ -2330,13 +2332,13 @@ body {
   <button id="fab-main" class="fab-main" onclick="toggleFABMenu()" title="Actions">
     <i data-lucide="plus" style="width:24px;height:24px"></i>
   </button>
-  <button id="fab-voice" class="fab-sub fab-voice" style="display:none" onclick="openVoice();closeFABMenu()" title="Voice Khata">
+  <button id="fab-voice" class="fab-sub fab-voice" onclick="openVoice();closeFABMenu()" title="Voice Khata">
     <i data-lucide="mic" style="width:18px;height:18px"></i>
-    <span style="display:none">Voice</span>
+    <span class="fab-label">Voice</span>
   </button>
-  <button id="fab-photo" class="fab-sub fab-photo" style="display:none" onclick="openPhotoKhata();closeFABMenu()" title="Photo Khata">
+  <button id="fab-photo" class="fab-sub fab-photo" onclick="openPhotoKhata();closeFABMenu()" title="Photo Khata">
     <i data-lucide="camera" style="width:18px;height:18px"></i>
-    <span style="display:none">Photo</span>
+    <span class="fab-label">Photo</span>
   </button>
 </div>
 
