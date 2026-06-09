@@ -5054,7 +5054,7 @@ function renderToday(){
         </div>
         <div class="module-grid-label">Stock</div>
       </button>
-      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Finance'});ANALYTICS.track('financeOpen');goMore('pl')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Finance'});ANALYTICS.track('financeOpen');switchTab('more');goMore('pl')">
         <div class="module-grid-icon" style="background: #0596691A">
           <i data-lucide="trending-up" style="color: #059669"></i>
         </div>
@@ -5067,25 +5067,25 @@ function renderToday(){
         <div class="module-grid-label">Udhaar</div>
         ${udhaarCount > 0 ? '<div class="module-grid-badge"></div>' : ''}
       </button>
-      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Staff'});goMore('staffBook')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Staff'});switchTab('more');goMore('staffBook')">
         <div class="module-grid-icon" style="background: #D976061A">
-          <i data-lucide="users-3" style="color: #D97706"></i>
+          <i data-lucide="users-round" style="color: #D97706"></i>
         </div>
         <div class="module-grid-label">Staff</div>
       </button>
-      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Loans'});goMore('loan')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Loans'});switchTab('more');goMore('loan')">
         <div class="module-grid-icon" style="background: #DC26261A">
-          <i data-lucide="building-bank" style="color: #DC2626"></i>
+          <i data-lucide="landmark" style="color: #DC2626"></i>
         </div>
         <div class="module-grid-label">Loans</div>
       </button>
-      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Dashboard'});ANALYTICS.track('dashboardOpen');goMore('dashboard')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Dashboard'});ANALYTICS.track('dashboardOpen');switchTab('more');goMore('dashboard')">
         <div class="module-grid-icon" style="background: #4F46E51A">
           <i data-lucide="chart-line" style="color: #4F46E5"></i>
         </div>
         <div class="module-grid-label">Dashboard</div>
       </button>
-      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Account'});goMore('settings')">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Account'});switchTab('more');goMore('settings')">
         <div class="module-grid-icon" style="background: #64748B1A">
           <i data-lucide="settings" style="color: #64748B"></i>
         </div>
