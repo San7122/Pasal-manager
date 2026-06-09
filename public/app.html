@@ -210,7 +210,7 @@ body {
     inset: 0 auto 0 0;
     display: flex;
     flex-direction: column;
-    width: 75vw;
+    width: var(--sidebar-width);
     max-width: 86vw;
     background: var(--sidebar-bg);
     overflow: hidden;
@@ -259,169 +259,6 @@ body {
 
   .scroll-area {
     padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-  }
-
-  #pm-checklist-items {
-    display: none;
-  }
-
-  .pm-cl-toggle {
-    display: flex !important;
-  }
-
-  .topbar {
-    height: auto !important;
-    min-height: auto !important;
-    flex-wrap: wrap;
-    align-items: center;
-    padding: 4px 16px !important;
-    gap: 6px !important;
-  }
-
-  .topbar-brand {
-    gap: 6px !important;
-  }
-
-  .topbar-logo-mark img {
-    width: 24px !important;
-    height: 24px !important;
-  }
-
-  .topbar-title {
-    font-size: 13px !important;
-    font-weight: 700 !important;
-  }
-
-  .topbar-sub {
-    display: none !important;
-  }
-
-  .topbar-spacer {
-    display: none !important;
-  }
-
-  .topbar-country {
-    order: 10;
-    flex-basis: 100%;
-    width: 100%;
-    margin-top: 2px;
-    font-size: 10px !important;
-    color: #999 !important;
-    font-weight: 500 !important;
-    padding: 2px 0 !important;
-  }
-
-  .topbar-date {
-    order: 10;
-    flex-basis: 100%;
-    width: 100%;
-    margin-top: 0 !important;
-    max-width: none !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-    white-space: nowrap;
-    font-size: 10px !important;
-    color: #999 !important;
-    font-weight: 500 !important;
-  }
-
-  #topbar-signout {
-    padding: 8px 12px !important;
-    font-size: 11px !important;
-    font-weight: 500 !important;
-    border: none !important;
-    background: #f5f5f5 !important;
-    color: #666 !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    border-radius: 6px !important;
-  }
-
-  #topbar-signout i {
-    display: none !important;
-  }
-
-  .topbar-date {
-    letter-spacing: 0.3px !important;
-    line-height: 1.3 !important;
-  }
-
-  /* Expandable FAB */
-  .fab-menu {
-    position: fixed;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    right: 16px;
-    z-index: 400;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-end;
-  }
-
-  .fab-main {
-    width: 48px; height: 48px; border-radius: 50%;
-    background: #7C3AED; color: #fff; border: none;
-    cursor: pointer; z-index: 400;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 8px rgba(124,58,237,0.35);
-    transition: transform 0.15s;
-  }
-
-  .fab-main:active { transform: scale(0.93); }
-
-  .fab-sub {
-    width: auto; min-width: 100px; height: 40px; border-radius: 8px;
-    border: none; cursor: pointer; z-index: 350;
-    display: flex; align-items: center; justify-content: flex-start; gap: 8px;
-    padding: 0 12px; color: #fff; font-size: 12px; font-weight: 500;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    transition: opacity 0.2s, transform 0.2s;
-    opacity: 0;
-    transform: translateY(40px);
-  }
-
-  .fab-sub:active { transform: scale(0.95); }
-
-  .fab-label { white-space: nowrap; }
-
-  .fab-voice { background: #7C3AED; }
-  .fab-photo { background: #a78bfa; }
-
-  .fab-menu.expanded .fab-sub {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* Recent Activity Hierarchy */
-  .list-item-profit {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 2px; min-width: 50px;
-  }
-
-  .list-item-actions {
-    display: flex; gap: 6px; align-items: center;
-    flex-shrink: 0;
-  }
-
-  .btn-icon-subtle {
-    width: 38px; height: 38px;
-    border: none; border-radius: 6px;
-    background: var(--color-background-secondary);
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s;
-  }
-
-  .btn-icon-subtle:active {
-    background: var(--color-text-secondary);
-    color: #fff;
-  }
-
-  .btn-icon-subtle svg {
-    width: 16px; height: 16px;
-    stroke: currentColor; fill: none;
-    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   }
 }
 
@@ -729,8 +566,8 @@ body {
 
 .chip-row {
   display: flex;
-  gap: 8px; flex-wrap: wrap;
-  padding: 12px 16px;
+  gap: 6px; flex-wrap: wrap;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--color-border-tertiary);
 }
 .chip {
@@ -746,8 +583,7 @@ body {
 .chip.selected {
   background: var(--color-accent);
   color: #FFF;
-  border: none;
-  border-left: 4px solid #7c3aed;
+  border-color: var(--color-accent);
 }
 .chip.selected-danger {
   background: var(--color-danger);
@@ -1091,6 +927,65 @@ body {
   stroke-width: 2;
 }
 
+/* ===== MODULE GRID (Home Screen) ===== */
+.module-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 16px;
+  margin: 16px 0;
+}
+.module-grid-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid var(--color-border-tertiary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+.module-grid-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  transform: translateY(-2px);
+}
+.module-grid-card:active {
+  transform: scale(0.98);
+}
+.module-grid-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.module-grid-icon svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+  stroke-width: 2;
+}
+.module-grid-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+.module-grid-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-danger);
+}
+
 /* ===== BILL ===== */
 .bill-preview {
   margin: 12px 16px;
@@ -1308,14 +1203,13 @@ body {
 }
 .sidebar-nav::-webkit-scrollbar { width: 0; }
 .sidebar-item {
-  display: flex; align-items: center; gap: 14px;
-  padding: 12px 16px; border-radius: 8px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-radius: 8px;
   border: none; background: none; cursor: pointer;
   color: var(--sidebar-text); font-size: 13.5px;
   font-weight: 500; width: 100%; text-align: left;
   white-space: nowrap; transition: background 0.15s, color 0.15s;
   position: relative; letter-spacing: 0.1px;
-  border-left: 4px solid transparent;
 }
 .sidebar-item:hover {
   background: var(--sidebar-hover);
@@ -1324,8 +1218,7 @@ body {
 .sidebar-item.active {
   background: var(--sidebar-active);
   color: var(--sidebar-active-text);
-  font-weight: 500;
-  border-left-color: #7c3aed;
+  font-weight: 600;
 }
 .sidebar-item.active i, .sidebar-item.active svg { color: var(--sidebar-active-text); }
 .sidebar-item i, .sidebar-item svg { flex-shrink: 0; opacity: 0.85; }
@@ -1335,13 +1228,13 @@ body {
 }
 .sidebar-wallet { font-size: 12px; }
 .sidebar-cat {
-  padding: 12px 16px 6px 16px;
+  padding: 10px 14px 3px 14px;
   font-size: 10px; font-weight: 700;
   color: #7c6fba; text-transform: uppercase; letter-spacing: 0.6px;
 }
 .sidebar-subitem {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 16px 10px 20px; border-radius: 7px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px 8px 20px; border-radius: 7px;
   border: none; background: none; cursor: pointer;
   color: var(--sidebar-text); font-size: 12.5px;
   font-weight: 500; width: 100%; text-align: left;
@@ -1409,126 +1302,6 @@ body {
 .today-hero-amt { font-size: 38px; font-weight: 900; color: #fff; letter-spacing: -1px; line-height: 1.1; background: none; -webkit-background-clip: initial; -webkit-text-fill-color: initial; background-clip: initial; }
 .today-hero-sub { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 3px; font-weight: 500; }
 .today-hero-stats { display: flex; gap: 8px; justify-content: flex-start; margin-top: 10px; flex-wrap: wrap; }
-
-@media (max-width: 767px) {
-  .today-hero {
-    padding: 14px 16px !important;
-    margin: 8px 16px 12px !important;
-  }
-
-  .today-hero-label {
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    letter-spacing: 1px !important;
-  }
-
-  .today-hero-amt {
-    font-size: 32px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.5px !important;
-  }
-
-  .today-hero-sub {
-    font-size: 11px !important;
-  }
-
-  .today-hero-stats {
-    gap: 6px !important;
-    margin-top: 6px !important;
-  }
-
-  .mic-fab {
-    width: 44px !important;
-    height: 44px !important;
-    box-shadow: 0 2px 8px rgba(124,58,237,0.35) !important;
-  }
-
-  #btn-record-sale {
-    height: 48px !important;
-    font-weight: 800 !important;
-    font-size: 16px !important;
-    padding: 14px 16px !important;
-  }
-
-  #quick-access-section {
-    display: grid !important;
-  }
-
-  .quick-access-shortcut {
-    -webkit-user-select: none;
-    user-select: none;
-  }
-
-  .quick-access-shortcut:active {
-    opacity: 0.85;
-    transform: scale(0.96);
-  }
-
-  .section-header {
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    letter-spacing: 1px !important;
-    color: #4b5563 !important;
-  }
-
-  .list-item {
-    padding: 12px 16px !important;
-    min-height: 52px !important;
-    gap: 12px !important;
-  }
-
-  .list-item-left {
-    gap: 4px !important;
-  }
-
-  .list-item-amt {
-    font-size: 18px !important;
-    font-weight: 800 !important;
-  }
-
-  .list-item-meta {
-    font-size: 11px !important;
-  }
-
-  .input-sm,
-  .input-md,
-  .input-big {
-    margin-bottom: 8px !important;
-  }
-
-  .chip-row {
-    padding: 12px 0 !important;
-    border: none !important;
-    gap: 8px !important;
-  }
-
-  .home-quick-actions {
-    gap: 12px !important;
-    padding: 16px 16px 12px !important;
-  }
-
-  .home-quick-btn {
-    padding: 14px !important;
-  }
-
-  .inline-form {
-    padding: 12px 16px !important;
-    gap: 12px !important;
-  }
-
-  .form-col {
-    gap: 8px !important;
-  }
-
-  #s-qty {
-    max-width: 60px !important;
-  }
-
-  #profit-preview {
-    margin: 4px 0 8px 0 !important;
-    font-size: 12px !important;
-  }
-}
 .today-stat-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
@@ -1567,18 +1340,18 @@ body {
 
 /* ===== VOICE / MIC ===== */
 .mic-fab {
-  position: fixed; bottom: calc(56px + env(safe-area-inset-bottom, 0px)); right: 16px;
+  position: fixed; bottom: calc(144px + env(safe-area-inset-bottom, 0px)); right: 16px;
   width: 48px; height: 48px; border-radius: 50%;
   background: var(--color-accent); color: #fff;
   border: none; cursor: pointer; z-index: 200;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 8px rgba(124,58,237,0.35);
+  box-shadow: 0 4px 16px rgba(124,58,237,0.45);
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .mic-fab:active { transform: scale(0.93); }
 .mic-fab.listening {
   background: #DC2626;
-  box-shadow: 0 2px 8px rgba(220,38,38,0.35);
+  box-shadow: 0 4px 20px rgba(220,38,38,0.5);
   animation: mic-pulse 1s infinite;
 }
 @keyframes mic-pulse {
@@ -1872,10 +1645,10 @@ body {
 .festival-banner-sub{font-size:13px;color:#5d4037;line-height:1.4;}
 .festival-days-badge{display:inline-block;background:#f9a825;color:#fff;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:700;margin-left:6px;}
 /* ===== PHOTO KHATA ===== */
-.fab-photo{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom, 0px));right:16px;width:40px;height:40px;border-radius:50%;background:#a78bfa;border:none;cursor:pointer;z-index:900;box-shadow:0 1px 4px rgba(124,58,237,0.25);display:flex;align-items:center;justify-content:center;color:#fff;transition:transform .15s,box-shadow .15s,background .15s;}
-.fab-photo:hover{background:#8b5cf6;box-shadow:0 2px 6px rgba(124,58,237,0.35);}
-.fab-photo:active{transform:scale(0.92);}
-@media(min-width:768px){.fab-photo{bottom:24px;width:48px;height:48px;} .mic-fab{bottom:84px;}}
+.fab-photo{position:fixed;bottom:calc(82px + env(safe-area-inset-bottom, 0px));right:16px;width:48px;height:48px;border-radius:50%;background:#fff;border:1.5px solid var(--color-border-tertiary);cursor:pointer;z-index:900;box-shadow:0 4px 14px rgba(0,0,0,0.10);display:flex;align-items:center;justify-content:center;color:var(--pm-purple);transition:transform .15s,box-shadow .15s,background .15s;}
+.fab-photo:hover{background:var(--pm-purple);color:#fff;border-color:var(--pm-purple);box-shadow:0 6px 18px rgba(124,58,237,0.35);}
+.fab-photo:active{transform:scale(0.94);}
+@media(min-width:768px){.fab-photo{bottom:24px;} .mic-fab{bottom:84px;}}
 /* Bottom sheet overlay */
 .bottom-sheet{
   position:fixed;inset:0;z-index:2000;
@@ -2039,15 +1812,15 @@ body {
       </a>
     </div>
     <div class="auth-tabs">
-      <button type="button" class="auth-tab active" id="tab-login" onclick="renderAuthForm('login')">Login</button>
-      <button type="button" class="auth-tab" id="tab-signup" onclick="renderAuthForm('signup')">Sign Up</button>
+      <button class="auth-tab active" id="tab-login" onclick="renderAuthForm('login')">Login</button>
+      <button class="auth-tab" id="tab-signup" onclick="renderAuthForm('signup')">Sign Up</button>
     </div>
     <div id="auth-form-area"></div>
 
     <!-- Guest entry — shown below login form -->
     <div id="guest-section">
       <div class="auth-divider">or</div>
-      <button type="button" class="btn-guest" onclick="showGuestSetup()">
+      <button class="btn-guest" onclick="showGuestSetup()">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
         Start as Guest — No signup needed
       </button>
@@ -2067,10 +1840,10 @@ body {
              maxlength="40"
              style="width:100%;font-size:19px;font-weight:700;text-align:center;height:52px"
              onkeydown="if(event.key==='Enter')confirmGuest()">
-      <button type="button" class="btn-block" style="margin-top:12px;font-size:17px" onclick="confirmGuest()" id="guest-start-btn">
+      <button class="btn-block" style="margin-top:12px;font-size:17px" onclick="confirmGuest()" id="guest-start-btn">
         Start →
       </button>
-      <button type="button" onclick="hideGuestSetup()"
+      <button onclick="hideGuestSetup()"
               style="width:100%;padding:10px;background:none;border:none;color:#aaa;font-size:14px;cursor:pointer;margin-top:2px">
         ← Back to Login
       </button>
@@ -2283,15 +2056,18 @@ body {
           <div class="topbar-sub" id="topbar-sub"></div>
         </div>
       </div>
-      <div style="flex:1" class="topbar-spacer"></div>
+      <div style="flex:1"></div>
       <span class="bs-today-chip" id="bs-today-chip" style="display:none"></span>
       <button class="branch-chip" id="branch-chip" onclick="showBranchSwitcher()" style="display:none">
         <i data-lucide="building-2" style="width:13px;height:13px;flex-shrink:0"></i>
         <span class="branch-chip-name" id="branch-chip-name">Shop</span>
         <i data-lucide="chevron-down" style="width:11px;height:11px;flex-shrink:0"></i>
       </button>
+      <button id="topbar-signout" onclick="confirmSignOut()" aria-label="Logout" style="display:flex;align-items:center;gap:6px;padding:10px 14px;min-height:44px;border:1px solid var(--color-border-tertiary);border-radius:999px;background:transparent;color:var(--color-text-secondary);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
+        <i data-lucide="log-out" style="width:16px;height:16px;flex-shrink:0"></i>
+        Logout
+      </button>
       <div id="topbar-wallet" style="display:none" class="topbar-wallet-chip"></div>
-      <div class="topbar-country" id="topbar-country" style="display:none"></div>
       <div class="topbar-date" id="topbar-date"></div>
     </div>
 
@@ -2312,26 +2088,26 @@ body {
     </div>
 
     <div class="bottom-nav">
-      <button class="nav-btn active" onclick="switchTab('today')" id="nav-today">
+      <button class="nav-btn active" onclick="ANALYTICS.track('bottomNavClick',{tab:'Home'});switchTab('today')" id="nav-today">
         <i data-lucide="home" style="width:22px;height:22px"></i>
         <span>Home</span>
       </button>
-      <button class="nav-btn" onclick="switchTab('katha')" id="nav-katha">
-        <i data-lucide="history" style="width:22px;height:22px"></i>
-        <span>History</span>
+      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'Sales'});switchTab('katha')" id="nav-katha">
+        <i data-lucide="list" style="width:22px;height:22px"></i>
+        <span>Sales</span>
       </button>
-      <button class="nav-btn" onclick="switchTab('udhaar')" id="nav-udhaar">
+      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'Udhaar'});switchTab('udhaar')" id="nav-udhaar">
         <div style="position:relative;display:inline-flex">
           <i data-lucide="users" style="width:22px;height:22px"></i>
           <span id="udhaar-badge" style="display:none;position:absolute;top:-4px;right:-6px;background:#E11D48;color:#fff;border-radius:999px;font-size:9px;font-weight:800;min-width:14px;height:14px;line-height:14px;text-align:center;padding:0 3px"></span>
         </div>
         <span>Udhaar</span>
       </button>
-      <button class="nav-btn" onclick="switchTab('stock')" id="nav-stock">
+      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'Stock'});switchTab('stock')" id="nav-stock">
         <i data-lucide="package" style="width:22px;height:22px"></i>
         <span>Stock</span>
       </button>
-      <button class="nav-btn" onclick="switchTab('more')" id="nav-more">
+      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'More'});switchTab('more')" id="nav-more">
         <i data-lucide="layout-grid" style="width:22px;height:22px"></i>
         <span>More</span>
       </button>
@@ -2359,20 +2135,8 @@ body {
   </div>
 </div>
 
-<!-- ===== FLOATING ACTIONS (Expandable) ===== -->
-<div id="fab-menu" class="fab-menu" onclick="event.stopPropagation()">
-  <button id="fab-main" class="fab-main" onclick="toggleFABMenu()" title="Actions">
-    <i data-lucide="plus" style="width:24px;height:24px"></i>
-  </button>
-  <button id="fab-voice" class="fab-sub fab-voice" onclick="openVoice();closeFABMenu()" title="Voice Khata">
-    <i data-lucide="mic" style="width:18px;height:18px"></i>
-    <span class="fab-label">Voice</span>
-  </button>
-  <button id="fab-photo" class="fab-sub fab-photo" onclick="openPhotoKhata();closeFABMenu()" title="Photo Khata">
-    <i data-lucide="camera" style="width:18px;height:18px"></i>
-    <span class="fab-label">Photo</span>
-  </button>
-</div>
+<!-- ===== PHOTO KHATA FAB ===== -->
+<button class="fab-photo" id="fab-photo" onclick="openPhotoKhata()" title="Photo Khata"><i data-lucide="image-plus" style="width:22px;height:22px"></i></button>
 
 <!-- ===== PHOTO KHATA BOTTOM SHEET ===== -->
 <div id="photo-khata-sheet" class="bottom-sheet" style="display:none" onclick="if(event.target===this)closePhotoKhata()">
@@ -2425,6 +2189,14 @@ body {
     <button class="pk-close-btn" onclick="closePhotoKhata()" id="pk-btn-cancel"></button>
   </div>
 </div>
+
+<!-- ===== MIC FAB ===== -->
+<button class="mic-fab" id="mic-fab" onclick="openVoice()" title="Voice command" style="display:none">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+    <rect x="9" y="2" width="6" height="12" rx="3"/>
+    <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>
+  </svg>
+</button>
 
 <!-- ===== VOICE MODAL ===== -->
 <!-- UPI Payment Modal -->
@@ -2747,6 +2519,21 @@ function _trackLocal(eventName, data){
     localStorage.setItem(KEY,JSON.stringify(ev));
   }catch(_){}
 }
+
+// ===== MINIMAL ANALYTICS (FIRE-AND-FORGET) =====
+// Tracks 6 core metrics: moduleGridClick, sidebarOpen, bottomNavClick, recordSaleClick, dashboardOpen, financeOpen
+// Non-blocking, silent failures, uses existing Supabase client
+const ANALYTICS = {
+  track(eventType, eventData = {}) {
+    // Fire-and-forget: do not await, do not block user action
+    sb.from('analytics_events').insert({
+      user_id: currentUser?.id || 'guest',
+      event_type: eventType,
+      event_data: eventData,
+      device_type: window.innerWidth < 768 ? 'mobile' : 'desktop'
+    }).catch(() => {}); // Silent failure
+  }
+};
 
 // Call pm_debugUsage() in the browser console to see your local usage stats.
 // Works for any user — reads from the localStorage ring-buffer above.
@@ -4227,7 +4014,7 @@ function renderAuthForm(mode){
     <input class="input-md" id="a-email" type="email" placeholder="Email" aria-label="Email address" autocomplete="email" style="width:100%;margin-top:${authMode==='signup'?'8px':'0'}" onkeydown="if(event.key==='Enter')document.getElementById('a-pass').focus()">
     <input class="input-md" id="a-pass" type="password" placeholder="Password" aria-label="Password" autocomplete="${authMode==='login'?'current-password':'new-password'}" style="width:100%;margin-top:8px" onkeydown="if(event.key==='Enter')${authMode==='login'?'doLogin()':'doSignup()'}">
     <div id="auth-err" role="alert" style="color:#DC2626;font-size:13px;display:none;margin-top:4px"></div>
-    <button type="button" class="btn-block" id="auth-btn" onclick="${authMode==='login'?'doLogin()':'doSignup()'}" style="margin-top:8px">${authMode==='login'?'Login':'Create Account'}</button>
+    <button class="btn-block" id="auth-btn" onclick="${authMode==='login'?'doLogin()':'doSignup()'}" style="margin-top:8px">${authMode==='login'?'Login':'Create Account'}</button>
     ${authMode==='login'?`<div style="text-align:center;font-size:13px;color:#666;margin-top:4px">New here? <span style="color:var(--pm-purple);cursor:pointer;font-weight:600" onclick="renderAuthForm('signup')">Create account</span></div>`:`<div style="text-align:center;font-size:13px;color:#666;margin-top:4px">Already have account? <span style="color:var(--pm-purple);cursor:pointer;font-weight:600" onclick="renderAuthForm('login')">Login</span></div>`}
   `;
   setTimeout(()=>{
@@ -4997,6 +4784,7 @@ function toggleSidebar(){
   if(!sb) return;
   if(window.innerWidth < 768){
     _mobileSidebarOpen=!_mobileSidebarOpen;
+    if(_mobileSidebarOpen) ANALYTICS.track('sidebarOpen');
     sb.classList.toggle('mobile-open',_mobileSidebarOpen);
     const backdrop=document.getElementById('mobile-sidebar-backdrop');
     const btn=document.getElementById('mobile-menu-toggle');
@@ -5046,7 +4834,7 @@ function _syncSidebarActive(tab){
 function switchTab(tab){
   destroyCharts();
   currentTab=tab;
-  if(tab==='more'){_moreSearch='';}
+  if(tab==='more'){moreSubPage='menu';_moreSearch='';}
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+tab).classList.add('active');
@@ -5079,7 +4867,6 @@ function renderTab(){
 
 // ===== ONBOARDING CHECKLIST =====
 let _clTrackedSession=false;
-let _clExpanded=false;
 function _getClState(){
   const hasPay=S.country==='NP'?!!(S.esewaId||S.npPaymentId):!!S.upiId;
   return{product:stock.length>0,sale:sales.length>0,payment:hasPay,customer:customers.length>0,udhaar:udhaars.length>0};
@@ -5092,11 +4879,6 @@ function _shouldShowChecklist(){
 function _dismissChecklist(){
   localStorage.setItem('pm_cl_dismissed','1');
   renderToday();
-}
-function _toggleChecklist(){
-  _clExpanded=!_clExpanded;
-  const el=document.getElementById('pm-checklist-items');
-  if(el) el.style.display=_clExpanded?'block':'none';
 }
 function _renderChecklist(){
   if(!_shouldShowChecklist()) return '';
@@ -5128,15 +4910,14 @@ function _renderChecklist(){
       '<div style="display:flex;align-items:center;gap:10px">'+
         '<div style="width:52px"><div style="height:5px;background:rgba(255,255,255,0.25);border-radius:3px"><div style="width:'+pct+'%;height:5px;background:#fff;border-radius:3px"></div></div>'+
         '<div style="color:rgba(255,255,255,0.7);font-size:10px;font-weight:700;text-align:right;margin-top:3px">'+pct+'%</div></div>'+
-        '<button type="button" onclick="_toggleChecklist()" style="width:26px;height:26px;border:none;background:rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.75);font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center" title="Expand" class="pm-cl-toggle">▼</button>'+
-        '<button type="button" onclick="_dismissChecklist()" style="width:26px;height:26px;border:none;background:rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.75);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Dismiss" class="pm-cl-dismiss">✕</button>'+
+        '<button onclick="_dismissChecklist()" style="width:26px;height:26px;border:none;background:rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.75);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Dismiss">✕</button>'+
       '</div>'+
     '</div>'+
-    '<div id="pm-checklist-items">'+
+    '<div>'+
     ITEMS.map((item,i)=>
       '<div onclick="'+(item.done?'':item.action)+'" style="padding:11px 16px;display:flex;align-items:center;gap:12px;'+(i<ITEMS.length-1?'border-bottom:1px solid var(--color-border-tertiary);':'')+
       (item.done?'opacity:0.55':'cursor:pointer')+'" '+
-      (!item.done?'onmouseenter="this.style.background=\'var(--color-background-secondary)\'" onmouseleave="this.style.background=\'\'"':'')+'>'+
+      (!item.done?'onmouseenter="this.style.background='var(--color-background-secondary)'" onmouseleave="this.style.background=''"':'')+'>'+
         '<div style="width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;'+(item.done?'background:#10b981':'border:2px solid #d1d5db')+'">'+
           (item.done?'<i data-lucide="check" style="width:11px;height:11px;color:#fff"></i>':'')+
         '</div>'+
@@ -5173,6 +4954,7 @@ function renderToday(){
   const monthEnd=td.substring(0,7)+'-31';
   const loanDueMonth=loanPayments.filter(p=>!p.paid&&p.dueDate>=monthStart&&p.dueDate<=monthEnd);
   const loanOverdue=loanPayments.filter(p=>!p.paid&&p.dueDate<td);
+  const udhaarCount=overdueList.length;
   const combined=[...ts.map(s=>({...s,_type:'sale'})),...tr.map(r=>({...r,_type:'return'}))].sort((a,b)=>(b.ts||0)-(a.ts||0));
   document.getElementById('page-today').innerHTML=`
     ${overdueList.length>0?`<div class="today-alert today-alert-danger" onclick="switchTab('udhaar')">
@@ -5248,8 +5030,59 @@ function renderToday(){
           <div style="font-size:10px;color:rgba(255,255,255,0.65);font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:0.4px">Transactions</div>
         </div>
       </div>
-      <button id="btn-record-sale" onclick="document.getElementById('s-note')?.focus();document.getElementById('s-note')?.scrollIntoView({behavior:'smooth',block:'center'})" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
+      <button onclick="ANALYTICS.track('recordSaleClick');document.getElementById('s-note')?.focus();document.getElementById('s-note')?.scrollIntoView({behavior:'smooth',block:'center'})" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
         <i data-lucide="plus-circle" style="width:18px;height:18px"></i> Record Sale
+      </button>
+    </div>
+    <div class="module-grid">
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Sales'});switchTab('katha')">
+        <div class="module-grid-icon" style="background: #7C3AED1A">
+          <i data-lucide="shopping-bag" style="color: #7C3AED"></i>
+        </div>
+        <div class="module-grid-label">Sales</div>
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Stock'});switchTab('stock')">
+        <div class="module-grid-icon" style="background: #8B5CF61A">
+          <i data-lucide="package" style="color: #8B5CF6"></i>
+        </div>
+        <div class="module-grid-label">Stock</div>
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Finance'});ANALYTICS.track('financeOpen');goMore('pl')">
+        <div class="module-grid-icon" style="background: #0596691A">
+          <i data-lucide="trending-up" style="color: #059669"></i>
+        </div>
+        <div class="module-grid-label">Finance</div>
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Udhaar'});switchTab('udhaar')" style="position: relative;">
+        <div class="module-grid-icon" style="background: #E11D481A">
+          <i data-lucide="users" style="color: #E11D48"></i>
+        </div>
+        <div class="module-grid-label">Udhaar</div>
+        ${udhaarCount > 0 ? '<div class="module-grid-badge"></div>' : ''}
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Staff'});goMore('staffBook')">
+        <div class="module-grid-icon" style="background: #D976061A">
+          <i data-lucide="users-3" style="color: #D97706"></i>
+        </div>
+        <div class="module-grid-label">Staff</div>
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Loans'});goMore('loan')">
+        <div class="module-grid-icon" style="background: #DC26261A">
+          <i data-lucide="building-bank" style="color: #DC2626"></i>
+        </div>
+        <div class="module-grid-label">Loans</div>
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Dashboard'});ANALYTICS.track('dashboardOpen');goMore('dashboard')">
+        <div class="module-grid-icon" style="background: #4F46E51A">
+          <i data-lucide="chart-line" style="color: #4F46E5"></i>
+        </div>
+        <div class="module-grid-label">Dashboard</div>
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Account'});goMore('settings')">
+        <div class="module-grid-icon" style="background: #64748B1A">
+          <i data-lucide="settings" style="color: #64748B"></i>
+        </div>
+        <div class="module-grid-label">Account</div>
       </button>
     </div>
     <div class="sub-tabs">
@@ -5282,7 +5115,7 @@ function renderToday(){
         </div>
         <datalist id="item-list-today">${stock.filter(it=>it.qty>0).map(it=>`<option value="${esc(it.name)}">${it.size?it.size+' · ':''}${fmt(it.sell)} · stock: ${it.qty}</option>`).join('')}</datalist>
         <div style="display:flex;gap:6px">
-          <input class="input-big" id="s-qty" type="text" inputmode="numeric" placeholder="Qty" value="1" style="max-width:60px;text-align:center" oninput="_recalcSaleTotals();_updateProfitPreview()">
+          <input class="input-big" id="s-qty" type="text" inputmode="numeric" placeholder="Qty" value="1" style="max-width:64px;text-align:center" oninput="_recalcSaleTotals();_updateProfitPreview()">
           <input class="input-big" id="s-amt" type="text" inputmode="numeric" placeholder="Sell ${cur()}" style="flex:1" onkeydown="if(event.key==='Enter')addSale()" oninput="_updateProfitPreview()">
           <input class="input-big" id="s-cost" type="text" inputmode="numeric" placeholder="Cost ${cur()}" style="flex:1;font-size:16px;color:var(--color-text-secondary)" oninput="_updateProfitPreview()">
         </div>
@@ -5303,24 +5136,6 @@ function renderToday(){
       </div>
       <button id="btn-add-sale" class="btn-add" onclick="addSale()">+</button>
     </div>`}
-    <div id="quick-access-section" style="display:none;padding:8px 16px;gap:8px;grid-template-columns:repeat(2,1fr)">
-      <button class="quick-access-shortcut" onclick="switchTab('today')" style="border:none;background:rgba(124,58,237,0.08);color:inherit;border-radius:8px;padding:6px 8px;display:flex;flex-direction:row;align-items:center;gap:3px;cursor:pointer;font-size:11px;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.06);transition:all 0.15s">
-        <i data-lucide="shopping-bag" style="width:14px;height:14px;color:#7C3AED;flex-shrink:0"></i>
-        <span>Sales</span>
-      </button>
-      <button class="quick-access-shortcut" onclick="goMore('customers');switchTab('more')" style="border:none;background:rgba(124,58,237,0.08);color:inherit;border-radius:8px;padding:6px 8px;display:flex;flex-direction:row;align-items:center;gap:3px;cursor:pointer;font-size:11px;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.06);transition:all 0.15s">
-        <i data-lucide="users" style="width:14px;height:14px;color:#7C3AED;flex-shrink:0"></i>
-        <span>Customers</span>
-      </button>
-      <button class="quick-access-shortcut" onclick="switchTab('stock')" style="border:none;background:rgba(13,148,136,0.08);color:inherit;border-radius:8px;padding:6px 8px;display:flex;flex-direction:row;align-items:center;gap:3px;cursor:pointer;font-size:11px;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.06);transition:all 0.15s">
-        <i data-lucide="package" style="width:14px;height:14px;color:#0D9488;flex-shrink:0"></i>
-        <span>Stock</span>
-      </button>
-      <button class="quick-access-shortcut" onclick="goMore('cashbook');switchTab('more')" style="border:none;background:rgba(13,148,136,0.08);color:inherit;border-radius:8px;padding:6px 8px;display:flex;flex-direction:row;align-items:center;gap:3px;cursor:pointer;font-size:11px;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.06);transition:all 0.15s">
-        <i data-lucide="book-open" style="width:14px;height:14px;color:#0D9488;flex-shrink:0"></i>
-        <span>Cash</span>
-      </button>
-    </div>
     <div class="section-header"><span>Recent Activity</span><button onclick="switchTab('katha')" style="background:none;border:none;color:var(--color-accent);font-size:12px;font-weight:700;cursor:pointer;padding:0">View All</button></div>
     ${combined.length===0?_emptyState('shopping-bag',t('noEntries'),'Record your first sale above','',''):
       combined.map(i=>{
@@ -5331,7 +5146,7 @@ function renderToday(){
         const profit=i.cost>0?i.amt-i.cost:null;
         if(confirmId===i.id) return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${t('delete')}</div></div><div class="confirm-row"><button class="btn-confirm yes" onclick="delSale('${i.id}')">${t('yesDelete')}</button><button class="btn-confirm no" onclick="confirmId=null;renderToday()">${t('cancel')}</button></div></div>`;
         const cust=i.customerId?customers.find(c=>c.id===i.customerId):null;
-        return `<div class="list-item"><div class="list-item-left"><div style="display:flex;align-items:center;gap:12px"><div class="list-item-amt">${fmt(i.amt)}</div>${profit!==null?`<div class="list-item-profit" style="color:${profit>=0?'var(--color-success)':'var(--color-danger)'}"><div style="font-size:14px;font-weight:700">${fmt(profit)}</div><div style="font-size:10px;font-weight:600;opacity:0.7">profit</div></div>`:''}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.cost>0?' · Cost: '+fmt(i.cost):''}${i.note?' · '+i.note:''}${cust?` · <span style="color:var(--color-accent);font-weight:600;display:inline-flex;align-items:center;gap:3px"><i data-lucide="user" style="width:11px;height:11px"></i>${esc(cust.name)}</span>`:''}</div></div><div class="list-item-actions"><button class="btn-icon-subtle" title="Print receipt" onclick="printSaleReceipt('${i.id}')"><i data-lucide="printer" style="width:16px;height:16px"></i></button>${(S.country==='IN'&&S.upiId)||(S.country==='NP'&&(S.esewaId||S.npPaymentId))?`<button class="btn-icon-subtle" title="${S.country==='NP'?'Collect via eSewa/Khalti':'Collect via UPI'}" onclick="openUpiModal(${i.amt})"><i data-lucide="qr-code" style="width:16px;height:16px"></i></button>`:''}<button class="btn-icon-subtle" title="Delete" onclick="confirmId='${i.id}';renderToday()"><i data-lucide="trash-2" style="width:16px;height:16px"></i></button></div></div>`;
+        return `<div class="list-item"><div class="list-item-left"><div class="list-item-amt">${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.cost>0?' · Cost: '+fmt(i.cost):''}${i.note?' · '+i.note:''}${cust?` · <span style="color:var(--color-accent);font-weight:600;display:inline-flex;align-items:center;gap:3px"><i data-lucide="user" style="width:11px;height:11px"></i>${esc(cust.name)}</span>`:''}</div></div>${profit!==null?`<div style="text-align:center;margin-right:4px"><div style="font-size:13px;font-weight:700;color:${profit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(profit)}</div><div style="font-size:10px;color:var(--color-text-secondary)">profit</div></div>`:''}<button class="btn-icon" title="Print receipt" style="background:#EFF6FF;color:#1D4ED8" onclick="printSaleReceipt('${i.id}')"><i data-lucide="printer" style="width:13px;height:13px"></i></button>${(S.country==='IN'&&S.upiId)||(S.country==='NP'&&(S.esewaId||S.npPaymentId))?`<button class="btn-icon" title="${S.country==='NP'?'Collect via eSewa/Khalti':'Collect via UPI'}" style="background:#ECFDF5;color:#059669" onclick="openUpiModal(${i.amt})"><i data-lucide="qr-code" style="width:13px;height:13px"></i></button>`:''}<button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderToday()">✕</button></div>`;
       }).join('')}
     <div class="home-quick-actions">
       <button class="home-quick-btn" onclick="${_payConfig().hasId ? 'openUpiModal(0)' : "goMore('settings');switchTab('more')"}">
@@ -12147,14 +11962,6 @@ function updateTopbar(){
   const dateDisplay=bsStr ? `${intlDate} · ${bsStr}` : intlDate;
   document.getElementById('topbar-date').textContent=dateDisplay;
 
-  // Mobile header: Show country + date on second row
-  const countryElem=document.getElementById('topbar-country');
-  if(countryElem){
-    const country=S.country==='NP'?'Nepal':'India';
-    countryElem.textContent=country+' • '+dateDisplay;
-    countryElem.style.display='block';
-  }
-
   const bsChip=document.getElementById('bs-today-chip');
   if(bsChip) bsChip.style.display='none'; // Hide separate BS chip since it's now in the date
   const chip=document.getElementById('branch-chip');
@@ -12875,32 +12682,6 @@ function _showVoicePhase(phase){
   const cancel=document.getElementById('voice-cancel-btn');
   if(cancel) cancel.style.display=(phase==='success'?'none':'block');
 }
-
-// Expandable FAB
-let fabMenuOpen=false;
-
-function toggleFABMenu(){
-  const fabMenu=document.getElementById('fab-menu');
-  fabMenuOpen=!fabMenuOpen;
-  if(fabMenuOpen){
-    fabMenu.classList.add('expanded');
-  }else{
-    fabMenu.classList.remove('expanded');
-  }
-}
-
-function closeFABMenu(){
-  const fabMenu=document.getElementById('fab-menu');
-  fabMenuOpen=false;
-  fabMenu.classList.remove('expanded');
-}
-
-document.addEventListener('click',function(e){
-  const fabMenu=document.getElementById('fab-menu');
-  if(fabMenu&&!fabMenu.contains(e.target)&&fabMenuOpen){
-    closeFABMenu();
-  }
-});
 
 function openVoice(){
   if(!SpeechRec){
@@ -15378,86 +15159,5 @@ trackVisit();
   }, 100);
 })();
 </script>
-
-<script>
-(function autoLoginFromReact(){
-  const params = new URLSearchParams(location.search);
-  const guestParam = params.get('guest');
-  if(!guestParam) return;
-  const shopName = decodeURIComponent(guestParam);
-  let attempts = 0;
-  const tryAutoLogin = setInterval(()=>{
-    attempts++;
-    if(attempts > 50){clearInterval(tryAutoLogin); return;}
-    if(typeof showGuestSetup === 'function' && typeof confirmGuest === 'function'){
-      clearInterval(tryAutoLogin);
-      try{
-        showGuestSetup();
-        setTimeout(()=>{
-          const input = document.getElementById('guest-shop-input');
-          if(input){input.value = shopName; confirmGuest();}
-        }, 150);
-      }catch(e){}
-    }
-  }, 100);
-})();
-</script>
-
-<script>
-(function autoLoginFromReact(){
-  const params = new URLSearchParams(location.search);
-  const guestParam = params.get('guest');
-  if(!guestParam) return;
-  const shopName = decodeURIComponent(guestParam);
-  let attempts = 0;
-  const tryAutoLogin = setInterval(()=>{
-    attempts++;
-    if(attempts > 50){clearInterval(tryAutoLogin); return;}
-    if(typeof showGuestSetup === 'function' && typeof confirmGuest === 'function'){
-      clearInterval(tryAutoLogin);
-      try{
-        showGuestSetup();
-        setTimeout(()=>{
-          const input = document.getElementById('guest-shop-input');
-          if(input){input.value = shopName; confirmGuest();}
-        }, 150);
-      }catch(e){}
-    }
-  }, 100);
-})();
-</script>
-
-<script>
-(function autoLoginFromReact(){
-  const params = new URLSearchParams(location.search);
-  const guestParam = params.get('guest');
-  if(!guestParam) return;
-  const shopName = decodeURIComponent(guestParam);
-  let attempts = 0;
-  const tryAutoLogin = setInterval(()=>{
-    attempts++;
-    if(attempts > 50){clearInterval(tryAutoLogin); return;}
-    if(typeof showGuestSetup === 'function' && typeof confirmGuest === 'function'){
-      clearInterval(tryAutoLogin);
-      try{
-        showGuestSetup();
-        setTimeout(()=>{
-          const input = document.getElementById('guest-shop-input');
-          if(input){input.value = shopName; confirmGuest();}
-        }, 150);
-      }catch(e){}
-    }
-  }, 100);
-})();
-</script>
-</body>
-</html>
-
-</body>
-</html>
-
-</body>
-</html>
-
 </body>
 </html>
