@@ -3,7 +3,7 @@
 <head>
 <!-- Cache Busting: Force browsers to download fresh version -->
 <!-- Version: 3.0 (Fintech UI Redesign) | Updated: 2026-06-08 -->
-<meta name="cache-version" content="v5.1-20260609-ux-phase1">
+<meta name="cache-version" content="v5.2-20260609-ux-phase2a">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
@@ -368,7 +368,7 @@ body {
 }
 .input-big:focus { border-color: var(--pm-purple); box-shadow: 0 0 0 4px rgba(124,58,237,0.12); outline: none; }
 .input-sm {
-  width: 100%; height: 40px;
+  width: 100%; height: 44px;
   font-size: 14px;
   padding: 0 12px;
   border: 1.5px solid var(--color-border-secondary);
@@ -543,7 +543,7 @@ body {
 .list-item-meta { font-size: 12px; color: var(--color-text-secondary); }
 
 .btn-icon {
-  width: 36px; height: 36px;
+  width: 44px; height: 44px;
   border: none;
   border-radius: 4px;
   font-size: 18px;
@@ -596,7 +596,7 @@ body {
   border-bottom: 1px solid var(--color-border-tertiary);
 }
 .date-nav-btn {
-  width: 36px; height: 36px;
+  width: 44px; height: 44px;
   background: var(--color-background-secondary);
   border: 1px solid var(--color-border-tertiary);
   border-radius: 10px; font-size: 16px;
@@ -853,8 +853,10 @@ body {
   font-size: 14px; font-weight: 600;
   color: var(--color-accent);
   cursor: pointer;
+  border: none;
   border-bottom: 1px solid var(--color-border-tertiary);
   background: var(--color-background-secondary);
+  width: 100%; text-align: left;
 }
 .back-btn svg {
   width: 18px; height: 18px;
@@ -2547,10 +2549,10 @@ function staffPinSet(){ return !!localStorage.getItem(_SK); }
 function getStaffPin(){ return localStorage.getItem(_SK)||''; }
 
 function enterStaffMode(){
-  if(!staffPinSet()){ alert('No staff PIN set. Go to Settings → Staff Mode to set one first.'); return; }
+  if(!staffPinSet()){ _showToast('No staff PIN set. Go to Settings → Staff Mode.'); return; }
   const pin=prompt('Enter Staff PIN:');
   if(!pin) return;
-  if(pin!==getStaffPin()){ alert('Incorrect staff PIN.'); return; }
+  if(pin!==getStaffPin()){ _showToast('Incorrect staff PIN.'); return; }
   isStaffMode=true;
   _applyStaffMode();
 }
@@ -2585,7 +2587,7 @@ function exitStaffMode(){
     const pin=prompt('Enter owner PIN to exit staff mode:');
     if(!pin){return;}
     pinHash(pin).then(h=>{
-      if(h!==pinStoredHash()){alert('Incorrect owner PIN.');return;}
+      if(h!==pinStoredHash()){_showToast('Incorrect owner PIN.');return;}
       _doExitStaffMode();
     });
   } else {
@@ -2606,24 +2608,24 @@ function _doExitStaffMode(){
 function setStaffPin(){
   const pin=prompt('Set a 4-digit Staff PIN:\n(Staff will use this to enter staff mode)');
   if(!pin) return;
-  if(pin.length<4||pin.length>6||!/^\d+$/.test(pin)){alert('PIN must be 4-6 digits.');return;}
+  if(pin.length<4||pin.length>6||!/^\d+$/.test(pin)){_showToast('PIN must be 4-6 digits.');return;}
   const confirm=prompt('Confirm Staff PIN:');
-  if(pin!==confirm){alert('PINs do not match.');return;}
+  if(pin!==confirm){_showToast('PINs do not match.');return;}
   localStorage.setItem(_SK,pin);
-  alert('Staff PIN set! Staff can now use this PIN to enter limited access mode.');
+  _showToast('Staff PIN set!');
   goMore('settings');
 }
 function changeStaffPin(){
   const old=prompt('Enter current Staff PIN:');
   if(!old) return;
-  if(old!==getStaffPin()){alert('Incorrect PIN.');return;}
+  if(old!==getStaffPin()){_showToast('Incorrect PIN.');return;}
   const pin=prompt('Enter new Staff PIN:');
   if(!pin) return;
-  if(pin.length<4||pin.length>6||!/^\d+$/.test(pin)){alert('PIN must be 4-6 digits.');return;}
+  if(pin.length<4||pin.length>6||!/^\d+$/.test(pin)){_showToast('PIN must be 4-6 digits.');return;}
   const confirm=prompt('Confirm new Staff PIN:');
-  if(pin!==confirm){alert('PINs do not match.');return;}
+  if(pin!==confirm){_showToast('PINs do not match.');return;}
   localStorage.setItem(_SK,pin);
-  alert('Staff PIN changed.');
+  _showToast('Staff PIN changed.');
   goMore('settings');
 }
 function removeStaffPin(){
@@ -3370,9 +3372,9 @@ function restoreData(input){
       if(d.dealerEntries) dealerEntries=d.dealerEntries;
       if(d.settings) S={...S,...d.settings};
       cacheWrite();
-      alert('Backup restored successfully!');
+      _showToast('Backup restored!');
       location.reload();
-    }catch(ex){ alert('Failed to restore: '+ex.message); }
+    }catch(ex){ _showToast('Failed to restore: '+ex.message); }
   };
   reader.readAsText(file);
 }
@@ -3416,7 +3418,7 @@ function importStockCSV(input){
     const rows=_parseCSV(e.target.result);
     // Skip header row if first cell looks like a label
     const data=rows[0]&&isNaN(rows[0][1])?rows.slice(1):rows;
-    if(!data.length){alert('No data found in CSV.');return;}
+    if(!data.length){_showToast('No data found in CSV.');return;}
     const preview=data.slice(0,3).map(r=>`• ${r[0]||'?'} — Qty:${r[1]||0} Buy:${r[2]||0} Sell:${r[3]||0}`).join('\n');
     const more=data.length>3?`\n...and ${data.length-3} more`:'';
     if(!confirm(`Import ${data.length} stock items?\n\n${preview}${more}\n\nDuplicate names will be skipped.`))return;
@@ -3434,7 +3436,7 @@ function importStockCSV(input){
       added++;
     }
     Promise.all(promises).then(()=>{cacheWrite();renderStock();});
-    alert(`✓ Imported ${added} items.${skipped>0?` ${skipped} skipped (duplicate or empty).`:''}`);
+    _showToast(`✓ Imported ${added} items.${skipped>0?' '+skipped+' skipped.':''}`);
   };
   reader.readAsText(file);
 }
@@ -3446,7 +3448,7 @@ function importCustomersCSV(input){
   reader.onload=e=>{
     const rows=_parseCSV(e.target.result);
     const data=rows[0]&&isNaN(rows[0][0])&&!/^\d/.test(rows[0][0])&&rows[0][0].toLowerCase().includes('name')?rows.slice(1):rows;
-    if(!data.length){alert('No data found in CSV.');return;}
+    if(!data.length){_showToast('No data found in CSV.');return;}
     const preview=data.slice(0,3).map(r=>`• ${r[0]||'?'} ${r[1]?'· '+r[1]:''}`).join('\n');
     const more=data.length>3?`\n...and ${data.length-3} more`:'';
     if(!confirm(`Import ${data.length} customers?\n\n${preview}${more}\n\nDuplicate names will be skipped.`))return;
@@ -3464,7 +3466,7 @@ function importCustomersCSV(input){
       added++;
     }
     Promise.all(promises).then(()=>{cacheWrite();renderCustomers(document.getElementById('page-more'));});
-    alert(`✓ Imported ${added} customers.${skipped>0?` ${skipped} skipped (duplicate or empty).`:''}`);
+    _showToast(`✓ Imported ${added} customers.${skipped>0?' '+skipped+' skipped.':''}`);
   };
   reader.readAsText(file);
 }
@@ -4228,7 +4230,7 @@ async function confirmGuest(){
   }catch(e){
     console.error('Guest start error:',e);
     if(btn){btn.innerHTML=t('guestStartBtn');btn.disabled=false;}
-    alert('Something went wrong: '+e.message);
+    _showToast('Something went wrong: '+e.message);
   }
 }
 
@@ -5342,7 +5344,7 @@ function sendBulkReminders(){
     const ds=udhaarDueStatus(u);
     return u.phone && ds && (ds.type==='overdue'||ds.type==='today');
   });
-  if(!overdue.length){alert('No overdue customers with phone numbers found.');return;}
+  if(!overdue.length){_showToast('No overdue customers with phone numbers found.');return;}
   const list=overdue.map(u=>`• ${u.name} — ${fmt(u.amt)}`).join('\n');
   if(!confirm(`Send WhatsApp reminders to ${overdue.length} customer${overdue.length>1?'s':''}?\n\n${list}\n\nEach will open in a new tab. Allow popups if prompted.`)) return;
   overdue.forEach((u,i)=>{
@@ -6120,11 +6122,11 @@ function renderStock(){
           <div style="display:flex;align-items:center;gap:8px">
             <div style="text-align:center"><div style="font-size:18px;font-weight:800;color:${qtyColor}">${i.qty}</div><div style="font-size:10px;color:var(--color-text-secondary)">${t('inStock')}</div></div>
             <div style="display:flex;flex-direction:column;gap:4px">
-              <button class="btn-icon" style="background:var(--color-success-light);color:var(--color-success);width:30px;height:30px" onclick="updateQty('${i.id}',1)">+</button>
-              <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger);width:30px;height:30px" onclick="updateQty('${i.id}',-1)">−</button>
+              <button class="btn-icon" style="background:var(--color-success-light);color:var(--color-success);width:44px;height:44px" onclick="updateQty('${i.id}',1)">+</button>
+              <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger);width:44px;height:44px" onclick="updateQty('${i.id}',-1)">−</button>
             </div>
-            <button class="btn-icon" style="background:var(--pm-purple-light);color:var(--pm-purple);width:34px;height:34px" onclick="showBarcodeModal('${i.id}')" title="View Barcode"><i data-lucide="scan-barcode" style="width:16px;height:16px"></i></button>
-            <button class="btn-icon" style="background:#F1F5F9;color:#475569;width:34px;height:34px" onclick="showStockHistory('${i.id}')" title="Adjustment history"><i data-lucide="history" style="width:16px;height:16px"></i></button>
+            <button class="btn-icon" style="background:var(--pm-purple-light);color:var(--pm-purple)" onclick="showBarcodeModal('${i.id}')" title="View Barcode"><i data-lucide="scan-barcode" style="width:16px;height:16px"></i></button>
+            <button class="btn-icon" style="background:#F1F5F9;color:#475569" onclick="showStockHistory('${i.id}')" title="Adjustment history"><i data-lucide="history" style="width:16px;height:16px"></i></button>
             <button class="btn-icon" style="background:var(--color-danger-light);color:var(--color-danger)" onclick="confirmId='${i.id}';renderStock()">✕</button>
           </div>
         </div>`;
@@ -6186,7 +6188,7 @@ function showBarcodeModal(stockId){
   const item=stock.find(i=>i.id===stockId);
   if(!item)return;
   if(!item.barcode){item.barcode=_autoBarcode();cacheWrite();}
-  if(!window.JsBarcode){alert('Barcode library loading. Try again.');return;}
+  if(!window.JsBarcode){_showToast('Barcode library loading. Try again.');return;}
 
   let modal=document.getElementById('barcode-modal');
   if(!modal){
@@ -7092,7 +7094,7 @@ function initRazorpayPayment(){
 
   const rzp = new Razorpay(options);
   rzp.on('payment.failed', function(resp){
-    alert('❌ Payment failed: ' + (resp.error.description || 'Unknown error'));
+    _showToast('❌ Payment failed: ' + (resp.error.description || 'Unknown error'));
   });
   rzp.open();
 }
@@ -7180,7 +7182,7 @@ async function submitPayment(){
   const txnId=(document.getElementById('pay-txn-id')?.value||'').trim();
   const note=(document.getElementById('pay-note')?.value||'').trim();
   if(!txnId){
-    alert('Please enter your transaction ID.');
+    _showToast('Please enter your transaction ID.');
     return;
   }
   const btn=document.getElementById('pay-submit-btn');
@@ -7233,7 +7235,7 @@ async function submitPayment(){
   window.open(`https://wa.me/${SUB_OWNER_WHATSAPP}?text=${encodeURIComponent(msg)}`,'_blank');
 
   setTimeout(()=>{
-    alert('✓ Payment submitted!\n\nWe opened WhatsApp so you can also send a screenshot to the owner. You will be notified once approved (usually within a few hours).');
+    _showToast('✓ Payment submitted! You will be notified once approved.');
     renderMore(); // re-render to show "under review" state
   },500);
 }
@@ -7392,7 +7394,7 @@ async function _approvePayment(requestId, userEmail){
     // Re-render to show updated state
     setTimeout(()=>renderMore(),400);
   } catch(e){
-    alert('Approval failed: '+e.message+'\nCheck Supabase logs.');
+    _showToast('Approval failed: '+e.message);
   }
 }
 
@@ -7410,7 +7412,7 @@ async function _rejectPayment(requestId){
     _showToast('Payment rejected');
     setTimeout(()=>renderMore(),400);
   } catch(e){
-    alert('Rejection failed: '+e.message);
+    _showToast('Rejection failed: '+e.message);
   }
 }
 
@@ -7582,20 +7584,20 @@ function renderPaymentSettingsPanel(){
 async function savePaymentSettings(){
   const upiId = document.getElementById('admin-upi-id')?.value.trim() || '';
   const npPaymentId = document.getElementById('admin-np-payment-id')?.value.trim() || '';
-  if(!upiId && !npPaymentId){ alert('Please enter at least one payment ID'); return; }
+  if(!upiId && !npPaymentId){ _showToast('Please enter at least one payment ID.'); return; }
   try {
     S.upiId = upiId; S.npPaymentId = npPaymentId; cacheWrite();
     if(currentUser && sb){
       await sb.from('analytics_users').update({ upi_id: upiId, np_payment_id: npPaymentId, updated_at: new Date().toISOString() }).eq('id', currentUser.id);
     }
     if(typeof _showToast==='function') _showToast('✅ Payment IDs saved!');
-  } catch(e){ alert('❌ Error: ' + e.message); }
+  } catch(e){ _showToast('❌ Error: ' + e.message); }
 }
 
 function adminSaveRazorpayKey(){
   const key=document.getElementById('admin-razorpay-key')?.value.trim();
   if(!key||(!key.startsWith('rzp_test_')&&!key.startsWith('rzp_live_'))){
-    alert('❌ Invalid key. Must start with rzp_test_ or rzp_live_');
+    _showToast('❌ Invalid key. Must start with rzp_test_ or rzp_live_');
     return;
   }
   RAZORPAY_KEY_ID=key;
@@ -7619,7 +7621,7 @@ function adminSavePrices(){
 
 function adminSaveTrialDays(){
   const days = parseInt(document.getElementById('admin-trial-days')?.value)||30;
-  if(days < 1 || days > 365){ alert('Trial days must be between 1 and 365'); return; }
+  if(days < 1 || days > 365){ _showToast('Trial days must be between 1 and 365.'); return; }
   // Update the constant (affects all new checks until page reload)
   window.SUB_TRIAL_DAYS_OVERRIDE = days;
   localStorage.setItem('pm_admin_trial_days', days.toString());
@@ -7630,12 +7632,12 @@ async function adminGrantFreeAccess(){
   const email = document.getElementById('admin-free-email')?.value.trim();
   const days = parseInt(document.getElementById('admin-free-days')?.value)||30;
   const tier = document.getElementById('admin-free-tier')?.value||'pro';
-  if(!email){ alert('Please enter user email'); return; }
+  if(!email){ _showToast('Please enter user email.'); return; }
   try {
     const expiry = new Date(Date.now() + days*86400000).toISOString();
     // Look up user by email in analytics_users
     const {data:users} = await sb.from('analytics_users').select('id').eq('email', email).limit(1);
-    if(!users || users.length===0){ alert('❌ User not found: ' + email + '\n\nMake sure they have logged in at least once.'); return; }
+    if(!users || users.length===0){ _showToast('❌ User not found: ' + email); return; }
     const userId = users[0].id;
     await sb.from('pm_payment_requests').insert({
       user_id: userId, email, shop_name: '(admin grant)', country: 'IN',
@@ -7645,12 +7647,12 @@ async function adminGrantFreeAccess(){
     });
     if(typeof _showToast==='function') _showToast('✅ Free access granted to ' + email + ' for ' + days + ' days');
     document.getElementById('admin-free-email').value = '';
-  } catch(e){ alert('❌ Error: ' + e.message); }
+  } catch(e){ _showToast('❌ Error: ' + e.message); }
 }
 
 async function adminRevokeSubscription(){
   const email = document.getElementById('admin-revoke-email')?.value.trim();
-  if(!email){ alert('Please enter user email'); return; }
+  if(!email){ _showToast('Please enter user email.'); return; }
   if(!confirm('Revoke subscription for ' + email + '?\n\nThey will immediately see the paywall.')) return;
   try {
     const {error} = await sb.from('pm_payment_requests')
@@ -7659,12 +7661,12 @@ async function adminRevokeSubscription(){
     if(error) throw error;
     if(typeof _showToast==='function') _showToast('✅ Subscription revoked for ' + email);
     document.getElementById('admin-revoke-email').value = '';
-  } catch(e){ alert('❌ Error: ' + e.message); }
+  } catch(e){ _showToast('❌ Error: ' + e.message); }
 }
 
 function adminSaveWhatsApp(){
   const num = document.getElementById('admin-whatsapp')?.value.trim().replace(/\D/g,'');
-  if(!num || num.length < 10){ alert('Please enter valid WhatsApp number with country code'); return; }
+  if(!num || num.length < 10){ _showToast('Please enter a valid WhatsApp number with country code.'); return; }
   window.SUB_OWNER_WHATSAPP = num;
   localStorage.setItem('pm_admin_whatsapp', num);
   if(typeof _showToast==='function') _showToast('✅ WhatsApp number updated to +' + num);
@@ -7672,7 +7674,7 @@ function adminSaveWhatsApp(){
 
 function adminBroadcast(){
   const msg = document.getElementById('admin-broadcast-msg')?.value.trim();
-  if(!msg){ alert('Please type a message first'); return; }
+  if(!msg){ _showToast('Please type a message first.'); return; }
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
 
@@ -8223,10 +8225,10 @@ function renderCustomerDetail(el){
   const initials=c.name.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
 
   el.innerHTML=`
-    <div class="back-btn" onclick="goMore('customers')">
+    <button class="back-btn" onclick="goMore('customers')">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       ${t('customers')}
-    </div>
+    </button>
 
     <!-- Profile header -->
     <div style="padding:16px;background:var(--color-accent);color:#fff">
@@ -8347,9 +8349,9 @@ function renderStaffBook(el){
   const monthLabel=staffViewDate.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
   el.innerHTML=backBtn()+`
     <div class="section-header" style="padding:10px 16px">
-      <button class="btn-icon" onclick="staffNav(-1)" style="background:var(--color-background-secondary);width:36px;height:36px">‹</button>
+      <button class="btn-icon" onclick="staffNav(-1)" style="background:var(--color-background-secondary)">‹</button>
       <span style="font-weight:600">${monthLabel}</span>
-      <button class="btn-icon" onclick="staffNav(1)" style="background:var(--color-background-secondary);width:36px;height:36px">›</button>
+      <button class="btn-icon" onclick="staffNav(1)" style="background:var(--color-background-secondary)">›</button>
     </div>
     <div class="inline-form">
       <div class="form-col">
@@ -8411,7 +8413,7 @@ function renderStaffDetail(el){
   }
   const histEntries=staffEntries.filter(e=>e.staffName===staff.name&&e.type!=='attendance').slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,20);
   el.innerHTML=`
-    <div class="back-btn" onclick="goMore('staffBook')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>${t('staffBook')}</div>
+    <button class="back-btn" onclick="goMore('staffBook')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>${t('staffBook')}</button>
     <div style="padding:14px 16px;background:var(--color-accent-light)">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
@@ -8422,9 +8424,9 @@ function renderStaffDetail(el){
       </div>
     </div>
     <div class="section-header" style="padding:10px 16px">
-      <button class="btn-icon" onclick="staffNav(-1)" style="background:var(--color-background-secondary);width:36px;height:36px">‹</button>
+      <button class="btn-icon" onclick="staffNav(-1)" style="background:var(--color-background-secondary)">‹</button>
       <span style="font-weight:600">${monthLabel}</span>
-      <button class="btn-icon" onclick="staffNav(1)" style="background:var(--color-background-secondary);width:36px;height:36px">›</button>
+      <button class="btn-icon" onclick="staffNav(1)" style="background:var(--color-background-secondary)">›</button>
     </div>
     <div style="padding:0 16px 12px"><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">${gridCells}</div></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px;background:var(--color-background-secondary);margin:0 16px 12px;border-radius:10px">
@@ -8942,7 +8944,7 @@ _Visit us again 🙏_
 }
 
 function _buildBillPDF(){
-  if(!window.jspdf||!window.jspdf.jsPDF){alert('PDF library still loading. Try again in a moment.');return null;}
+  if(!window.jspdf||!window.jspdf.jsPDF){_showToast('PDF library still loading. Try again.');return null;}
   if(billItems.length===0)return null;
   const cust=(document.getElementById('b-cust')?.value||'').trim();
   const shop=S.shopName||'Pasal Manager';
@@ -9039,7 +9041,7 @@ function _buildBillPDF(){
 // shopkeepers traditionally maintain in a "khata" notebook. The brother
 // can share this PDF directly with his suppliers to confirm balances.
 function _buildSupplierStatementPDF(supplierName){
-  if(!window.jspdf||!window.jspdf.jsPDF){alert('PDF library still loading. Try again in a moment.');return null;}
+  if(!window.jspdf||!window.jspdf.jsPDF){_showToast('PDF library still loading. Try again.');return null;}
   const entries=kharidiEntries
     .filter(e=>e.supplierName===supplierName)
     .sort((a,b)=>(a.ts||0)-(b.ts||0)); // oldest → newest for running balance
@@ -9618,7 +9620,7 @@ function sharePLWhatsApp(){
 }
 
 async function downloadPLPdf(){
-  if(!window.jspdf||!window.jspdf.jsPDF){alert('PDF library still loading. Try again in a moment.');return;}
+  if(!window.jspdf||!window.jspdf.jsPDF){_showToast('PDF library still loading. Try again.');return;}
   const {jsPDF}=window.jspdf;
   const period=_plPeriod;
   const months=_plBuildMonths(period);
@@ -9905,7 +9907,7 @@ async function downloadAuditReport(){
   await _lazyLoad(_XLSX_URL);
   const fromStr=document.getElementById('audit-from')?.value||todayStr().substring(0,7)+'-01';
   const toStr=document.getElementById('audit-to')?.value||todayStr();
-  if(fromStr>toStr){alert('From date must be before To date');return;}
+  if(fromStr>toStr){_showToast('From date must be before To date.');return;}
 
   const shop=S.shopName||'Pasal Manager';
   const wb=XLSX.utils.book_new();
@@ -11234,7 +11236,7 @@ function renderKharidiDetail(el){
     runningBalances[e.id] = running;
   }
 
-  el.innerHTML=`<div class="back-btn" onclick="goMore('kharidi')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Kharidi Book</div>
+  el.innerHTML=`<button class="back-btn" onclick="goMore('kharidi')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Kharidi Book</button>
     <div style="padding:14px 16px;background:${balance>0?'var(--color-danger-light)':'var(--color-success-light)'};border-bottom:1px solid var(--color-border-tertiary)">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <div style="font-size:16px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
@@ -11354,7 +11356,7 @@ function renderDealerDetail(el){
     runningBalances[e.id] = running;
   }
 
-  el.innerHTML=`<div class="back-btn" onclick="goMore('dealer')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Dealer Book</div>
+  el.innerHTML=`<button class="back-btn" onclick="goMore('dealer')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Dealer Book</button>
     <div style="padding:14px 16px;background:${balance>0?'var(--color-success-light)':'var(--color-danger-light)'};border-bottom:1px solid var(--color-border-tertiary)">
       <div style="font-size:16px;font-weight:800">${esc(name)}</div>
       <div style="display:flex;justify-content:space-between;margin-top:8px">
@@ -11518,10 +11520,10 @@ async function switchBranch(id){
   renderTab();
 }
 async function addBranch(){
-  if(branches.length>=3){alert(t('maxBranches'));return;}
+  if(branches.length>=3){_showToast(t('maxBranches'));return;}
   const name=(document.getElementById('new-branch-name')?.value||'').trim();
   const loc=(document.getElementById('new-branch-loc')?.value||'').trim();
-  if(!name){alert('Enter branch name');return;}
+  if(!name){_showToast('Enter branch name.');return;}
   const id='br_'+uid();
   const isFirst=branches.length===0;
   const row={id,user_id:currentUser.id,name,location:loc,is_default:isFirst,created_at:new Date().toISOString()};
@@ -11596,10 +11598,10 @@ async function createEmiPlan(){
   const inst=parseInt(document.getElementById('emi-inst')?.value||0);
   const startDate=document.getElementById('emi-start')?.value||todayStr();
   const note=(document.getElementById('emi-note')?.value||'').trim();
-  if(!custName){alert(t('emiCustomer')+' required');return;}
-  if(!total||total<=0){alert(t('emiTotal')+' required');return;}
-  if(!inst||inst<1||inst>60){alert('Installments must be 1–60');return;}
-  if(down>=total){alert('Down payment must be less than total');return;}
+  if(!custName){_showToast(t('emiCustomer')+' required.');return;}
+  if(!total||total<=0){_showToast(t('emiTotal')+' required.');return;}
+  if(!inst||inst<1||inst>60){_showToast('Installments must be 1–60.');return;}
+  if(down>=total){_showToast('Down payment must be less than total.');return;}
   const plan={id:uid(),customerName:custName,phone,totalAmt:total,downPayment:down,installments:inst,frequency:emiFreq,startDate,note,createdAt:new Date().toISOString()};
   emiPlans.unshift(plan);
   // Generate payment records
@@ -11722,7 +11724,7 @@ function renderEmiDetail(el){
   const isComplete=paidCount>=plan.installments;
   const pcts=Math.round((paidCount/plan.installments)*100);
   const instAmt=pmts[0]?.amt||Math.round((plan.totalAmt-plan.downPayment)/plan.installments);
-  el.innerHTML=`<div class="back-btn" onclick="goMore('emi')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>${t('back')}</div>
+  el.innerHTML=`<button class="back-btn" onclick="goMore('emi')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>${t('back')}</button>
     <!-- Header -->
     <div style="padding:16px;background:linear-gradient(135deg,#059669,#10B981);color:#fff">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -11837,9 +11839,9 @@ async function createLoan(){
   const tenure=parseInt(document.getElementById('ln-tenure')?.value||0);
   const startDate=document.getElementById('ln-start')?.value||todayStr();
   const note=(document.getElementById('ln-note')?.value||'').trim();
-  if(!lender){alert(t('loanLender')+' required');return;}
-  if(!loanAmt||loanAmt<=0){alert(t('loanAmt')+' required');return;}
-  if(!tenure||tenure<1){alert(t('loanTenure')+' required');return;}
+  if(!lender){_showToast(t('loanLender')+' required.');return;}
+  if(!loanAmt||loanAmt<=0){_showToast(t('loanAmt')+' required.');return;}
+  if(!tenure||tenure<1){_showToast(t('loanTenure')+' required.');return;}
   const emiAmt=calcLoanEmi(loanAmt,interestRate,tenure);
   const loan={id:uid(),lender,loanAmt,interestRate,tenure,emiAmt,startDate,note,createdAt:new Date().toISOString()};
   loans.unshift(loan);
@@ -11952,7 +11954,7 @@ function renderLoanDetail(el){
   const isComplete=paidCount>=loan.tenure&&outstanding<=0;
   const pct=Math.round((paidCount/loan.tenure)*100);
   const totalInterest=loan.emiAmt*loan.tenure-loan.loanAmt;
-  el.innerHTML=`<div class="back-btn" onclick="goMore('loan')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>${t('back')}</div>
+  el.innerHTML=`<button class="back-btn" onclick="goMore('loan')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>${t('back')}</button>
     <div style="padding:16px;background:linear-gradient(135deg,#DC2626,#EF4444);color:#fff">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
@@ -12103,7 +12105,7 @@ function _showIOSDictationGuide(){
   if(sessionStorage.getItem('iosDictationShown'))return;
   sessionStorage.setItem('iosDictationShown','1');
   setTimeout(()=>{
-    alert('🎤 iPhone Voice Tip:\n\n1. Tap any input field (Sell, Item name, Note)\n2. On the keyboard, tap the 🎤 microphone button (bottom right)\n3. Speak your sale\n4. Tap "Done"\n\nAll iPhone dictation works in this app — just use the keyboard mic!');
+    _showToast('🎤 iPhone tip: tap the mic on your keyboard to dictate.');
   },400);
 }
 
@@ -12180,7 +12182,7 @@ function _showVoicePhase(phase){
 
 function openVoice(){
   if(!SpeechRec){
-    alert('Voice needs Chrome browser. Please open in Chrome.');
+    _showToast('Voice needs Chrome browser. Please open in Chrome.');
     return;
   }
   voiceParsed=null; _voiceAmbigAmt=null; _voiceLastTranscript='';
