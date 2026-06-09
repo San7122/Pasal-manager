@@ -2525,13 +2525,15 @@ function _trackLocal(eventName, data){
 // Non-blocking, silent failures, uses existing Supabase client
 const ANALYTICS = {
   track(eventType, eventData = {}) {
-    // Fire-and-forget: do not await, do not block user action
-    sb.from('analytics_events').insert({
-      user_id: currentUser?.id || 'guest',
-      event_type: eventType,
-      event_data: eventData,
-      device_type: window.innerWidth < 768 ? 'mobile' : 'desktop'
-    }).catch(() => {}); // Silent failure
+    try {
+      const q = sb.from('analytics_events').insert({
+        user_id: currentUser?.id || 'guest',
+        event_type: eventType,
+        event_data: eventData,
+        device_type: window.innerWidth < 768 ? 'mobile' : 'desktop'
+      });
+      if (q && typeof q.then === 'function') q.then(null, () => {});
+    } catch(_) {}
   }
 };
 
