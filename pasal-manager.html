@@ -1792,9 +1792,14 @@ body {
 .ksd-option{display:flex;align-items:center;gap:10px;cursor:pointer;}
 .ksd-option span{background:#fff;font-size:13px;font-weight:600;color:#0F172A;padding:6px 14px;border-radius:99px;box-shadow:0 2px 10px rgba(0,0,0,0.12);white-space:nowrap;}
 .ksd-icon{width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);flex-shrink:0;}
-/* Bottom nav pill active */
-.nav-btn{border-radius:12px;transition:background 0.18s,color 0.18s;}
-.nav-btn.active{background:#EDE9FE;color:#7C3AED !important;}
+/* Bottom nav — squircle active + center FAB */
+.nav-btn{border-radius:12px;transition:color 0.18s;}
+.nav-icon-wrap{display:flex;align-items:center;justify-content:center;width:44px;height:30px;border-radius:10px;transition:background 0.18s;}
+.nav-btn.active{color:#7C3AED !important;font-weight:700;}
+.nav-btn.active .nav-icon-wrap{background:#EDE9FE;}
+.nav-center-fab-wrap{flex:1;display:flex;align-items:center;justify-content:center;}
+.nav-center-fab{width:54px;height:54px;border-radius:50%;background:#7C3AED;border:3px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:-20px;box-shadow:0 4px 18px rgba(124,58,237,0.4);transition:transform 0.15s;}
+.nav-center-fab:active{transform:scale(0.92);}
 </style>
 </head>
 <body>
@@ -2146,26 +2151,24 @@ body {
 
     <div class="bottom-nav">
       <button class="nav-btn active" onclick="ANALYTICS.track('bottomNavClick',{tab:'Home'});switchTab('today')" id="nav-today">
-        <i data-lucide="home" style="width:22px;height:22px"></i>
+        <span class="nav-icon-wrap"><i class="fa-solid fa-house" style="font-size:20px"></i></span>
         <span>Home</span>
       </button>
       <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'Sales'});switchTab('katha')" id="nav-katha">
-        <i data-lucide="list" style="width:22px;height:22px"></i>
-        <span>Sales</span>
+        <span class="nav-icon-wrap"><i class="fa-solid fa-list-ul" style="font-size:20px"></i></span>
+        <span>History</span>
       </button>
-      <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'Udhaar'});switchTab('udhaar')" id="nav-udhaar">
-        <div style="position:relative;display:inline-flex">
-          <i data-lucide="users" style="width:22px;height:22px"></i>
-          <span id="udhaar-badge" style="display:none;position:absolute;top:-4px;right:-6px;background:#E11D48;color:#fff;border-radius:999px;font-size:9px;font-weight:800;min-width:14px;height:14px;line-height:14px;text-align:center;padding:0 3px"></span>
-        </div>
-        <span>Udhaar</span>
-      </button>
+      <div class="nav-center-fab-wrap">
+        <button class="nav-center-fab" onclick="openVoice()" title="Voice command">
+          <i class="fa-solid fa-microphone" style="font-size:22px;color:#fff"></i>
+        </button>
+      </div>
       <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'Stock'});switchTab('stock')" id="nav-stock">
-        <i data-lucide="package" style="width:22px;height:22px"></i>
+        <span class="nav-icon-wrap"><i class="fa-solid fa-box" style="font-size:20px"></i></span>
         <span>Stock</span>
       </button>
       <button class="nav-btn" onclick="ANALYTICS.track('bottomNavClick',{tab:'More'});moreSubPage='menu';switchTab('more')" id="nav-more">
-        <i data-lucide="layout-grid" style="width:22px;height:22px"></i>
+        <span class="nav-icon-wrap"><i class="fa-solid fa-grip" style="font-size:20px"></i></span>
         <span>More</span>
       </button>
     </div>
