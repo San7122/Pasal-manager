@@ -2258,12 +2258,12 @@ body {
 <!-- ===== KATHA SPEED-DIAL FAB ===== -->
 <div id="katha-speed-dial" style="display:none;position:fixed;bottom:80px;right:16px;z-index:600;flex-direction:column;align-items:flex-end;gap:12px">
   <div id="katha-speed-options" style="display:none;flex-direction:column;gap:10px;align-items:flex-end">
-    <div class="ksd-option" onclick="_ksdClose();switchTab('today')"><span>Add Sale</span><div class="ksd-icon"><i data-lucide="shopping-cart" style="width:18px;height:18px;color:#7C3AED"></i></div></div>
-    <div class="ksd-option" onclick="_ksdClose();goMore('expense');switchTab('more')"><span>Add Expense</span><div class="ksd-icon"><i data-lucide="receipt" style="width:18px;height:18px;color:#EF4444"></i></div></div>
-    <div class="ksd-option" onclick="_ksdClose();openVoice()"><span>Voice Entry</span><div class="ksd-icon"><i data-lucide="mic" style="width:18px;height:18px;color:#059669"></i></div></div>
+    <div class="ksd-option" onclick="_ksdClose();switchTab('today')"><span>Add Sale</span><div class="ksd-icon"><i class="fa-solid fa-cart-shopping" style="font-size:16px;color:#7C3AED"></i></div></div>
+    <div class="ksd-option" onclick="_ksdClose();goMore('expense');switchTab('more')"><span>Add Expense</span><div class="ksd-icon"><i class="fa-solid fa-receipt" style="font-size:16px;color:#EF4444"></i></div></div>
+    <div class="ksd-option" onclick="_ksdClose();openVoice()"><span>Voice Entry</span><div class="ksd-icon"><i class="fa-solid fa-microphone" style="font-size:16px;color:#059669"></i></div></div>
   </div>
   <button class="ksd-main-btn" id="ksd-main-btn" onclick="_ksdToggle()">
-    <i data-lucide="plus" style="width:24px;height:24px" id="ksd-plus-icon"></i>
+    <i class="fa-solid fa-plus" style="font-size:20px" id="ksd-plus-icon"></i>
   </button>
 </div>
 
@@ -5649,17 +5649,17 @@ function renderKatha(){
     </div>
     <div class="k-kpi-row">
       <div class="k-kpi">
-        <div class="k-kpi-icon-wrap" style="background:#D1FAE5"><i data-lucide="trending-up" style="width:16px;height:16px;color:#059669"></i></div>
+        <div class="k-kpi-icon-wrap" style="background:#D1FAE5"><i class="fa-solid fa-arrow-trend-up" style="font-size:15px;color:#059669"></i></div>
         <div class="k-kpi-lbl">Net Sales</div>
         <div class="k-kpi-val" style="color:#059669">${fmt(netSales)}</div>
       </div>
       <div class="k-kpi">
-        <div class="k-kpi-icon-wrap" style="background:#FEE2E2"><i data-lucide="trending-down" style="width:16px;height:16px;color:#EF4444"></i></div>
+        <div class="k-kpi-icon-wrap" style="background:#FEE2E2"><i class="fa-solid fa-arrow-trend-down" style="font-size:15px;color:#EF4444"></i></div>
         <div class="k-kpi-lbl">Expenses</div>
         <div class="k-kpi-val" style="color:#EF4444">${fmt(tExp)}</div>
       </div>
       <div class="k-kpi">
-        <div class="k-kpi-icon-wrap" style="background:#EDE9FE"><i data-lucide="wallet" style="width:16px;height:16px;color:#7C3AED"></i></div>
+        <div class="k-kpi-icon-wrap" style="background:#EDE9FE"><i class="fa-solid fa-wallet" style="font-size:15px;color:#7C3AED"></i></div>
         <div class="k-kpi-lbl">Profit</div>
         <div class="k-kpi-val" style="color:${trueProfit>=0?'#7C3AED':'#EF4444'}">${fmt(trueProfit)}</div>
       </div>
@@ -5667,9 +5667,9 @@ function renderKatha(){
     ${tReturns>0?`<div class="k-returns-banner"><span style="font-size:13px;color:#EF4444;font-weight:600">↩ Returns</span><span style="font-weight:800;color:#EF4444">−${fmt(tReturns)}</span></div>`:''}
     ${hasCost?`<div class="k-cost-banner"><span style="font-size:13px;color:#6D28D9;font-weight:600">Cost / Investment</span><span style="font-weight:800;color:#7C3AED">${fmt(tCost)}</span></div>`:''}
     <div class="k-date-nav">
-      <button class="k-date-btn" onclick="kathaNav(-1)"><i data-lucide="chevron-left" style="width:16px;height:16px"></i></button>
-      <div class="k-date-label"><i data-lucide="calendar" style="width:15px;height:15px;color:#94A3B8"></i> ${label}</div>
-      <button class="k-date-btn" onclick="kathaNav(1)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></button>
+      <button class="k-date-btn" onclick="kathaNav(-1)"><i class="fa-solid fa-chevron-left" style="font-size:14px"></i></button>
+      <div class="k-date-label"><i class="fa-regular fa-calendar" style="font-size:14px;color:#94A3B8"></i> ${label}</div>
+      <button class="k-date-btn" onclick="kathaNav(1)"><i class="fa-solid fa-chevron-right" style="font-size:14px"></i></button>
     </div>
     ${(netSales>0||tExp>0)?`<div class="k-perf-card"><div class="k-perf-title">Performance</div><div class="k-perf-row"><div class="k-perf-lbl">Sales</div><div class="k-perf-bar-bg"><div class="k-perf-bar" style="width:${_salesBarW}%;background:linear-gradient(90deg,#10B981,#059669)"></div></div><div class="k-perf-amt" style="color:#059669">${fmt(netSales)}</div></div><div class="k-perf-row" style="margin-bottom:0"><div class="k-perf-lbl">Profit</div><div class="k-perf-bar-bg"><div class="k-perf-bar" style="width:${_profitBarW}%;background:linear-gradient(90deg,#7C3AED,#6D28D9)"></div></div><div class="k-perf-amt" style="color:${trueProfit>=0?'#7C3AED':'#EF4444'}">${fmt(trueProfit)}</div></div></div>`:''}
     <div class="k-tx-header">
@@ -5678,11 +5678,11 @@ function renderKatha(){
     </div>
     ${combined.length===0?_emptyState('book-open',t('noEntries'),'No entries for this period','',''):
       combined.map(i=>{
-        if(i._type==='return') return`<div class="k-tx-card"><div class="k-tx-icon" style="background:#FEE2E2"><i data-lucide="undo-2" style="width:18px;height:18px;color:#EF4444"></i></div><div class="k-tx-info"><div class="k-tx-name">${i.refName?esc(i.refName):i.type==='customer'?t('custReturn'):t('suppReturn')}</div><div class="k-tx-meta">${fmtTime(i.ts)}${i.reason?' · '+i.reason:''}</div></div><div class="k-tx-right"><div class="k-tx-amt" style="color:#EF4444">−${fmt(i.amt)}</div></div></div>`;
+        if(i._type==='return') return`<div class="k-tx-card"><div class="k-tx-icon" style="background:#FEE2E2"><i class="fa-solid fa-rotate-left" style="font-size:16px;color:#EF4444"></i></div><div class="k-tx-info"><div class="k-tx-name">${i.refName?esc(i.refName):i.type==='customer'?t('custReturn'):t('suppReturn')}</div><div class="k-tx-meta">${fmtTime(i.ts)}${i.reason?' · '+i.reason:''}</div></div><div class="k-tx-right"><div class="k-tx-amt" style="color:#EF4444">−${fmt(i.amt)}</div></div></div>`;
         const sProfit=(i._type==='sale'&&i.cost>0)?i.amt-i.cost:null;
         const isExp=i._type==='exp';
         const txName=esc(isExp?(i.category||i.note||'Expense'):(i.note||'Sale'));
-        return`<div class="k-tx-card"><div class="k-tx-icon" style="background:${isExp?'#FEE2E2':'#EDE9FE'}"><i data-lucide="${isExp?'receipt':'shopping-bag'}" style="width:18px;height:18px;color:${isExp?'#EF4444':'#7C3AED'}"></i></div><div class="k-tx-info"><div class="k-tx-name">${txName}</div><div class="k-tx-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.category&&i.note?' · '+i.category:''}</div>${sProfit!==null?`<div class="k-tx-profit">Profit ${fmt(sProfit)}</div>`:''}</div><div class="k-tx-right"><div class="k-tx-amt" style="color:${isExp?'#EF4444':'#10B981'}">${isExp?'−':'+'}${fmt(i.amt)}</div></div></div>`;
+        return`<div class="k-tx-card"><div class="k-tx-icon" style="background:${isExp?'#FEE2E2':'#EDE9FE'}"><i class="${isExp?'fa-solid fa-receipt':'fa-solid fa-bag-shopping'}" style="font-size:16px;color:${isExp?'#EF4444':'#7C3AED'}"></i></div><div class="k-tx-info"><div class="k-tx-name">${txName}</div><div class="k-tx-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.category&&i.note?' · '+i.category:''}</div>${sProfit!==null?`<div class="k-tx-profit">Profit ${fmt(sProfit)}</div>`:''}</div><div class="k-tx-right"><div class="k-tx-amt" style="color:${isExp?'#EF4444':'#10B981'}">${isExp?'−':'+'}${fmt(i.amt)}</div></div></div>`;
       }).join('')}
     <div style="height:24px"></div>
   `;
