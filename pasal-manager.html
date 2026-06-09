@@ -3,7 +3,7 @@
 <head>
 <!-- Cache Busting: Force browsers to download fresh version -->
 <!-- Version: 3.0 (Fintech UI Redesign) | Updated: 2026-06-08 -->
-<meta name="cache-version" content="v5.4-20260609-usage-analytics">
+<meta name="cache-version" content="v5.5-20260609-analytics-phase">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
@@ -7880,6 +7880,14 @@ async function renderAdminDashboard(el){
           </div>
           <div id="admin-recent-errors" style="font-size:13px;max-height:300px;overflow-y:auto"></div>
         </div>
+        <!-- Retention & Funnel -->
+        <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div style="width:26px;height:26px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center">${licon('repeat',14,'color:#2563eb;')}</div>
+            <div style="font-size:13px;font-weight:700">Retention &amp; Funnel <span style="color:var(--color-text-secondary);font-weight:500">&middot; cohort analysis</span></div>
+          </div>
+          <div id="admin-retention" style="font-size:13px">Loading…</div>
+        </div>
         <!-- Activity feed -->
         <div style="background:var(--color-card);border:1px solid var(--color-border-tertiary);border-radius:14px;padding:16px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -8179,6 +8187,58 @@ async function _renderAdminMetrics(){
         </div>`;
       }).join('')
     : '<div style="color:var(--color-text-secondary);padding:8px 0">No events yet</div>';
+
+  // ===== Retention, Funnel, Feature Discovery, Consistency =====
+  const ev30uByUser={};
+  ev30u.forEach(e=>{if(e.user_id) ev30uByUser[e.user_id]=true;});
+  const t60=new Date(now-60*day);
+  const d7cohort=allUsers.filter(u=>{const d=new Date(u.signed_up_at);return d>=t30&&d<=t7;});
+  const d7ret=d7cohort.filter(u=>ev30uByUser[u.user_id]).length;
+  const d7pct=d7cohort.length?Math.round(d7ret/d7cohort.length*100):0;
+  const d30cohort=allUsers.filter(u=>{const d=new Date(u.signed_up_at);return d>=t60&&d<t30;});
+  const d30ret=d30cohort.filter(u=>ev30uByUser[u.user_id]).length;
+  const d30pct=d30cohort.length?Math.round(d30ret/d30cohort.length*100):0;
+
+  const [payFunnelRes,featureDiscRes]=await Promise.all([
+    sb.from('analytics_events').select('event_name,user_id').in('event_name',['payment_page_viewed','payment_started','payment_completed','payment_abandoned']).gte('ts',_iso(t30)).limit(2000),
+    sb.from('analytics_events').select('event_data').eq('event_name','feature_first_use').gte('ts',_iso(t30)).limit(5000),
+  ]);
+  const payFunnel=payFunnelRes.data||[];
+  const featureDisc=featureDiscRes.data||[];
+  const nViewed=new Set(payFunnel.filter(e=>e.event_name==='payment_page_viewed'&&e.user_id).map(e=>e.user_id)).size;
+  const nStarted=new Set(payFunnel.filter(e=>e.event_name==='payment_started'&&e.user_id).map(e=>e.user_id)).size;
+  const nCompleted=new Set(payFunnel.filter(e=>e.event_name==='payment_completed'&&e.user_id).map(e=>e.user_id)).size;
+  const nAbandoned=new Set(payFunnel.filter(e=>e.event_name==='payment_abandoned'&&e.user_id).map(e=>e.user_id)).size;
+  const featureCounts={};
+  featureDisc.forEach(e=>{const f=(e.event_data&&e.event_data.feature)||'?';featureCounts[f]=(featureCounts[f]||0)+1;});
+  const topFeatures=Object.entries(featureCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const consistentUsers=new Set(ev7.filter(e=>e.event_name==='sale_added'&&e.user_id).map(e=>e.user_id)).size;
+  const salesLast7d=ev7.filter(e=>e.event_name==='sale_added').length;
+
+  const _fbar=(v,max)=>'<div style="flex:1;background:var(--color-border-tertiary);border-radius:4px;height:7px"><div style="width:'+(max?Math.round(v/max*100):0)+'%;min-width:'+(v?3:0)+'px;height:7px;background:currentColor;border-radius:4px"></div></div>';
+  document.getElementById('admin-retention').innerHTML=
+    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px">'+
+    _adminKpiCard('D7 Retention',d7pct+'%',d7ret+' / '+d7cohort.length+' users','#2563eb','repeat')+
+    _adminKpiCard('D30 Retention',d30pct+'%',d30ret+' / '+d30cohort.length+' users','#7c3aed','refresh-cw')+
+    '</div>'+
+    '<div style="font-size:10px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Payment Funnel · last 30d · unique users</div>'+
+    [['Viewed page',nViewed,'#94a3b8'],['Started',nStarted,'#f59e0b'],['Completed',nCompleted,'#10b981'],['Abandoned',nAbandoned,'#dc2626']].map(([label,n,color])=>
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;color:'+color+'">'+
+      '<div style="width:90px;font-size:12px;font-weight:600;color:var(--color-text-primary)">'+label+'</div>'+
+      _fbar(n,Math.max(nViewed,1))+
+      '<div style="width:24px;text-align:right;font-size:12px;font-weight:700">'+n+'</div>'+
+      '</div>').join('')+
+    (topFeatures.length?
+      '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-tertiary)">'+
+      '<div style="font-size:10px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Feature Discovery · first use · last 30d</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:5px">'+
+      topFeatures.map(([f,n])=>'<span style="padding:3px 10px;background:var(--pm-purple-light);border-radius:99px;font-size:12px;font-weight:600;color:var(--pm-purple)">'+esc(f)+' · '+n+'</span>').join('')+
+      '</div></div>':'')+
+    '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-tertiary)">'+
+    '<div style="font-size:10px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Data Entry Consistency · last 7d</div>'+
+    '<div style="font-size:13px;color:var(--color-text-primary)">'+salesLast7d+' sales recorded · <strong>'+consistentUsers+'</strong> shops actively recording sales</div>'+
+    '</div>';
+  _renderIcons();
 }
 
 // =============== CUSTOMERS ===============
