@@ -3,7 +3,7 @@
 <head>
 <!-- Cache Busting: Force browsers to download fresh version -->
 <!-- Version: 3.0 (Fintech UI Redesign) | Updated: 2026-06-08 -->
-<meta name="cache-version" content="v5.0-20260608-ui-redesign">
+<meta name="cache-version" content="v5.1-20260609-ux-phase1">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
@@ -231,7 +231,7 @@ body {
 .topbar-brand { display: flex; align-items: center; gap: 10px; }
 .topbar-title { font-size: 16px; font-weight: 700; color: var(--color-text-primary); line-height: 1.2; }
 .topbar-sub { font-size: 12px; color: var(--color-text-secondary); line-height: 1.2; }
-.topbar-date { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; }
+.topbar-date { font-size: 12px; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
 .topbar-wallet-chip {
   font-size: 11px; background: #f5f3ff; color: #059669;
   border: 1px solid #c4b5fd; border-radius: 20px;
@@ -245,6 +245,7 @@ body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   background: #FFFFFF;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ===== BOTTOM NAV ===== */
@@ -254,7 +255,8 @@ body {
   background: #fff;
   flex-shrink: 0;
   min-height: var(--bottom-nav-height);
-  height: var(--bottom-nav-height);
+  height: auto;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .nav-btn {
   flex: 1;
@@ -581,7 +583,7 @@ body {
   padding: 6px 12px;
   font-size: 13px; font-weight: 700;
   border: none; border-radius: 4px;
-  cursor: pointer; min-height: 36px;
+  cursor: pointer; min-height: 44px;
 }
 .btn-confirm.yes { background: var(--color-danger); color: #FFF; }
 .btn-confirm.no { background: var(--color-background-tertiary); color: var(--color-text-primary); }
@@ -698,7 +700,7 @@ body {
 }
 .udhaar-actions { display: flex; gap: 6px; }
 .udhaar-action-btn {
-  width: 40px; height: 40px;
+  width: 44px; height: 44px;
   border: 1px solid var(--color-border-secondary);
   background: var(--color-background-primary);
   border-radius: 6px; cursor: pointer;
@@ -1214,7 +1216,7 @@ body {
 
 /* ===== VOICE / MIC ===== */
 .mic-fab {
-  position: fixed; bottom: 144px; right: 16px;
+  position: fixed; bottom: calc(144px + env(safe-area-inset-bottom, 0px)); right: 16px;
   width: 48px; height: 48px; border-radius: 50%;
   background: var(--color-accent); color: #fff;
   border: none; cursor: pointer; z-index: 200;
@@ -1519,7 +1521,7 @@ body {
 .festival-banner-sub{font-size:13px;color:#5d4037;line-height:1.4;}
 .festival-days-badge{display:inline-block;background:#f9a825;color:#fff;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:700;margin-left:6px;}
 /* ===== PHOTO KHATA ===== */
-.fab-photo{position:fixed;bottom:82px;right:16px;width:48px;height:48px;border-radius:50%;background:#fff;border:1.5px solid var(--color-border-tertiary);cursor:pointer;z-index:900;box-shadow:0 4px 14px rgba(0,0,0,0.10);display:flex;align-items:center;justify-content:center;color:var(--pm-purple);transition:transform .15s,box-shadow .15s,background .15s;}
+.fab-photo{position:fixed;bottom:calc(82px + env(safe-area-inset-bottom, 0px));right:16px;width:48px;height:48px;border-radius:50%;background:#fff;border:1.5px solid var(--color-border-tertiary);cursor:pointer;z-index:900;box-shadow:0 4px 14px rgba(0,0,0,0.10);display:flex;align-items:center;justify-content:center;color:var(--pm-purple);transition:transform .15s,box-shadow .15s,background .15s;}
 .fab-photo:hover{background:var(--pm-purple);color:#fff;border-color:var(--pm-purple);box-shadow:0 6px 18px rgba(124,58,237,0.35);}
 .fab-photo:active{transform:scale(0.94);}
 @media(min-width:768px){.fab-photo{bottom:24px;} .mic-fab{bottom:84px;}}
@@ -4618,6 +4620,8 @@ function switchTab(tab){
   document.getElementById('nav-'+tab).classList.add('active');
   _syncSidebarActive(tab);
   document.getElementById('scroll-area').scrollTop=0;
+  const _fp=document.getElementById('fab-photo');
+  if(_fp) _fp.style.display=(tab==='today'||tab==='stock')?'flex':'none';
   confirmId=null;
   const tabNames={today:t('today'),katha:t('katha'),udhaar:t('udhaar'),stock:t('stock'),more:t('more')};
   document.title=(tabNames[tab]||tab)+' — '+(S.shopName||'Pasal Manager');
@@ -4741,13 +4745,13 @@ function renderToday(){
       </button>
     </div>
     <div class="home-quick-actions">
-      <button class="home-quick-btn" onclick="openUpiModal(0)">
+      <button class="home-quick-btn" onclick="${_payConfig().hasId ? 'openUpiModal(0)' : "goMore('settings');switchTab('more')"}">
         <div class="home-quick-icon" style="background:#ede9fe">
           <i data-lucide="qr-code" style="width:18px;height:18px;color:#7c3aed"></i>
         </div>
         <div>
           <div class="home-quick-label">Collect Payment</div>
-          <div class="home-quick-sub">QR / UPI</div>
+          <div class="home-quick-sub">${_payConfig().hasId ? 'QR / UPI' : 'Setup required'}</div>
         </div>
       </button>
       <button class="home-quick-btn" onclick="goMore('customers');switchTab('more')">
@@ -7343,6 +7347,7 @@ function renderMoreMenu(el){
     </div>`:''}
     <div style="padding-bottom:24px">
       ${groups.map(renderGroup).join('')}
+      ${!isSearching ? `
       <div class="more-health-card" onclick="goMore('score')">
         <div style="width:42px;height:42px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
           ${licon('trending-up',22,'color:#fff')}
@@ -7361,7 +7366,7 @@ function renderMoreMenu(el){
           <span style="font-size:12px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent">VaraAI</span>
           <span style="font-size:10px;color:#7c6fba;font-style:italic">Divine Intelligence</span>
         </a>
-      </div>
+      </div>` : ''}
     </div>`;
   _renderIcons();
 }
