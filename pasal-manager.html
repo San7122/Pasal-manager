@@ -3,7 +3,7 @@
 <head>
 <!-- Cache Busting: Force browsers to download fresh version -->
 <!-- Version: 3.0 (Fintech UI Redesign) | Updated: 2026-06-08 -->
-<meta name="cache-version" content="v5.6-20260609-onboarding-checklist">
+<meta name="cache-version" content="v5.7-20260609-profit-preview">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
@@ -4884,10 +4884,11 @@ function renderToday(){
         </div>
         <datalist id="item-list-today">${stock.filter(it=>it.qty>0).map(it=>`<option value="${esc(it.name)}">${it.size?it.size+' · ':''}${fmt(it.sell)} · stock: ${it.qty}</option>`).join('')}</datalist>
         <div style="display:flex;gap:6px">
-          <input class="input-big" id="s-qty" type="text" inputmode="numeric" placeholder="Qty" value="1" style="max-width:64px;text-align:center" oninput="_recalcSaleTotals()">
-          <input class="input-big" id="s-amt" type="text" inputmode="numeric" placeholder="Sell ${cur()}" style="flex:1" onkeydown="if(event.key==='Enter')addSale()">
-          <input class="input-big" id="s-cost" type="text" inputmode="numeric" placeholder="Cost ${cur()}" style="flex:1;font-size:16px;color:var(--color-text-secondary)">
+          <input class="input-big" id="s-qty" type="text" inputmode="numeric" placeholder="Qty" value="1" style="max-width:64px;text-align:center" oninput="_recalcSaleTotals();_updateProfitPreview()">
+          <input class="input-big" id="s-amt" type="text" inputmode="numeric" placeholder="Sell ${cur()}" style="flex:1" onkeydown="if(event.key==='Enter')addSale()" oninput="_updateProfitPreview()">
+          <input class="input-big" id="s-cost" type="text" inputmode="numeric" placeholder="Cost ${cur()}" style="flex:1;font-size:16px;color:var(--color-text-secondary)" oninput="_updateProfitPreview()">
         </div>
+        <div id="profit-preview" style="display:none"></div>
         <div style="position:relative">
           <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;display:flex;align-items:center;color:#94A3B8">
             <i data-lucide="user-round" style="width:15px;height:15px"></i>
@@ -4955,6 +4956,7 @@ function _autofillFromStock(itemName){
   // Only autofill if fields are empty (don't override user typing)
   if(sellEl&&(!sellEl.value||sellEl.value==='0')&&match.sell>0) sellEl.value=match.sell*qty;
   if(costEl&&(!costEl.value||costEl.value==='0')&&match.buy>0) costEl.value=match.buy*qty;
+  _updateProfitPreview();
 }
 
 // Recalculate sell/cost totals when qty changes (only for stock-matched items)
@@ -4965,6 +4967,38 @@ function _recalcSaleTotals(){
   const costEl=document.getElementById('s-cost');
   if(sellEl&&_saleStockMatch.sell>0) sellEl.value=_saleStockMatch.sell*qty;
   if(costEl&&_saleStockMatch.buy>0) costEl.value=_saleStockMatch.buy*qty;
+  _updateProfitPreview();
+}
+
+// ===== PROFIT PREVIEW =====
+let _ppSeen=false;
+function _updateProfitPreview(){
+  const el=document.getElementById('profit-preview');
+  if(!el) return;
+  const sell=parseFloat(document.getElementById('s-amt')?.value)||0;
+  const cost=parseFloat(document.getElementById('s-cost')?.value)||0;
+  const qty=Math.max(1,parseInt(document.getElementById('s-qty')?.value)||1);
+  if(!sell||!cost){el.style.display='none';return;}
+  const profit=(sell-cost)*qty;
+  const totalSell=sell*qty;
+  const pct=totalSell>0?((profit/totalSell)*100).toFixed(1):'0.0';
+  const pos=profit>=0;
+  const col=pos?'#16a34a':'#dc2626';
+  const bg=pos?'#f0fdf4':'#fef2f2';
+  const bdr=pos?'#bbf7d0':'#fecaca';
+  if(!_ppSeen){_ppSeen=true;trackEvent('profit_preview_seen',{});}
+  el.style.display='block';
+  el.innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:'+bg+';border:1px solid '+bdr+';border-radius:10px;font-size:13px;margin-top:4px">'
+    +'<div style="color:'+col+';font-weight:600;display:flex;align-items:center;gap:5px">'
+      +'<span>'+(pos?'▲':'▼')+'</span>'
+      +'<span>'+(pos?'Profit':'Loss')+(qty>1?' <span style="font-size:11px;opacity:0.7">×'+qty+'</span>':'')+'</span>'
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<span style="font-weight:800;color:'+col+';font-size:14px">'+(pos?'':'-')+fmt(Math.abs(profit))+'</span>'
+      +'<span style="background:'+col+';color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px">'+(pos?'+':'')+pct+'%</span>'
+    +'</div>'
+    +'</div>';
 }
 
 async function addSale(){
@@ -4998,6 +5032,8 @@ async function addSale(){
     _rawSales.unshift(sale);
     await dbAdd('pm_sales',{id:sale.id,user_id:currentUser?.id,date:sale.date,ts:sale.ts,amt:sale.amt,cost:sale.cost,note:sale.note,pay_mode:sale.payMode,country:sale.country,customer_id:customerId});
     trackEvent('sale_added',{amt,payMode:selectedPay,qty,hasCost:cost>0});
+    if(cost>0) trackEvent('profit_preview_sale_completed',{profit:(amt-cost)*qty,qty,profitPct:amt>0?Math.round((amt-cost)/amt*100):0});
+    if(sales.length===1) trackEvent('onboarding_step',{step:'first_sale'});
     renderToday();
   }finally{if(btn) btn.disabled=false;}
 }
@@ -5415,6 +5451,7 @@ async function addUdhaar(){
     udhaars.push(u);
     await dbAdd('pm_udhaar',{id:u.id,user_id:currentUser?.id,name:u.name,phone:u.phone,amt:u.amt,date:u.date,ts:u.ts,paid:u.paid,due_date:dueDate,country:u.country});
     trackEvent('udhaar_added',{amt,hasPhone:!!phone,hasDueDate:!!dueDate});
+    if(udhaars.length===1) trackEvent('onboarding_step',{step:'first_udhaar'});
     _updateSupplierBadge();
     renderUdhaar();
     if(!isGuestMode && currentUser) showSahiPrompt(u.id, name);
@@ -5444,6 +5481,7 @@ function sendWA(name,phone,amt,dueDate){
     if(isOverdue) msg=`Hello ${name} 🙏\nYour payment of *${fmt(amt)}* was due on ${fmtDate(dueDate)} and is now overdue. Please clear it as soon as possible.\n— ${shop}`;
     else msg=`Hello ${name} 🙏\nThis is a reminder that *${fmt(amt)}* is pending from you${duePart}. Please pay on time.\n— ${shop}`;
   }
+  trackEvent('whatsapp_send',{type:'udhaar_reminder'});
   window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 function sendBulkReminders(){
@@ -5455,6 +5493,7 @@ function sendBulkReminders(){
   if(!overdue.length){_showToast('No overdue customers with phone numbers found.');return;}
   const list=overdue.map(u=>`• ${u.name} — ${fmt(u.amt)}`).join('\n');
   if(!confirm(`Send WhatsApp reminders to ${overdue.length} customer${overdue.length>1?'s':''}?\n\n${list}\n\nEach will open in a new tab. Allow popups if prompted.`)) return;
+  trackEvent('whatsapp_send',{type:'bulk_reminder',count:overdue.length});
   overdue.forEach((u,i)=>{
     setTimeout(()=>sendWA(u.name,u.phone,u.amt,u.dueDate||''),i*1500);
   });
@@ -6295,6 +6334,7 @@ async function addStock(){
     stock.push(item);
     await dbAdd('pm_stock',{id:item.id,user_id:currentUser?.id,name:item.name,size:item.size,qty:item.qty,buy:item.buy,sell:item.sell,country:item.country,barcode});
     trackEvent('stock_added',{qty,buy,sell,hasBarcode:!!barcode});
+    if(stock.length===1) trackEvent('onboarding_step',{step:'first_stock'});
     cacheWrite();renderStock();
     _showToast('Item added · barcode generated');
   }finally{if(btn) btn.disabled=false;}
@@ -6585,7 +6625,7 @@ function renderMore(){
   (pages[moreSubPage]||renderMoreMenu)(el);
   _renderIcons();
 }
-function goMore(page){if(moreSubPage==='dashboard') destroyCharts();if(moreSubPage==='admin') _adminDestroyCharts();if(moreSubPage==='pl') _destroyPLCharts();if(page==='cashbook'&&moreSubPage!=='cashbook') cashbookViewDate=new Date();if(page==='customers'){custSearch='';custTab='all';}if(page==='staffBook'&&moreSubPage!=='staffBook'&&moreSubPage!=='staffDetail') staffViewDate=new Date();if(page==='menu'){currentEmiPlanId='';currentLoanId='';_scoreCache=null;}if(page==='pl'&&moreSubPage!=='pl'){_plExpandedMonth=null;}moreSubPage=page;document.getElementById('scroll-area').scrollTop=0;renderMore();}
+function goMore(page){try{const _fs=new Set(JSON.parse(localStorage.getItem('pm_feature_seen')||'[]'));if(!_fs.has(page)){_fs.add(page);localStorage.setItem('pm_feature_seen',JSON.stringify([..._fs]));trackEvent('feature_first_use',{feature:page});}}catch(e){}if(moreSubPage==='dashboard') destroyCharts();if(moreSubPage==='admin') _adminDestroyCharts();if(moreSubPage==='pl') _destroyPLCharts();if(page==='cashbook'&&moreSubPage!=='cashbook') cashbookViewDate=new Date();if(page==='customers'){custSearch='';custTab='all';}if(page==='staffBook'&&moreSubPage!=='staffBook'&&moreSubPage!=='staffDetail') staffViewDate=new Date();if(page==='menu'){currentEmiPlanId='';currentLoanId='';_scoreCache=null;}if(page==='pl'&&moreSubPage!=='pl'){_plExpandedMonth=null;}moreSubPage=page;document.getElementById('scroll-area').scrollTop=0;renderMore();}
 function backBtn(){return `<button class="back-btn" onclick="goMore('menu')">${licon('chevron-left',16)} ${t('back')}</button>`;}
 
 // =============== DASHBOARD ===============
@@ -7028,6 +7068,7 @@ function toggleAdvanced(){
 // ═══════════════════════════════════════════════════════════
 function renderPaymentPage(el){
   const state=getSubscriptionState();
+  trackEvent('payment_page_viewed',{status:state.status,daysLeft:state.daysLeft});
   const isExpired=state.status==='expired';
   const isPaid=state.status==='paid';
   const isGrand=state.status==='grandfathered';
@@ -7205,6 +7246,7 @@ function initRazorpayPayment(){
     modal: {
       ondismiss: function(){
         if(typeof _showToast==='function') _showToast('Payment cancelled');
+        trackEvent('payment_abandoned',{tier:selectedTier,amount});
       }
     }
   };
@@ -7213,12 +7255,14 @@ function initRazorpayPayment(){
   rzp.on('payment.failed', function(resp){
     _showToast('❌ Payment failed: ' + (resp.error.description || 'Unknown error'));
   });
+  trackEvent('payment_started',{tier:selectedTier,amount,method:'razorpay'});
   rzp.open();
 }
 
 async function _onRazorpaySuccess(response, amount, currency, tier, tierLabel){
   try {
     if(typeof _showToast==='function') _showToast('Verifying payment...');
+    trackEvent('payment_completed',{tier,amount,method:'razorpay'});
     const expiry = new Date(Date.now() + 30*86400000).toISOString();
 
     // Save approved payment to Supabase
@@ -7314,6 +7358,7 @@ async function submitPayment(){
   // Save txn ID locally so we can show "under review" status
   S.pendingPaymentTxnId=txnId;
   cacheWrite();
+  trackEvent('payment_started',{tier:selectedTier,amount:price,method});
 
   // Try to insert into Supabase (best effort — falls through to WhatsApp if offline)
   try {
@@ -7550,6 +7595,7 @@ async function _checkSubscriptionApproval(){
         S.subscriptionExpiry=expiry;
         S.pendingPaymentTxnId=''; // clear pending
         cacheWrite();
+        trackEvent('payment_completed',{method:'manual',approved:true});
         // Remove paywall + re-render trial banner
         document.getElementById('paywall-overlay')?.remove();
         _renderTrialBanner();
@@ -9840,6 +9886,7 @@ function sharePLWhatsApp(){
   ];
   if(best && active.length>=2) lines.push('',`🏆 Best month: ${best.label} (${cur}${fmt(best.profit)})`);
   lines.push('','_Generated by Pasal Manager_');
+  trackEvent('whatsapp_send',{type:'pl_report'});
   window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`,'_blank');
 }
 
@@ -11875,6 +11922,7 @@ function emiWhatsApp(planId,paymentId){
   const shop=S.shopName||'Pasal Manager';
   const msg=`*${shop}*\nHello ${plan.customerName}, your EMI installment of ${cur()}${fmt(pmt.amt)} is due on ${fmtDate(pmt.dueDate)}.\nRemaining balance: ${cur()}${fmt(emiPlanRemaining(plan))}.\nPlease pay on time. Thank you!`;
   const num=plan.phone.replace(/\D/g,'');
+  trackEvent('whatsapp_send',{type:'emi_reminder'});
   window.open('https://wa.me/'+(num||'')+encodeURIComponent('?text='+msg));
 }
 
@@ -13810,6 +13858,7 @@ function scoreShareWA() {
     msg = `नमस्ते 🙏 मेरो पसलको Business Health Score: ${sc.total}/100 (${grade})\nPasal Manager app मा ${sc.meta.ageDays} दिनदेखि सबै हिसाब राखेको छु।\nCertificate download गर्न: ${url}`;
   else
     msg = `My shop's Business Health Score: ${sc.total}/100 (${grade}) ${sc.gradeEmoji}\n${sc.meta.ageDays} days of verified transaction records on Pasal Manager.\n${url}`;
+  trackEvent('whatsapp_send',{type:'score_share'});
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
 
@@ -13960,6 +14009,7 @@ function sahiShareWA(){
   if(S.language==='hi') msg=`${name} जी, आपके ${fmt(amt)} के उधार का Digital Sahi-Chhap:\n${url}\n— ${shop}`;
   else if(S.language==='np') msg=`${name} जी, तपाईंको ${fmt(amt)} उधारोको प्रमाण:\n${url}\n— ${shop}`;
   else msg=`${name}, Digital Sahi-Chhap proof for ${fmt(amt)} udhaar:\n${url}\n— ${shop}`;
+  trackEvent('whatsapp_send',{type:'sahi_chhap'});
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 function sahiOpenExplorer(){
@@ -14121,6 +14171,7 @@ function initMorningBriefing(){
   showBriefingPermCard();
 }
 function briefingRemindWA(name,amt){
+  trackEvent('whatsapp_send',{type:'briefing_reminder'});
   const msg=encodeURIComponent(`Hi ${name}, you have an outstanding balance of ${cur()}${fmt(amt)} at our shop. Please clear when convenient. Thank you!`);
   window.open(`https://wa.me/?text=${msg}`,'_blank');
 }
@@ -14247,6 +14298,7 @@ function sendSmartWA(name,amount){
   } else {
     msg=`Namaste ${name} ji 🙏\nYou have ${cur()}${fmt(amount).replace(cur(),'')} pending.\nEasily pay via Fonepay/eSewa.\n— ${shop}`;
   }
+  trackEvent('whatsapp_send',{type:'smart_reminder'});
   const opened=window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
   if(!opened){
     try{navigator.clipboard.writeText(msg).then(()=>_showToast('📋 Message copied to clipboard'));}
