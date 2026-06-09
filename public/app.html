@@ -273,20 +273,54 @@ body {
     height: auto !important;
     min-height: auto !important;
     flex-wrap: wrap;
-    align-items: flex-start;
-    padding: 8px 20px !important;
+    align-items: center;
+    padding: 4px 16px !important;
+    gap: 6px !important;
+  }
+
+  .topbar-brand {
+    gap: 6px !important;
+  }
+
+  .topbar-logo-mark img {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .topbar-title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+  }
+
+  .topbar-sub {
+    display: none !important;
+  }
+
+  .topbar-spacer {
+    display: none !important;
+  }
+
+  .topbar-country {
+    order: 10;
+    flex-basis: 100%;
+    width: 100%;
+    margin-top: 2px;
+    font-size: 10px !important;
+    color: #999 !important;
+    font-weight: 500 !important;
+    padding: 2px 0 !important;
   }
 
   .topbar-date {
     order: 10;
     flex-basis: 100%;
     width: 100%;
-    margin-top: 6px;
+    margin-top: 0 !important;
     max-width: none !important;
     overflow: visible !important;
     text-overflow: clip !important;
     white-space: nowrap;
-    font-size: 11px !important;
+    font-size: 10px !important;
     color: #999 !important;
     font-weight: 500 !important;
   }
@@ -2171,7 +2205,7 @@ body {
           <div class="topbar-sub" id="topbar-sub"></div>
         </div>
       </div>
-      <div style="flex:1"></div>
+      <div style="flex:1" class="topbar-spacer"></div>
       <span class="bs-today-chip" id="bs-today-chip" style="display:none"></span>
       <button class="branch-chip" id="branch-chip" onclick="showBranchSwitcher()" style="display:none">
         <i data-lucide="building-2" style="width:13px;height:13px;flex-shrink:0"></i>
@@ -2179,6 +2213,7 @@ body {
         <i data-lucide="chevron-down" style="width:11px;height:11px;flex-shrink:0"></i>
       </button>
       <div id="topbar-wallet" style="display:none" class="topbar-wallet-chip"></div>
+      <div class="topbar-country" id="topbar-country" style="display:none"></div>
       <div class="topbar-date" id="topbar-date"></div>
     </div>
 
@@ -12029,6 +12064,14 @@ function updateTopbar(){
   const bsStr=bsDateStrLatin(new Date()); // BS calendar
   const dateDisplay=bsStr ? `${intlDate} · ${bsStr}` : intlDate;
   document.getElementById('topbar-date').textContent=dateDisplay;
+
+  // Mobile header: Show country + date on second row
+  const countryElem=document.getElementById('topbar-country');
+  if(countryElem){
+    const country=S.country==='NP'?'Nepal':'India';
+    countryElem.textContent=country+' • '+dateDisplay;
+    countryElem.style.display='block';
+  }
 
   const bsChip=document.getElementById('bs-today-chip');
   if(bsChip) bsChip.style.display='none'; // Hide separate BS chip since it's now in the date
