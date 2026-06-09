@@ -927,6 +927,65 @@ body {
   stroke-width: 2;
 }
 
+/* ===== MODULE GRID (Home Screen) ===== */
+.module-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 16px;
+  margin: 16px 0;
+}
+.module-grid-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid var(--color-border-tertiary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+.module-grid-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  transform: translateY(-2px);
+}
+.module-grid-card:active {
+  transform: scale(0.98);
+}
+.module-grid-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.module-grid-icon svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+  stroke-width: 2;
+}
+.module-grid-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+.module-grid-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-danger);
+}
+
 /* ===== BILL ===== */
 .bill-preview {
   margin: 12px 16px;
@@ -2034,8 +2093,8 @@ body {
         <span>Home</span>
       </button>
       <button class="nav-btn" onclick="switchTab('katha')" id="nav-katha">
-        <i data-lucide="history" style="width:22px;height:22px"></i>
-        <span>History</span>
+        <i data-lucide="list" style="width:22px;height:22px"></i>
+        <span>Sales</span>
       </button>
       <button class="nav-btn" onclick="switchTab('udhaar')" id="nav-udhaar">
         <div style="position:relative;display:inline-flex">
@@ -4879,6 +4938,7 @@ function renderToday(){
   const monthEnd=td.substring(0,7)+'-31';
   const loanDueMonth=loanPayments.filter(p=>!p.paid&&p.dueDate>=monthStart&&p.dueDate<=monthEnd);
   const loanOverdue=loanPayments.filter(p=>!p.paid&&p.dueDate<td);
+  const udhaarCount=overdueList.length;
   const combined=[...ts.map(s=>({...s,_type:'sale'})),...tr.map(r=>({...r,_type:'return'}))].sort((a,b)=>(b.ts||0)-(a.ts||0));
   document.getElementById('page-today').innerHTML=`
     ${overdueList.length>0?`<div class="today-alert today-alert-danger" onclick="switchTab('udhaar')">
@@ -4956,6 +5016,57 @@ function renderToday(){
       </div>
       <button onclick="document.getElementById('s-note')?.focus();document.getElementById('s-note')?.scrollIntoView({behavior:'smooth',block:'center'})" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
         <i data-lucide="plus-circle" style="width:18px;height:18px"></i> Record Sale
+      </button>
+    </div>
+    <div class="module-grid">
+      <button class="module-grid-card" onclick="switchTab('katha')">
+        <div class="module-grid-icon" style="background: #7C3AED1A">
+          <i data-lucide="shopping-bag" style="color: #7C3AED"></i>
+        </div>
+        <div class="module-grid-label">Sales</div>
+      </button>
+      <button class="module-grid-card" onclick="switchTab('stock')">
+        <div class="module-grid-icon" style="background: #8B5CF61A">
+          <i data-lucide="package" style="color: #8B5CF6"></i>
+        </div>
+        <div class="module-grid-label">Stock</div>
+      </button>
+      <button class="module-grid-card" onclick="goMore('pl')">
+        <div class="module-grid-icon" style="background: #0596691A">
+          <i data-lucide="trending-up" style="color: #059669"></i>
+        </div>
+        <div class="module-grid-label">Finance</div>
+      </button>
+      <button class="module-grid-card" onclick="switchTab('udhaar')" style="position: relative;">
+        <div class="module-grid-icon" style="background: #E11D481A">
+          <i data-lucide="users" style="color: #E11D48"></i>
+        </div>
+        <div class="module-grid-label">Udhaar</div>
+        ${udhaarCount > 0 ? '<div class="module-grid-badge"></div>' : ''}
+      </button>
+      <button class="module-grid-card" onclick="goMore('staffBook')">
+        <div class="module-grid-icon" style="background: #D976061A">
+          <i data-lucide="users-3" style="color: #D97706"></i>
+        </div>
+        <div class="module-grid-label">Staff</div>
+      </button>
+      <button class="module-grid-card" onclick="goMore('loan')">
+        <div class="module-grid-icon" style="background: #DC26261A">
+          <i data-lucide="building-bank" style="color: #DC2626"></i>
+        </div>
+        <div class="module-grid-label">Loans</div>
+      </button>
+      <button class="module-grid-card" onclick="goMore('dashboard')">
+        <div class="module-grid-icon" style="background: #4F46E51A">
+          <i data-lucide="chart-line" style="color: #4F46E5"></i>
+        </div>
+        <div class="module-grid-label">Dashboard</div>
+      </button>
+      <button class="module-grid-card" onclick="goMore('settings')">
+        <div class="module-grid-icon" style="background: #64748B1A">
+          <i data-lucide="settings" style="color: #64748B"></i>
+        </div>
+        <div class="module-grid-label">Account</div>
       </button>
     </div>
     <div class="sub-tabs">
