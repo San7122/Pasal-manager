@@ -274,18 +274,35 @@ body {
     min-height: auto !important;
     flex-wrap: wrap;
     align-items: flex-start;
-    padding: 10px 20px !important;
+    padding: 8px 20px !important;
   }
 
   .topbar-date {
     order: 10;
     flex-basis: 100%;
     width: 100%;
-    margin-top: 8px;
+    margin-top: 6px;
     max-width: none !important;
     overflow: visible !important;
     text-overflow: clip !important;
     white-space: nowrap;
+    font-size: 11px !important;
+    color: #999 !important;
+    font-weight: 500 !important;
+  }
+
+  #topbar-signout {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    border: 1px solid #e5e7eb !important;
+    color: #666 !important;
+    height: 36px !important;
+    min-height: 36px !important;
+  }
+
+  #topbar-signout i {
+    display: none !important;
   }
 }
 
@@ -1270,6 +1287,27 @@ body {
 .today-hero-amt { font-size: 38px; font-weight: 900; color: #fff; letter-spacing: -1px; line-height: 1.1; background: none; -webkit-background-clip: initial; -webkit-text-fill-color: initial; background-clip: initial; }
 .today-hero-sub { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 3px; font-weight: 500; }
 .today-hero-stats { display: flex; gap: 8px; justify-content: flex-start; margin-top: 10px; flex-wrap: wrap; }
+
+@media (max-width: 767px) {
+  .today-hero {
+    padding: 18px !important;
+    margin: 12px 16px 16px !important;
+  }
+
+  .today-hero-label {
+    font-size: 10px !important;
+  }
+
+  .today-hero-amt {
+    font-size: 32px !important;
+  }
+
+  .mic-fab {
+    width: 44px !important;
+    height: 44px !important;
+    box-shadow: 0 2px 8px rgba(124,58,237,0.35) !important;
+  }
+}
 .today-stat-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
