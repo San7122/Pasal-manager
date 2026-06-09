@@ -293,16 +293,23 @@ body {
 
   #topbar-signout {
     padding: 8px 12px !important;
-    font-size: 12px !important;
+    font-size: 11px !important;
     font-weight: 500 !important;
-    border: 1px solid #e5e7eb !important;
+    border: none !important;
+    background: #f5f5f5 !important;
     color: #666 !important;
     height: 36px !important;
     min-height: 36px !important;
+    border-radius: 6px !important;
   }
 
   #topbar-signout i {
     display: none !important;
+  }
+
+  .topbar-date {
+    letter-spacing: 0.3px !important;
+    line-height: 1.3 !important;
   }
 }
 
@@ -1290,22 +1297,102 @@ body {
 
 @media (max-width: 767px) {
   .today-hero {
-    padding: 18px !important;
-    margin: 12px 16px 16px !important;
+    padding: 16px !important;
+    margin: 10px 16px 12px !important;
   }
 
   .today-hero-label {
     font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 1px !important;
   }
 
   .today-hero-amt {
     font-size: 32px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.5px !important;
+  }
+
+  .today-hero-sub {
+    font-size: 11px !important;
   }
 
   .mic-fab {
     width: 44px !important;
     height: 44px !important;
     box-shadow: 0 2px 8px rgba(124,58,237,0.35) !important;
+  }
+
+  #btn-record-sale {
+    height: 48px !important;
+    font-weight: 800 !important;
+    font-size: 16px !important;
+    padding: 14px 16px !important;
+  }
+
+  .section-header {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 1px !important;
+    color: #4b5563 !important;
+  }
+
+  .list-item {
+    padding: 12px 16px !important;
+    min-height: 52px !important;
+    gap: 12px !important;
+  }
+
+  .list-item-left {
+    gap: 4px !important;
+  }
+
+  .list-item-amt {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+  }
+
+  .list-item-meta {
+    font-size: 11px !important;
+  }
+
+  .input-sm,
+  .input-md,
+  .input-big {
+    margin-bottom: 8px !important;
+  }
+
+  .chip-row {
+    padding: 12px 0 !important;
+    border: none !important;
+    gap: 8px !important;
+  }
+
+  .home-quick-actions {
+    gap: 12px !important;
+    padding: 16px 16px 12px !important;
+  }
+
+  .home-quick-btn {
+    padding: 14px !important;
+  }
+
+  .inline-form {
+    padding: 12px 16px !important;
+    gap: 12px !important;
+  }
+
+  .form-col {
+    gap: 8px !important;
+  }
+
+  #s-qty {
+    max-width: 60px !important;
+  }
+
+  #profit-preview {
+    margin: 4px 0 8px 0 !important;
+    font-size: 12px !important;
   }
 }
 .today-stat-chip {
@@ -5026,7 +5113,7 @@ function renderToday(){
           <div style="font-size:10px;color:rgba(255,255,255,0.65);font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:0.4px">Transactions</div>
         </div>
       </div>
-      <button onclick="document.getElementById('s-note')?.focus();document.getElementById('s-note')?.scrollIntoView({behavior:'smooth',block:'center'})" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
+      <button id="btn-record-sale" onclick="document.getElementById('s-note')?.focus();document.getElementById('s-note')?.scrollIntoView({behavior:'smooth',block:'center'})" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
         <i data-lucide="plus-circle" style="width:18px;height:18px"></i> Record Sale
       </button>
     </div>
@@ -5060,7 +5147,7 @@ function renderToday(){
         </div>
         <datalist id="item-list-today">${stock.filter(it=>it.qty>0).map(it=>`<option value="${esc(it.name)}">${it.size?it.size+' · ':''}${fmt(it.sell)} · stock: ${it.qty}</option>`).join('')}</datalist>
         <div style="display:flex;gap:6px">
-          <input class="input-big" id="s-qty" type="text" inputmode="numeric" placeholder="Qty" value="1" style="max-width:64px;text-align:center" oninput="_recalcSaleTotals();_updateProfitPreview()">
+          <input class="input-big" id="s-qty" type="text" inputmode="numeric" placeholder="Qty" value="1" style="max-width:60px;text-align:center" oninput="_recalcSaleTotals();_updateProfitPreview()">
           <input class="input-big" id="s-amt" type="text" inputmode="numeric" placeholder="Sell ${cur()}" style="flex:1" onkeydown="if(event.key==='Enter')addSale()" oninput="_updateProfitPreview()">
           <input class="input-big" id="s-cost" type="text" inputmode="numeric" placeholder="Cost ${cur()}" style="flex:1;font-size:16px;color:var(--color-text-secondary)" oninput="_updateProfitPreview()">
         </div>
