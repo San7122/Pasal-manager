@@ -1743,6 +1743,58 @@ body {
 .reminder-how-details summary{font-weight:600;color:var(--color-text);cursor:pointer;}
 .reminder-section-title{font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;}
 .pattern-chip{display:inline-block;font-size:10px;color:#9c7c38;background:#fff8e7;border:1px solid #e8d5a0;border-radius:10px;padding:1px 7px;margin-top:3px;font-weight:600;}
+
+/* ===== KATHA PREMIUM REDESIGN ===== */
+.k-seg-ctrl{display:flex;background:#F1F5F9;border-radius:14px;padding:4px;gap:2px;}
+.k-seg-btn{flex:1;padding:8px 4px;font-size:13px;font-weight:600;border:none;background:transparent;color:#64748B;border-radius:10px;cursor:pointer;transition:all 0.2s;}
+.k-seg-active{background:linear-gradient(135deg,#7C3AED,#6D28D9)!important;color:#fff!important;box-shadow:0 4px 12px rgba(124,58,237,0.25);}
+.k-hero{background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 60%,#4C1D95 100%);border-radius:24px;padding:24px;color:#fff;position:relative;overflow:hidden;}
+.k-hero::before{content:'';position:absolute;right:-20px;top:-20px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.06);}
+.k-hero::after{content:'';position:absolute;right:40px;bottom:-40px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.04);}
+.k-hero-label{font-size:11px;font-weight:700;opacity:0.8;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;position:relative;}
+.k-hero-amt{font-size:38px;font-weight:800;letter-spacing:-1px;line-height:1.1;margin-bottom:4px;position:relative;}
+.k-hero-sub{font-size:13px;opacity:0.75;margin-bottom:18px;position:relative;}
+.k-hero-divider{border:none;border-top:1px solid rgba(255,255,255,0.15);margin-bottom:16px;}
+.k-hero-metrics{display:flex;gap:20px;align-items:center;position:relative;}
+.k-hero-metric{display:flex;align-items:center;gap:10px;}
+.k-hero-metric-icon{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.k-hero-metric-sep{width:1px;height:36px;background:rgba(255,255,255,0.2);}
+.k-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 16px 0;}
+.k-kpi{background:#fff;border-radius:16px;padding:14px 12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);display:flex;flex-direction:column;gap:5px;}
+.k-kpi-icon-wrap{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.k-kpi-lbl{font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.4px;}
+.k-kpi-val{font-size:14px;font-weight:800;line-height:1.1;}
+.k-date-nav{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin:12px 16px 0;padding:12px 16px;}
+.k-date-btn{width:36px;height:36px;border-radius:50%;background:#F8FAFC;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#475569;}
+.k-date-label{font-size:15px;font-weight:700;color:#0F172A;display:flex;align-items:center;gap:8px;}
+.k-perf-card{background:#fff;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin:12px 16px 0;padding:18px;}
+.k-perf-title{font-size:14px;font-weight:700;color:#0F172A;margin-bottom:14px;}
+.k-perf-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.k-perf-lbl{font-size:11px;font-weight:600;color:#64748B;width:36px;flex-shrink:0;}
+.k-perf-bar-bg{flex:1;height:8px;background:#F1F5F9;border-radius:99px;overflow:hidden;}
+.k-perf-bar{height:100%;border-radius:99px;transition:width 0.6s ease;}
+.k-perf-amt{font-size:11px;font-weight:700;white-space:nowrap;min-width:48px;text-align:right;}
+.k-tx-header{display:flex;align-items:center;gap:8px;margin:16px 16px 10px;}
+.k-tx-title{font-size:15px;font-weight:700;color:#0F172A;}
+.k-tx-badge{background:#7C3AED;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;}
+.k-tx-card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:14px 16px;margin:0 16px 10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.k-tx-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.k-tx-info{flex:1;min-width:0;}
+.k-tx-name{font-size:14px;font-weight:700;color:#0F172A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.k-tx-meta{font-size:11px;color:#64748B;margin-top:2px;}
+.k-tx-profit{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#D1FAE5;color:#059669;margin-top:4px;display:inline-block;}
+.k-tx-right{text-align:right;flex-shrink:0;}
+.k-tx-amt{font-size:16px;font-weight:800;}
+.k-returns-banner{display:flex;align-items:center;justify-content:space-between;background:#FFF5F5;border-radius:14px;padding:12px 16px;margin:10px 16px 0;border-left:3px solid #EF4444;}
+.k-cost-banner{display:flex;align-items:center;justify-content:space-between;background:#F5F3FF;border-radius:14px;padding:12px 16px;margin:10px 16px 0;border-left:3px solid #7C3AED;}
+/* Speed-dial FAB */
+.ksd-main-btn{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#6D28D9);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(124,58,237,0.4);transition:transform 0.25s;}
+.ksd-option{display:flex;align-items:center;gap:10px;cursor:pointer;}
+.ksd-option span{background:#fff;font-size:13px;font-weight:600;color:#0F172A;padding:6px 14px;border-radius:99px;box-shadow:0 2px 10px rgba(0,0,0,0.12);white-space:nowrap;}
+.ksd-icon{width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);flex-shrink:0;}
+/* Bottom nav pill active */
+.nav-btn{border-radius:12px;transition:background 0.18s,color 0.18s;}
+.nav-btn.active{background:#EDE9FE;color:#7C3AED !important;}
 </style>
 </head>
 <body>
@@ -2202,6 +2254,18 @@ body {
     <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>
   </svg>
 </button>
+
+<!-- ===== KATHA SPEED-DIAL FAB ===== -->
+<div id="katha-speed-dial" style="display:none;position:fixed;bottom:80px;right:16px;z-index:600;flex-direction:column;align-items:flex-end;gap:12px">
+  <div id="katha-speed-options" style="display:none;flex-direction:column;gap:10px;align-items:flex-end">
+    <div class="ksd-option" onclick="_ksdClose();switchTab('today')"><span>Add Sale</span><div class="ksd-icon"><i data-lucide="shopping-cart" style="width:18px;height:18px;color:#7C3AED"></i></div></div>
+    <div class="ksd-option" onclick="_ksdClose();goMore('expense');switchTab('more')"><span>Add Expense</span><div class="ksd-icon"><i data-lucide="receipt" style="width:18px;height:18px;color:#EF4444"></i></div></div>
+    <div class="ksd-option" onclick="_ksdClose();openVoice()"><span>Voice Entry</span><div class="ksd-icon"><i data-lucide="mic" style="width:18px;height:18px;color:#059669"></i></div></div>
+  </div>
+  <button class="ksd-main-btn" id="ksd-main-btn" onclick="_ksdToggle()">
+    <i data-lucide="plus" style="width:24px;height:24px" id="ksd-plus-icon"></i>
+  </button>
+</div>
 
 <!-- ===== VOICE MODAL ===== -->
 <!-- UPI Payment Modal -->
@@ -4786,6 +4850,22 @@ function closeMobileSidebar(){
   if(btn) btn.setAttribute('aria-expanded','false');
   _setSidebarLabels(window.innerWidth >= 1100);
 }
+let _ksdOpen=false;
+function _ksdToggle(){
+  _ksdOpen=!_ksdOpen;
+  const opts=document.getElementById('katha-speed-options');
+  const btn=document.getElementById('ksd-main-btn');
+  if(opts) opts.style.display=_ksdOpen?'flex':'none';
+  if(btn) btn.style.transform=_ksdOpen?'rotate(45deg)':'';
+  if(_ksdOpen) try{lucide.createIcons();}catch(e){}
+}
+function _ksdClose(){
+  _ksdOpen=false;
+  const opts=document.getElementById('katha-speed-options');
+  const btn=document.getElementById('ksd-main-btn');
+  if(opts) opts.style.display='none';
+  if(btn) btn.style.transform='';
+}
 function toggleSidebar(){
   const sb=document.getElementById('sidebar');
   if(!sb) return;
@@ -4850,6 +4930,9 @@ function switchTab(tab){
   document.getElementById('scroll-area').scrollTop=0;
   const _fp=document.getElementById('fab-photo');
   if(_fp) _fp.style.display=(tab==='today'||tab==='stock')?'flex':'none';
+  const _kf=document.getElementById('katha-speed-dial');
+  if(_kf){_kf.style.display=tab==='katha'?'flex':'none';if(tab!=='katha')_ksdClose();}
+
   confirmId=null;
   const tabNames={today:t('today'),katha:t('katha'),udhaar:t('udhaar'),stock:t('stock'),more:t('more')};
   document.title=(tabNames[tab]||tab)+' — '+(S.shopName||'Pasal Manager');
@@ -5532,29 +5615,77 @@ function renderKatha(){
   const trueProfit=hasCost?(netSales-tCost-tExp):(netSales-tExp);
   const netProfit=hasCost?(netSales-tCost-tExp):null;
   const combined=[...filtered.map(s=>({...s,_type:'sale'})),...expF.map(e=>({...e,_type:'exp'})),...retF.map(r=>({...r,_type:'return'}))].sort((a,b)=>(b.ts||0)-(a.ts||0));
+  // UI-only computed vars — no backend logic changes
+  const _heroTitle=kathaMode==='daily'?"Today's Revenue":kathaMode==='monthly'?"This Month's Revenue":"This Year's Revenue";
+  const _margin=netSales>0?Math.max(0,Math.round((trueProfit/netSales)*100)):0;
+  const _motiv=netSales>0?(trueProfit>0?'Great start! Keep it up 🚀':'Covering costs — keep pushing 💡'):'No entries yet 📋';
+  const _barMax=Math.max(netSales,trueProfit,1);
+  const _salesBarW=Math.min(100,Math.round((netSales/_barMax)*100));
+  const _profitBarW=Math.min(100,Math.max(0,Math.round((trueProfit/_barMax)*100)));
   document.getElementById('page-katha').innerHTML=`
-    <div class="sub-tabs">
-      ${['daily','monthly','yearly'].map((m,i)=>`<button class="sub-tab-btn${kathaMode===m?' active':''}" onclick="switchKatha('${m}')">${['Today','This Month','This Year'][i]}</button>`).join('')}
+    <div style="padding:16px 16px 0">
+      <div class="k-seg-ctrl">
+        ${['daily','monthly','yearly'].map((m,i)=>`<button class="k-seg-btn${kathaMode===m?' k-seg-active':''}" onclick="switchKatha('${m}')">${['Today','Month','Year'][i]}</button>`).join('')}
+      </div>
     </div>
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-val" style="color:var(--color-success)">${fmt(netSales)}</div><div class="stat-label">Net Sales</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:var(--color-danger)">${fmt(tExp)}</div><div class="stat-label">Expenses</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:${trueProfit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(trueProfit)}</div><div class="stat-label">Profit</div></div>
+    <div style="margin:12px 16px 0">
+      <div class="k-hero">
+        <div class="k-hero-label">${_heroTitle}</div>
+        <div class="k-hero-amt">${fmt(netSales)}</div>
+        <div class="k-hero-sub">${_motiv}</div>
+        <hr class="k-hero-divider">
+        <div class="k-hero-metrics">
+          <div class="k-hero-metric">
+            <div class="k-hero-metric-icon">○</div>
+            <div><div style="font-size:11px;opacity:0.72;margin-bottom:1px">Profit</div><div style="font-size:16px;font-weight:800">${fmt(trueProfit)}</div></div>
+          </div>
+          <div class="k-hero-metric-sep"></div>
+          <div class="k-hero-metric">
+            <div class="k-hero-metric-icon">%</div>
+            <div><div style="font-size:11px;opacity:0.72;margin-bottom:1px">Profit Margin</div><div style="font-size:16px;font-weight:800">${_margin}%</div></div>
+          </div>
+        </div>
+      </div>
     </div>
-    ${tReturns>0?`<div style="margin:0 16px 4px;background:var(--color-danger-light);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--color-danger);font-weight:600">↩ Returns</span><span style="font-weight:800;color:var(--color-danger)">−${fmt(tReturns)}</span></div>`:''}
-    ${hasCost?`<div style="margin:0 16px 8px;background:var(--color-accent-light);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--color-text-secondary);font-weight:600">Cost / Investment</span><span style="font-weight:800;color:var(--color-accent)">${fmt(tCost)}</span></div>`:''}
-    <div class="date-nav">
-      <button class="date-nav-btn" onclick="kathaNav(-1)">${licon('chevron-left',16,'')}</button>
-      <div class="date-nav-label">${label}</div>
-      <button class="date-nav-btn" onclick="kathaNav(1)">${licon('chevron-right',16,'')}</button>
+    <div class="k-kpi-row">
+      <div class="k-kpi">
+        <div class="k-kpi-icon-wrap" style="background:#D1FAE5"><i data-lucide="trending-up" style="width:16px;height:16px;color:#059669"></i></div>
+        <div class="k-kpi-lbl">Net Sales</div>
+        <div class="k-kpi-val" style="color:#059669">${fmt(netSales)}</div>
+      </div>
+      <div class="k-kpi">
+        <div class="k-kpi-icon-wrap" style="background:#FEE2E2"><i data-lucide="trending-down" style="width:16px;height:16px;color:#EF4444"></i></div>
+        <div class="k-kpi-lbl">Expenses</div>
+        <div class="k-kpi-val" style="color:#EF4444">${fmt(tExp)}</div>
+      </div>
+      <div class="k-kpi">
+        <div class="k-kpi-icon-wrap" style="background:#EDE9FE"><i data-lucide="wallet" style="width:16px;height:16px;color:#7C3AED"></i></div>
+        <div class="k-kpi-lbl">Profit</div>
+        <div class="k-kpi-val" style="color:${trueProfit>=0?'#7C3AED':'#EF4444'}">${fmt(trueProfit)}</div>
+      </div>
     </div>
-    <div class="section-header"><span>Transactions</span><span class="count-badge">${combined.length}</span></div>
+    ${tReturns>0?`<div class="k-returns-banner"><span style="font-size:13px;color:#EF4444;font-weight:600">↩ Returns</span><span style="font-weight:800;color:#EF4444">−${fmt(tReturns)}</span></div>`:''}
+    ${hasCost?`<div class="k-cost-banner"><span style="font-size:13px;color:#6D28D9;font-weight:600">Cost / Investment</span><span style="font-weight:800;color:#7C3AED">${fmt(tCost)}</span></div>`:''}
+    <div class="k-date-nav">
+      <button class="k-date-btn" onclick="kathaNav(-1)"><i data-lucide="chevron-left" style="width:16px;height:16px"></i></button>
+      <div class="k-date-label"><i data-lucide="calendar" style="width:15px;height:15px;color:#94A3B8"></i> ${label}</div>
+      <button class="k-date-btn" onclick="kathaNav(1)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></button>
+    </div>
+    ${(netSales>0||tExp>0)?`<div class="k-perf-card"><div class="k-perf-title">Performance</div><div class="k-perf-row"><div class="k-perf-lbl">Sales</div><div class="k-perf-bar-bg"><div class="k-perf-bar" style="width:${_salesBarW}%;background:linear-gradient(90deg,#10B981,#059669)"></div></div><div class="k-perf-amt" style="color:#059669">${fmt(netSales)}</div></div><div class="k-perf-row" style="margin-bottom:0"><div class="k-perf-lbl">Profit</div><div class="k-perf-bar-bg"><div class="k-perf-bar" style="width:${_profitBarW}%;background:linear-gradient(90deg,#7C3AED,#6D28D9)"></div></div><div class="k-perf-amt" style="color:${trueProfit>=0?'#7C3AED':'#EF4444'}">${fmt(trueProfit)}</div></div></div>`:''}
+    <div class="k-tx-header">
+      <div class="k-tx-title">Transactions</div>
+      <div class="k-tx-badge">${combined.length}</div>
+    </div>
     ${combined.length===0?_emptyState('book-open',t('noEntries'),'No entries for this period','',''):
       combined.map(i=>{
-        if(i._type==='return') return`<div class="list-item" style="background:var(--color-danger-light)"><div class="list-item-left"><div class="list-item-amt" style="color:var(--color-danger)">↩ −${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)} · ${i.type==='customer'?t('custReturn'):t('suppReturn')}${i.reason?' · '+i.reason:''}${i.refName?' · '+esc(i.refName):''}${i.note?' · '+i.note:''}</div></div></div>`;
+        if(i._type==='return') return`<div class="k-tx-card"><div class="k-tx-icon" style="background:#FEE2E2"><i data-lucide="undo-2" style="width:18px;height:18px;color:#EF4444"></i></div><div class="k-tx-info"><div class="k-tx-name">${i.refName?esc(i.refName):i.type==='customer'?t('custReturn'):t('suppReturn')}</div><div class="k-tx-meta">${fmtTime(i.ts)}${i.reason?' · '+i.reason:''}</div></div><div class="k-tx-right"><div class="k-tx-amt" style="color:#EF4444">−${fmt(i.amt)}</div></div></div>`;
         const sProfit=(i._type==='sale'&&i.cost>0)?i.amt-i.cost:null;
-        return`<div class="list-item"><div class="list-item-left"><div class="list-item-amt" style="color:${i._type==='exp'?'var(--color-danger)':'var(--color-success)'}">${i._type==='exp'?'-':'+'}${fmt(i.amt)}</div><div class="list-item-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.category?' · '+i.category:''}${i.note?' · '+i.note:''}${sProfit!==null?' · <span style="color:var(--color-success);font-weight:600">Profit: '+fmt(sProfit)+'</span>':''}</div></div></div>`;
-      }).join('')}`;
+        const isExp=i._type==='exp';
+        const txName=esc(isExp?(i.category||i.note||'Expense'):(i.note||'Sale'));
+        return`<div class="k-tx-card"><div class="k-tx-icon" style="background:${isExp?'#FEE2E2':'#EDE9FE'}"><i data-lucide="${isExp?'receipt':'shopping-bag'}" style="width:18px;height:18px;color:${isExp?'#EF4444':'#7C3AED'}"></i></div><div class="k-tx-info"><div class="k-tx-name">${txName}</div><div class="k-tx-meta">${fmtTime(i.ts)}${i.payMode?' · '+i.payMode:''}${i.category&&i.note?' · '+i.category:''}</div>${sProfit!==null?`<div class="k-tx-profit">Profit ${fmt(sProfit)}</div>`:''}</div><div class="k-tx-right"><div class="k-tx-amt" style="color:${isExp?'#EF4444':'#10B981'}">${isExp?'−':'+'}${fmt(i.amt)}</div></div></div>`;
+      }).join('')}
+    <div style="height:24px"></div>
+  `;
   _renderIcons();
 }
 function kathaNav(dir){
