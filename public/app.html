@@ -802,32 +802,6 @@ body {
 }
 
 /* ===== UDHAAR ===== */
-.udhaar-total-bar {
-  display: flex; justify-content: space-between;
-  align-items: center; padding: 10px 16px;
-  background: var(--color-background-secondary);
-  font-size: 14px; font-weight: 700;
-  border-bottom: 1px solid var(--color-border-tertiary);
-}
-.udhaar-summary-grid {
-  display: grid; grid-template-columns: repeat(3,1fr);
-  gap: 8px; padding: 14px 16px 8px;
-}
-.udhaar-summary-card {
-  text-align: center; padding: 12px 6px;
-  border-radius: 14px; background: var(--color-background-primary);
-  border: 1px solid var(--color-border-tertiary);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-}
-.udhaar-summary-val { font-size: 19px; font-weight: 800; line-height: 1.1; }
-.udhaar-summary-label { font-size: 10px; color: var(--color-text-secondary); margin-top: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
-.udhaar-entry-card {
-  margin: 0 16px 12px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #7c3aed, #4c1d95);
-  padding: 16px;
-  box-shadow: 0 4px 16px rgba(124,58,237,0.25);
-}
 .udhaar-actions { display: flex; gap: 6px; }
 .udhaar-action-btn {
   width: 44px; height: 44px;
@@ -845,6 +819,114 @@ body {
 }
 .udhaar-action-btn.wa svg { fill: currentColor; stroke: none; }
 .udhaar-action-btn.paid { color: var(--color-success); }
+
+/* ===== UDHAAR (premium dashboard redesign) ===== */
+.uh-overview-card {
+  margin: 12px 16px; padding: 18px 20px; border-radius: 18px;
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-tertiary);
+  box-shadow: 0 4px 16px rgba(15,23,42,0.04);
+}
+.uh-overview-head { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.uh-icon-badge {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--pm-purple-light);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.uh-overview-title { font-size: 15px; font-weight: 800; color: var(--color-text-primary); letter-spacing: -0.2px; }
+.uh-overview-body { display: flex; gap: 14px; flex-wrap: wrap; }
+.uh-total-block { flex: 1.2; min-width: 110px; }
+.uh-total-label { font-size: 11px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.uh-total-value { font-size: 30px; font-weight: 900; color: var(--color-text-primary); line-height: 1.1; letter-spacing: -0.5px; }
+.uh-total-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+.uh-stat-list { display: flex; flex-direction: column; gap: 8px; flex: 1.4; min-width: 150px; }
+.uh-stat-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 12px;
+  border: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary);
+}
+.uh-stat-icon {
+  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.uh-stat-icon.pending { background: #FFFBEB; }
+.uh-stat-icon.overdue { background: var(--color-danger-light); }
+.uh-stat-label { font-size: 11px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
+.uh-stat-value { font-size: 14px; font-weight: 800; margin-left: auto; white-space: nowrap; }
+.uh-stat-value.pending { color: var(--color-warning); }
+.uh-stat-value.overdue { color: var(--color-danger); }
+
+.uh-reminder-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 0 16px 12px; padding: 10px 14px; border-radius: 12px;
+  background: #F0FDF4; border: 1px solid #BBF7D0;
+}
+
+.uh-form-card {
+  margin: 0 16px 12px; padding: 16px; border-radius: 16px;
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-tertiary);
+}
+.uh-form-head { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: var(--color-text-primary); margin-bottom: 12px; }
+.uh-form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.uh-form-grid .input-md { font-size: 13px; padding: 0 8px; }
+.uh-form-due { margin-bottom: 4px; }
+.uh-cta-btn {
+  width: 100%; padding: 13px; margin-top: 6px;
+  background: var(--pm-purple); color: #fff;
+  border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.uh-cta-btn:active { background: var(--pm-purple-dark); }
+
+.uh-search-wrap {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 16px 8px; padding: 0 12px; height: 42px;
+  border: 1px solid var(--color-border-tertiary); border-radius: 12px;
+  background: var(--color-background-primary);
+}
+.uh-search-wrap input {
+  flex: 1; border: none; background: transparent; outline: none;
+  font-size: 14px; height: 40px; color: var(--color-text-primary);
+}
+.uh-search-clear { background: none; border: none; color: var(--color-text-secondary); cursor: pointer; display: flex; flex-shrink: 0; }
+
+.uh-customer-card {
+  margin: 0 16px 8px; padding: 12px 14px; border-radius: 14px;
+  background: var(--color-background-primary); border: 1px solid var(--color-border-tertiary);
+}
+.uh-customer-card.overdue { border-color: #FECACA; background: #FFFBFB; }
+.uh-customer-card.due-today { border-color: #FDE68A; background: #FFFDF7; }
+.uh-customer-top { display: flex; align-items: center; gap: 10px; }
+.uh-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: var(--pm-purple-light);
+  display: flex; align-items: center; justify-content: center;
+}
+.uh-customer-info { flex: 1; min-width: 0; }
+.uh-customer-name { font-size: 14px; font-weight: 700; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uh-customer-meta { font-size: 12px; color: var(--color-text-secondary); margin-top: 1px; }
+.uh-customer-amt { font-size: 16px; font-weight: 800; color: var(--color-text-primary); white-space: nowrap; flex-shrink: 0; }
+.uh-customer-bottom {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-border-tertiary);
+}
+.uh-due-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 99px; }
+.uh-due-badge.overdue { background: #FEE2E2; color: #DC2626; }
+.uh-due-badge.today { background: #FEF3C7; color: #D97706; }
+.uh-due-badge.upcoming { background: #F0FDF4; color: #16A34A; }
+
+.uh-empty {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 32px 24px; gap: 6px; color: var(--color-text-secondary);
+}
+.uh-empty-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--pm-purple-light);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 4px;
+}
+.uh-empty-title { font-size: 14px; font-weight: 700; color: var(--color-text-primary); }
+.uh-empty-sub { font-size: 12px; color: var(--color-text-secondary); max-width: 240px; line-height: 1.5; }
 
 /* ===== STOCK ===== */
 .stock-alert {
@@ -2848,7 +2930,7 @@ let pinAttempts=0, pinLockoutUntil=0, pinBioAvailable=false, _pinLastUnlock=0, _
 let kharidiEntries=[], dealers=[], dealerEntries=[];
 let stockAdjustments=[]; // audit log of every stock +/− with reason, see pm_stock_adjustments
 let cashbookEntries=[], cashbookViewDate=new Date();
-let customers=[], currentCustomerId='', custSearch='', custTab='all', stockSearch='';
+let customers=[], currentCustomerId='', custSearch='', custTab='all', stockSearch='', udhaarSearch='';
 let staffList=[], staffEntries=[], currentStaffName='', staffViewDate=new Date(), staffSalaryType='daily';
 let branches=[], currentBranchId='', _rawSales=[], _rawExpenses=[];
 let currentKharidiSupplier='', currentDealerName='';
@@ -5811,73 +5893,96 @@ function renderUdhaar(){
   const overdueWithPhone=sorted.filter(u=>{const ds=udhaarDueStatus(u);return u.phone&&ds&&(ds.type==='overdue'||ds.type==='today');});
   const overdueAmt=sorted.filter(u=>{const ds=udhaarDueStatus(u);return ds&&ds.type==='overdue';}).reduce((a,u)=>a+u.amt,0);
   const pendingAmt=sorted.filter(u=>{const ds=udhaarDueStatus(u);return !ds||ds.type!=='overdue';}).reduce((a,u)=>a+u.amt,0);
+  const q=(udhaarSearch||'').trim().toLowerCase();
+  const filtered=q?sorted.filter(u=>u.name.toLowerCase().includes(q)||(u.phone||'').includes(q)):sorted;
+  const waIcon=`<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>`;
+  const listHtml=filtered.length===0?(
+    sorted.length===0
+      ?`<div class="uh-empty"><div class="uh-empty-icon">${licon('users',20,'color:var(--pm-purple);')}</div><div class="uh-empty-title">${t('noUdhaar')}</div><div class="uh-empty-sub">Track customer credit and payment history from one place.</div></div>`
+      :`<div class="uh-empty"><div class="uh-empty-icon">${licon('search',20,'color:var(--pm-purple);')}</div><div class="uh-empty-title">No matches found</div><div class="uh-empty-sub">Try a different name or phone number.</div></div>`
+  ):filtered.map(u=>{
+    const ds=udhaarDueStatus(u);
+    let dueBadge='',cardClass='';
+    if(ds){
+      if(ds.type==='overdue'){dueBadge=`<span class="uh-due-badge overdue">Overdue · ${ds.days}d</span>`;cardClass=' overdue';}
+      else if(ds.type==='today'){dueBadge=`<span class="uh-due-badge today">Due today</span>`;cardClass=' due-today';}
+      else{dueBadge=`<span class="uh-due-badge upcoming">Due in ${ds.days}d</span>`;}
+    }
+    return `<div class="uh-customer-card${cardClass}">
+      <div class="uh-customer-top">
+        <div class="uh-avatar">${licon('user',16,'color:var(--pm-purple);')}</div>
+        <div class="uh-customer-info">
+          <div class="uh-customer-name">${esc(u.name)}</div>
+          <div class="uh-customer-meta">${u.phone?u.phone+' · ':''}${fmtDate(u.date)}${u.dueDate?' · Pay by '+fmtDate(u.dueDate):''}</div>
+        </div>
+        <div class="uh-customer-amt">${fmt(u.amt)}</div>
+      </div>
+      <div class="uh-customer-bottom">
+        ${dueBadge||'<span></span>'}
+        <div class="udhaar-actions">
+          ${u.phone?`<button class="udhaar-action-btn wa" onclick="sendWA('${esc(u.name)}','${u.phone}',${u.amt},'${u.dueDate||''}')">${waIcon}</button>`:''}
+          ${sahiChhapMap[u.id]?`<button class="sc-verified-badge" onclick="openSahiDone('${u.id}')">✅</button>`:`<button class="sc-get-btn" onclick="startSahiChhap('${u.id}')">🔏</button>`}
+          <button class="udhaar-action-btn paid" onclick="markPaid('${u.id}')"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
   el.innerHTML=`
-    <div class="udhaar-summary-grid">
-      <div class="udhaar-summary-card">
-        <div class="udhaar-summary-val" style="color:var(--color-text-primary)">${fmt(totalU)}</div>
-        <div class="udhaar-summary-label">Total Udhaar</div>
+    <div class="uh-overview-card">
+      <div class="uh-overview-head">
+        <div class="uh-icon-badge">${licon('wallet',16,'color:var(--pm-purple);')}</div>
+        <div class="uh-overview-title">Udhaar Overview</div>
       </div>
-      <div class="udhaar-summary-card">
-        <div class="udhaar-summary-val" style="color:var(--color-warning)">${fmt(pendingAmt)}</div>
-        <div class="udhaar-summary-label">Pending</div>
-      </div>
-      <div class="udhaar-summary-card">
-        <div class="udhaar-summary-val" style="color:var(--color-danger)">${fmt(overdueAmt)}</div>
-        <div class="udhaar-summary-label">Overdue</div>
+      <div class="uh-overview-body">
+        <div class="uh-total-block">
+          <div class="uh-total-label">Total Udhaar</div>
+          <div class="uh-total-value">${fmt(totalU)}</div>
+          <div class="uh-total-sub">Total outstanding</div>
+        </div>
+        <div class="uh-stat-list">
+          <div class="uh-stat-row">
+            <div class="uh-stat-icon pending">${licon('clock',14,'color:var(--color-warning);')}</div>
+            <div class="uh-stat-label">Pending</div>
+            <div class="uh-stat-value pending">${fmt(pendingAmt)}</div>
+          </div>
+          <div class="uh-stat-row">
+            <div class="uh-stat-icon overdue">${licon('alert-circle',14,'color:var(--color-danger);')}</div>
+            <div class="uh-stat-label">Overdue</div>
+            <div class="uh-stat-value overdue">${fmt(overdueAmt)}</div>
+          </div>
+        </div>
       </div>
     </div>
-    ${overdueWithPhone.length>0?`<div class="udhaar-total-bar">
-      <span style="font-size:13px">${active.length} customers · ${fmt(totalU)}</span>
-      <button onclick="sendBulkReminders()" style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#DCFCE7;border:1.5px solid #86EFAC;border-radius:10px;color:#15803D;font-size:12px;font-weight:700;cursor:pointer">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+    ${overdueWithPhone.length>0?`<div class="uh-reminder-bar">
+      <span style="font-size:12px;font-weight:600;color:#15803D">${active.length} customer${active.length===1?'':'s'} · ${fmt(totalU)}</span>
+      <button onclick="sendBulkReminders()" style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#fff;border:1.5px solid #86EFAC;border-radius:10px;color:#15803D;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">
+        <span style="width:14px;height:14px;color:#25D366;display:flex;fill:currentColor">${waIcon}</span>
         Send ${overdueWithPhone.length} Reminder${overdueWithPhone.length>1?'s':''}
       </button>
     </div>`:''}
-    <div class="udhaar-entry-card">
-      <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.9);margin-bottom:12px;display:flex;align-items:center;gap:6px">
-        <i data-lucide="credit-card" style="width:16px;height:16px;color:rgba(255,255,255,0.8)"></i> Add Udhaar (Credit)
+    <div class="uh-form-card">
+      <div class="uh-form-head">${licon('plus-circle',16,'color:var(--pm-purple);')} Add Udhaar (Credit)</div>
+      <div class="uh-form-grid">
+        <input class="input-md" id="u-name" placeholder="${t('name')}" oninput="checkSupplierDueRow()">
+        <input class="input-md" id="u-phone" inputmode="tel" placeholder="${t('phone')}">
+        <input class="input-md" id="u-amt" inputmode="numeric" placeholder="${t('amount')}" onkeydown="if(event.key==='Enter')addUdhaar()">
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <input class="input-md" id="u-name" placeholder="${t('name')}" oninput="checkSupplierDueRow()" style="background:rgba(255,255,255,0.95);border-color:transparent">
-        <input class="input-md" id="u-phone" inputmode="tel" placeholder="${t('phone')}" style="background:rgba(255,255,255,0.95);border-color:transparent">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <input class="input-md" id="u-amt" inputmode="numeric" placeholder="${t('amount')}" onkeydown="if(event.key==='Enter')addUdhaar()" style="background:rgba(255,255,255,0.95);border-color:transparent">
-        <input class="input-md" id="u-due" type="date" title="Due date (when they will pay)" style="background:rgba(255,255,255,0.95);border-color:transparent">
+      <div class="uh-form-due">
+        <input class="input-md" id="u-due" type="date" title="Due date (when they will pay)">
       </div>
       <div id="sup-due-row" class="sup-due-row" style="display:none">
         <label id="sup-due-label">${t('supCalDueDate')}</label>
         <input type="date" id="sup-due-input" class="sup-due-input">
       </div>
-      <button id="btn-add-udhaar" onclick="addUdhaar()" style="width:100%;padding:13px;background:#fff;color:var(--pm-purple);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-        <i data-lucide="plus-circle" style="width:16px;height:16px"></i> Add Udhaar
-      </button>
+      <button id="btn-add-udhaar" class="uh-cta-btn" onclick="addUdhaar()">${licon('plus-circle',16,'color:#fff;')} Add Udhaar</button>
     </div>
-    <div class="section-header"><span>Recent Udhaar</span><span class="count-badge">${sorted.length}</span></div>
-    ${sorted.length===0?_emptyState('users',t('noUdhaar'),'Customers you give credit to will appear here','',''):
-      sorted.map(u=>{
-        const ds=udhaarDueStatus(u);
-        let dueBadge='',dueColor='var(--color-text-secondary)';
-        if(ds){
-          if(ds.type==='overdue'){dueBadge=`<span style="background:#FEE2E2;color:#DC2626;font-size:10px;font-weight:700;padding:2px 6px;border-radius:99px;margin-left:4px">OVERDUE ${ds.days}d</span>`;dueColor='#DC2626';}
-          else if(ds.type==='today'){dueBadge=`<span style="background:#FEF3C7;color:#D97706;font-size:10px;font-weight:700;padding:2px 6px;border-radius:99px;margin-left:4px">DUE TODAY</span>`;dueColor='#D97706';}
-          else{dueBadge=`<span style="background:#F0FDF4;color:#16A34A;font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px;margin-left:4px">Due in ${ds.days}d</span>`;}
-        }
-        const waIcon=`<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>`;
-        return `<div class="list-item" style="min-height:56px;${ds&&ds.type==='overdue'?'background:#FFF5F5;':''}${ds&&ds.type==='today'?'background:#FFFBEB;':''}">
-          <div class="list-item-left">
-            <div class="list-item-title">${esc(u.name)}${dueBadge}</div>
-            <div class="list-item-meta" style="color:${dueColor}">${fmtDate(u.date)}${u.phone?' · '+u.phone:''}${u.dueDate?' · Pay by '+fmtDate(u.dueDate):''}</div>
-            ${u.date?`<div class="bs-date">${bsDateStr(new Date(u.date))}</div>`:''}
-          </div>
-          <div style="font-size:17px;font-weight:800;color:var(--color-danger);white-space:nowrap;margin-right:6px">${fmt(u.amt)}</div>
-          <div class="udhaar-actions">
-            ${u.phone?`<button class="udhaar-action-btn wa" onclick="sendWA('${esc(u.name)}','${u.phone}',${u.amt},'${u.dueDate||''}')">${waIcon}</button>`:''}
-            ${sahiChhapMap[u.id]?`<button class="sc-verified-badge" onclick="openSahiDone('${u.id}')">✅</button>`:`<button class="sc-get-btn" onclick="startSahiChhap('${u.id}')">🔏</button>`}
-            <button class="udhaar-action-btn paid" onclick="markPaid('${u.id}')"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
-          </div>
-        </div>`;
-      }).join('')}`;
+    <div class="uh-search-wrap">
+      ${licon('search',15,'color:var(--color-text-secondary);')}
+      <input placeholder="Search customer..." value="${esc(udhaarSearch)}" oninput="udhaarSearch=this.value;renderUdhaar()">
+      ${udhaarSearch?`<button class="uh-search-clear" onclick="udhaarSearch='';renderUdhaar()">${licon('x',14,'')}</button>`:''}
+    </div>
+    <div class="section-header"><span>Recent Udhaar</span><span class="count-badge">${filtered.length}</span></div>
+    ${listHtml}`;
   _renderIcons();
   updateUdhaarBadge();
 }
