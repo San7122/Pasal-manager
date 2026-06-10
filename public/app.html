@@ -5240,7 +5240,7 @@ function renderToday(){
         <div class="chip-row" style="padding:0;border:none;">
           ${modes.map(m=>{
             const ic={Cash:'banknote',UPI:'qr-code',PhonePe:'smartphone',GPay:'smartphone',Paytm:'smartphone',Card:'credit-card',eSewa:'smartphone',Khalti:'smartphone','IME Pay':'smartphone',Fonepay:'qr-code'}[m]||'circle';
-            return `<button class="chip${m===selectedPay?' selected':''}" style="display:inline-flex;align-items:center;gap:5px" onclick="selectedPay='${m}';renderToday()">${licon(ic,12,'')}${m}</button>`;
+            return `<button class="chip${m===selectedPay?' selected':''}" style="display:inline-flex;align-items:center;gap:5px" onclick="selectedPay='${m}';this.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('selected'));this.classList.add('selected')">${licon(ic,12,'')}${m}</button>`;
           }).join('')}
         </div>
       </div>
@@ -9406,7 +9406,7 @@ function renderExpense(el){
       <button id="btn-add-exp" class="btn-add" style="background:var(--color-danger)" onclick="addExp()">+</button>
     </div>
     <div class="chip-row">
-      ${CATS.map(c=>`<button class="chip${c===selectedExpCat?' selected-danger':''}" onclick="selectedExpCat='${c}';goMore('expense')">${c}</button>`).join('')}
+      ${CATS.map(c=>`<button class="chip${c===selectedExpCat?' selected-danger':''}" onclick="selectedExpCat='${c}';this.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('selected-danger'));this.classList.add('selected-danger')">${c}</button>`).join('')}
     </div>
     <div class="section-header"><span>${t('todayExp')}</span><span class="count-badge">${te.length}</span></div>
     ${te.length===0?`<div class="empty-state">${t('noExp')}</div>`:
