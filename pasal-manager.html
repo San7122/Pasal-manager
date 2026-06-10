@@ -321,38 +321,40 @@ body {
   position: relative;
   overflow: visible;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  height: 72px;
   background: #fff;
   border-top: 1px solid #E2E8F0;
   flex-shrink: 0;
+  padding: 0 4px;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   z-index: 100;
 }
 .nav-btn {
   flex: 1;
-  height: 64px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   background: none;
   border: none;
   cursor: pointer;
-  color: #64748B;
+  color: #94A3B8;
   font-size: 11px;
   font-weight: 500;
-  padding: 0 4px;
+  padding: 8px 2px;
+  margin: 0 2px;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.15s;
-  border-radius: 12px;
+  transition: background 0.15s, color 0.15s;
+  border-radius: 14px;
 }
-.nav-btn.active { color: #7C3AED !important; font-weight: 700; }
-.nav-icon-wrap { display: flex; align-items: center; justify-content: center; width: 44px; height: 28px; border-radius: 10px; transition: background 0.18s; }
-.nav-btn.active .nav-icon-wrap { background: #EDE9FE; }
-.nav-fab-slot { flex: 1; height: 64px; position: relative; display: flex; align-items: center; justify-content: center; }
-.nav-center-fab { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) translateY(-12px); width: 56px; height: 56px; border-radius: 50%; background: #7C3AED; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 18px rgba(124,58,237,0.4); transition: transform 0.15s; z-index: 1; }
-.nav-center-fab:active { transform: translate(-50%, -50%) translateY(-12px) scale(0.92); }
+.nav-btn.active { color: #7C3AED !important; font-weight: 700; background: #F3EEFF; }
+.nav-icon-wrap { display: flex; align-items: center; justify-content: center; line-height: 1; }
+.nav-fab-slot { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; justify-content: center; }
+.nav-center-fab { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) translateY(-16px); width: 56px; height: 56px; border-radius: 50%; background: #7C3AED; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 18px rgba(124,58,237,0.4); transition: transform 0.15s; z-index: 2; }
+.nav-center-fab:active { transform: translate(-50%, -50%) translateY(-16px) scale(0.92); }
 .nav-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ===== TAB PAGES ===== */
@@ -12204,7 +12206,7 @@ function updateTopbar(){
 function updateNavLabels(){
   ['today','katha','udhaar','stock','more'].forEach(l=>{
     const btn=document.getElementById('nav-'+l);
-    if(btn) btn.querySelector('span').textContent=t(l);
+    if(btn) btn.querySelector('span:not(.nav-icon-wrap)').textContent=t(l);
   });
 }
 
