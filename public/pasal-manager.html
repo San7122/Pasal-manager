@@ -7085,8 +7085,9 @@ async function updateQty(id, d){
 }
 async function delStock(id){
   stock=stock.filter(i=>i.id!==id);confirmId=null;
-  await dbDel('pm_stock',id);
   renderStock();
+  try{await dbDel('pm_stock',id);}
+  catch(e){trackError(e?.name||'DeleteFailed',{operation:'delete',table:'pm_stock',message:e?.message,code:e?.code,online:navigator.onLine});}
 }
 
 // =============== MORE MENU ===============
