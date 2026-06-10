@@ -16,20 +16,55 @@
   // Some Android PWA (standalone) WebViews report 100dvh as the full screen
   // height, including the area behind the gesture/nav bar — which pushes the
   // bottom nav off-screen. Track the real visible height with JS instead.
+  let _kbViewportOpen = false;
+  let _kbFocusOpen = false;
+  function _updateKeyboardClass(){
+    document.documentElement.classList.toggle('keyboard-open', _kbFocusOpen || _kbViewportOpen);
+  }
   function _setAppHeight(){
     const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     // On-screen keyboard shrinks visualViewport but not innerHeight — don't
     // shrink the app shell for that (it strands the bottom nav above the
     // keyboard); hide the bottom nav instead via the keyboard-open class.
-    const keyboardOpen = window.visualViewport && (window.innerHeight - vh) > 150;
-    document.documentElement.classList.toggle('keyboard-open', !!keyboardOpen);
-    if (keyboardOpen) return;
+    _kbViewportOpen = !!(window.visualViewport && (window.innerHeight - vh) > 150);
+    _updateKeyboardClass();
+    if (_kbViewportOpen) return;
     document.documentElement.style.setProperty('--app-height', vh + 'px');
   }
   _setAppHeight();
   window.addEventListener('resize', _setAppHeight);
   window.addEventListener('orientationchange', _setAppHeight);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', _setAppHeight);
+  // The visualViewport-shrink heuristic above misses keyboards that don't
+  // shrink the viewport by >150px (compact/split layouts on some devices).
+  // Back it up with focus tracking: any text input/textarea/select getting
+  // focus means the keyboard is opening, regardless of viewport size.
+  function _isTextEntryEl(el){
+    if (!el || !el.tagName) return false;
+    const tag = el.tagName;
+    if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
+    if (tag === 'INPUT') {
+      const t = (el.getAttribute('type') || 'text').toLowerCase();
+      return !['button','checkbox','radio','range','color','file','submit','reset','image'].includes(t);
+    }
+    return !!el.isContentEditable;
+  }
+  let _kbCloseTimer = null;
+  document.addEventListener('focusin', (e) => {
+    if (!_isTextEntryEl(e.target)) return;
+    if (_kbCloseTimer) { clearTimeout(_kbCloseTimer); _kbCloseTimer = null; }
+    _kbFocusOpen = true;
+    _updateKeyboardClass();
+  });
+  document.addEventListener('focusout', (e) => {
+    if (!_isTextEntryEl(e.target)) return;
+    if (_kbCloseTimer) clearTimeout(_kbCloseTimer);
+    _kbCloseTimer = setTimeout(() => {
+      _kbFocusOpen = false;
+      _setAppHeight();
+      _kbCloseTimer = null;
+    }, 100);
+  });
 </script>
 <title>Pasal Manager - Shop Book & Business Manager</title>
 <meta name="description" content="Complete business management app for shopkeepers. Track sales, expenses, udhaar (credit), stock, staff, EMI plans, loans. Works offline. Free for India & Nepal shops.">
