@@ -26,7 +26,7 @@ const HeroInstallButton = () => {
 const HeroBanner = () => {
     const { t } = useLanguage();
     return (
-        <div className="relative w-full min-h-[600px] lg:h-[80vh] overflow-hidden bg-black flex items-center">
+        <div className="relative w-full min-h-[600px] lg:min-h-[80vh] overflow-hidden bg-black flex items-center">
 
             {/* Background Image with Gradient Overlay */}
             <div className="absolute inset-0 z-0">
