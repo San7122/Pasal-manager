@@ -1836,8 +1836,14 @@ body {
 .sk-card-sub{font-size:11px;color:#94A3B8}
 .sk-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;margin-top:2px}
 .sk-alert{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #FEE2E2;background:#FFF5F5}
-.sk-search{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-top:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0;position:sticky;top:0;z-index:10}
-.sk-product-card{background:#fff;border-radius:16px;border:1px solid #E2E8F0;padding:14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.04)}
+.sk-search{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border-top:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0;position:sticky;top:0;z-index:10}
+.sk-product-card{background:#fff;border-radius:16px;border:1px solid #E2E8F0;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,0.04);position:relative}
+.sk-action-row{display:flex;gap:6px}
+.sk-action-btn{flex:1;height:36px;border-radius:9px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:700}
+.sk-menu-btn{width:28px;height:28px;border-radius:8px;border:none;background:#F1F5F9;color:#64748B;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sk-menu-pop{position:absolute;top:42px;right:12px;background:#fff;border:1px solid #E2E8F0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);overflow:hidden;z-index:5;min-width:140px}
+.sk-menu-pop button{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;text-align:left;color:#0F172A}
+.sk-menu-pop button:hover{background:#F8FAFC}
 /* Nav styles consolidated above in .bottom-nav / .nav-btn blocks */
 </style>
 </head>
@@ -6606,71 +6612,67 @@ function _flushToast(){
 
 // =============== STOCK ===============
 let _stockFormOpen=false;
-let _osExpanded=false;
+let _stockFilter='all';
+let _skMenuOpenId=null;
 let _ssdOpen=false;
 function toggleStockForm(){_stockFormOpen=!_stockFormOpen;renderStock();}
+function _stockFilterCycle(){const order=['all','out','low','in'];_stockFilter=order[(order.indexOf(_stockFilter)+1)%order.length];renderStock();}
+function _skMenuToggle(id){_skMenuOpenId=(_skMenuOpenId===id)?null:id;renderStock();}
 function renderStock(){
   const lowStock=stock.filter(i=>i.qty<=5&&i.qty>0);
   const outStock=stock.filter(i=>i.qty<=0);
   const totalValue=stock.reduce((a,i)=>a+(i.buy||0)*(i.qty||0),0);
+  const filterLabels={all:'All',out:'Out of Stock',low:'Low Stock',in:'In Stock'};
 
-  const kpiCards=`<div class="sk-grid">
-    <div class="sk-card">
-      <div class="sk-card-icon" style="background:#EDE9FE"><i class="fa-solid fa-boxes-stacked" style="font-size:16px;color:#7C3AED"></i></div>
-      <div class="sk-card-label">Total Products</div>
-      <div class="sk-card-val" style="color:#7C3AED">${stock.length}</div>
-      <div class="sk-card-sub">All items</div>
+  let filtered=stock;
+  if(_stockFilter==='out') filtered=filtered.filter(i=>i.qty<=0);
+  else if(_stockFilter==='low') filtered=filtered.filter(i=>i.qty>0&&i.qty<=5);
+  else if(_stockFilter==='in') filtered=filtered.filter(i=>i.qty>5);
+  if(stockSearch) filtered=filtered.filter(i=>i.name.toLowerCase().includes(stockSearch.toLowerCase())||(i.barcode||'').includes(stockSearch));
+
+  const healthCard=`<div class="dash-card" style="margin-top:12px">
+    <div class="dash-card-title">Inventory Health</div>
+    <div class="dash-card-sub" style="margin-bottom:14px">${stock.length} product${stock.length===1?'':'s'} tracked</div>
+    <div style="display:flex;align-items:flex-end;gap:16px;margin-bottom:16px">
+      <div>
+        <div class="dash-label">Out of Stock</div>
+        <div style="font-size:42px;font-weight:900;line-height:1;color:${outStock.length>0?'#EF4444':'#0F172A'}">${outStock.length}</div>
+      </div>
+      <div style="flex:1;text-align:right">
+        <div class="dash-label">Total Products</div>
+        <div class="dash-value-md">${stock.length}</div>
+      </div>
     </div>
-    <div class="sk-card">
-      <div class="sk-card-icon" style="background:#FEF3C7"><i class="fa-solid fa-triangle-exclamation" style="font-size:16px;color:#F59E0B"></i></div>
-      <div class="sk-card-label">Low Stock</div>
-      <div class="sk-card-val" style="color:#F59E0B">${lowStock.length}</div>
-      <div class="sk-card-sub">Reorder soon</div>
-    </div>
-    <div class="sk-card">
-      <div class="sk-card-icon" style="background:#FEE2E2"><i class="fa-solid fa-circle-xmark" style="font-size:16px;color:#EF4444"></i></div>
-      <div class="sk-card-label">Out of Stock</div>
-      <div class="sk-card-val" style="color:#EF4444">${outStock.length}</div>
-      <div class="sk-card-sub">Needs restock</div>
-    </div>
-    <div class="sk-card">
-      <div class="sk-card-icon" style="background:#D1FAE5"><i class="fa-solid fa-indian-rupee-sign" style="font-size:16px;color:#10B981"></i></div>
-      <div class="sk-card-label">Inventory Value</div>
-      <div class="sk-card-val" style="color:#10B981;font-size:18px">${fmt(totalValue)}</div>
-      <div class="sk-card-sub">At cost price</div>
+    <div class="dash-divider" style="margin:0 0 14px"></div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+      <div><div class="dash-label">Low Stock</div><div class="dash-value-md" style="color:#F59E0B">${lowStock.length}</div></div>
+      <div><div class="dash-label">Inventory Value</div><div class="dash-value-md" style="color:#10B981">${fmt(totalValue)}</div></div>
     </div>
   </div>`;
 
   const alertSection=outStock.length>0?`
-  <div class="sk-alert" onclick="_osToggle()" style="cursor:pointer">
-    <div style="display:flex;align-items:center;gap:10px;flex:1">
+  <div class="dash-card" style="margin-top:0;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-left:3px solid #EF4444">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
       <i class="fa-solid fa-triangle-exclamation" style="font-size:16px;color:#EF4444;flex-shrink:0"></i>
-      <div>
-        <div style="font-size:14px;font-weight:700;color:#0F172A">Out of Stock Products</div>
-        <div style="font-size:12px;color:#64748B;margin-top:1px">${outStock.length} items · Tap to ${_osExpanded?'hide':'view'}</div>
-      </div>
+      <div style="font-size:13px;font-weight:700;color:#0F172A;line-height:1.3">${outStock.length} Product${outStock.length===1?'':'s'} Need${outStock.length===1?'s':''} Restocking</div>
     </div>
-    <i class="fa-solid fa-chevron-${_osExpanded?'up':'down'}" style="font-size:12px;color:#94A3B8"></i>
-  </div>
-  ${_osExpanded?`<div style="padding:10px 14px 12px;display:flex;flex-wrap:wrap;gap:6px;background:#FFF5F5;border-bottom:1px solid #FEE2E2">${outStock.map(i=>`<span style="padding:4px 10px;border-radius:99px;background:#fff;border:1px solid #FCA5A5;font-size:12px;font-weight:600;color:#EF4444">${esc(i.name)}</span>`).join('')}</div>`:''}`
-  :lowStock.length>0?`<div class="sk-alert" style="background:#FFFBEB;border-bottom-color:#FDE68A">
-    <div style="display:flex;align-items:center;gap:10px;flex:1">
-      <i class="fa-solid fa-triangle-exclamation" style="font-size:15px;color:#F59E0B;flex-shrink:0"></i>
-      <div>
-        <div style="font-size:13px;font-weight:700;color:#0F172A">Low Stock Warning</div>
-        <div style="font-size:12px;color:#64748B">${lowStock.map(i=>esc(i.name)+' ('+i.qty+')').join(', ')}</div>
-      </div>
+    <button onclick="_stockFilter='out';renderStock()" style="flex-shrink:0;background:#FEE2E2;color:#EF4444;border:none;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">View Products</button>
+  </div>`
+  :lowStock.length>0?`
+  <div class="dash-card" style="margin-top:0;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-left:3px solid #F59E0B">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <i class="fa-solid fa-triangle-exclamation" style="font-size:16px;color:#F59E0B;flex-shrink:0"></i>
+      <div style="font-size:13px;font-weight:700;color:#0F172A;line-height:1.3">${lowStock.length} Product${lowStock.length===1?'':'s'} Running Low</div>
     </div>
+    <button onclick="_stockFilter='low';renderStock()" style="flex-shrink:0;background:#FEF3C7;color:#F59E0B;border:none;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">View Products</button>
   </div>`:'';
 
   const productsHtml=(()=>{
     if(stock.length===0) return _emptyState('package',t('noStock'),'Add items to track inventory and profit','','');
-    const filtered=stockSearch?stock.filter(i=>i.name.toLowerCase().includes(stockSearch.toLowerCase())||(i.barcode||'').includes(stockSearch)):stock;
-    if(filtered.length===0) return _emptyState('search','No results','Try a different item name','','');
+    if(filtered.length===0) return _emptyState('search','No results','Try a different filter or search term','','');
     return filtered.map(i=>{
       const profit=Math.round(i.sell-i.buy);
       const qtyColor=i.qty<=0?'#EF4444':i.qty<=5?'#F59E0B':'#10B981';
-      const qtyBg=i.qty<=0?'#FEE2E2':i.qty<=5?'#FEF3C7':'#D1FAE5';
       const statusChip=i.qty<=0
         ?`<span class="sk-badge" style="background:#FEE2E2;color:#EF4444"><i class="fa-solid fa-circle-xmark" style="font-size:9px;margin-right:4px"></i>Out of Stock</span>`
         :i.qty<=5
@@ -6678,58 +6680,53 @@ function renderStock(){
         :`<span class="sk-badge" style="background:#D1FAE5;color:#10B981"><i class="fa-solid fa-circle-check" style="font-size:9px;margin-right:4px"></i>In Stock</span>`;
       if(confirmId===i.id) return `<div class="sk-product-card"><div style="font-size:15px;font-weight:700;color:#0F172A;margin-bottom:6px">${esc(i.name)}</div><div style="font-size:13px;color:#EF4444;font-weight:600;margin-bottom:12px">${t('delete')}</div><div style="display:flex;gap:8px"><button class="btn-confirm yes" onclick="delStock('${i.id}')">${t('yesDelete')}</button><button class="btn-confirm no" onclick="confirmId=null;renderStock()">${t('cancel')}</button></div></div>`;
       return `<div class="sk-product-card"${i.barcode?` data-barcode="${esc(i.barcode)}"`:''}>
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
-          <div style="flex:1;min-width:0;margin-right:10px">
-            <div style="font-size:15px;font-weight:700;color:#0F172A;margin-bottom:4px">${esc(i.name)}${i.size?`<span style="font-size:12px;font-weight:500;color:#64748B;margin-left:6px">${esc(i.size)}</span>`:''}</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(i.name)}${i.size?`<span style="font-size:11px;font-weight:500;color:#64748B;margin-left:6px">${esc(i.size)}</span>`:''}</div>
             ${statusChip}
           </div>
-          <div style="text-align:center;background:${qtyBg};border-radius:12px;padding:7px 12px;min-width:52px;flex-shrink:0">
-            <div style="font-size:22px;font-weight:900;color:${qtyColor};line-height:1">${i.qty}</div>
-            <div style="font-size:10px;color:${qtyColor};font-weight:600;margin-top:2px">${t('inStock')}</div>
-          </div>
+          <button class="sk-menu-btn" onclick="_skMenuToggle('${i.id}')"><i class="fa-solid fa-ellipsis-vertical" style="font-size:14px"></i></button>
+          ${_skMenuOpenId===i.id?`<div class="sk-menu-pop">
+            <button onclick="_skMenuToggle('${i.id}');confirmId='${i.id}';renderStock()" style="color:#EF4444"><i class="fa-solid fa-trash" style="font-size:12px"></i> ${t('delete')}</button>
+          </div>`:''}
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-bottom:12px;background:#F8FAFC;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0">
-          <div style="padding:9px 6px;text-align:center">
-            <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px">BUY</div>
-            <div style="font-size:13px;font-weight:700;color:#0F172A">${fmt(i.buy)}</div>
-          </div>
-          <div style="padding:9px 6px;text-align:center;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0">
-            <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px">SELL</div>
-            <div style="font-size:13px;font-weight:700;color:#0F172A">${fmt(i.sell)}</div>
-          </div>
-          <div style="padding:9px 6px;text-align:center">
-            <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px">PROFIT</div>
-            <div style="font-size:13px;font-weight:700;color:${profit>=0?'#10B981':'#EF4444'}">${fmt(profit)}</div>
-          </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:13px;color:#64748B">Stock: <b style="color:${qtyColor};font-size:15px">${i.qty}</b> Units</div>
+          <div style="font-size:13px;font-weight:700;color:${profit>=0?'#10B981':'#EF4444'}">Profit ${fmt(profit)}</div>
         </div>
-        ${i.barcode?`<div style="font-size:11px;color:#64748B;font-family:monospace;margin-bottom:10px;background:#F1F5F9;padding:4px 10px;border-radius:8px;display:inline-block"><i class="fa-solid fa-barcode" style="margin-right:4px"></i>${esc(i.barcode)}</div>`:''}
-        <div style="display:flex;gap:6px">
-          <button style="flex:1;height:40px;border-radius:10px;background:#D1FAE5;color:#059669;border:none;font-size:22px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="updateQty('${i.id}',1)">+</button>
-          <button style="flex:1;height:40px;border-radius:10px;background:#FEE2E2;color:#EF4444;border:none;font-size:22px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="updateQty('${i.id}',-1)">−</button>
-          <button style="width:40px;height:40px;border-radius:10px;background:#EDE9FE;color:#7C3AED;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" onclick="showBarcodeModal('${i.id}')" title="View Barcode"><i class="fa-solid fa-barcode" style="font-size:15px"></i></button>
-          <button style="width:40px;height:40px;border-radius:10px;background:#F1F5F9;color:#475569;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" onclick="showStockHistory('${i.id}')" title="History"><i class="fa-solid fa-clock-rotate-left" style="font-size:14px"></i></button>
-          <button style="width:40px;height:40px;border-radius:10px;background:#FEE2E2;color:#EF4444;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" onclick="confirmId='${i.id}';renderStock()"><i class="fa-solid fa-trash" style="font-size:13px"></i></button>
+        <div style="font-size:12px;color:#94A3B8;margin-bottom:10px">Buy ${fmt(i.buy)} &nbsp;·&nbsp; Sell ${fmt(i.sell)}</div>
+        <div class="sk-action-row">
+          <button class="sk-action-btn" style="background:#D1FAE5;color:#059669" onclick="updateQty('${i.id}',1)"><i class="fa-solid fa-plus" style="font-size:11px"></i> Add</button>
+          <button class="sk-action-btn" style="background:#FEE2E2;color:#EF4444" onclick="updateQty('${i.id}',-1)"><i class="fa-solid fa-minus" style="font-size:11px"></i> Remove</button>
+          <button class="sk-action-btn" style="background:#EDE9FE;color:#7C3AED" onclick="showBarcodeModal('${i.id}')"><i class="fa-solid fa-barcode" style="font-size:12px"></i> Scan</button>
+          <button class="sk-action-btn" style="background:#F1F5F9;color:#475569" onclick="showStockHistory('${i.id}')"><i class="fa-solid fa-clock-rotate-left" style="font-size:12px"></i> History</button>
         </div>
       </div>`;
     }).join('');
   })();
 
   document.getElementById('page-stock').innerHTML=`
-    ${kpiCards}
+    ${healthCard}
     ${alertSection}
     <div class="sk-search">
-      <i class="fa-solid fa-magnifying-glass" style="font-size:14px;color:#94A3B8;flex-shrink:0"></i>
-      <input class="input-sm" placeholder="Search products..." value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStock()" style="flex:1;border:none;background:transparent;font-size:14px;outline:none;height:40px;padding:0">
-      ${stockSearch?`<button onclick="stockSearch='';renderStock()" style="background:none;border:none;color:#94A3B8;cursor:pointer;padding:0 4px;font-size:16px"><i class="fa-solid fa-xmark"></i></button>`:'<i class="fa-solid fa-sliders" style="font-size:14px;color:#94A3B8"></i>'}
+      <div style="flex:1;display:flex;align-items:center;gap:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:0 12px;height:40px;min-width:0">
+        <i class="fa-solid fa-magnifying-glass" style="font-size:13px;color:#94A3B8;flex-shrink:0"></i>
+        <input class="input-sm" placeholder="Search products..." value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStock()" style="flex:1;min-width:0;border:none;background:transparent;font-size:14px;outline:none;height:38px;padding:0">
+        ${stockSearch?`<button onclick="stockSearch='';renderStock()" style="background:none;border:none;color:#94A3B8;cursor:pointer;padding:0;font-size:14px;flex-shrink:0"><i class="fa-solid fa-xmark"></i></button>`:''}
+      </div>
+      <button class="scan-btn" onclick="openScanner('stockFind')" style="flex-shrink:0;height:40px;padding:0 14px;font-size:13px;font-weight:700">
+        <i class="fa-solid fa-barcode" style="font-size:13px"></i> Scan
+      </button>
+      <button onclick="_stockFilterCycle()" style="flex-shrink:0;height:40px;padding:0 14px;border-radius:10px;border:1px solid ${_stockFilter!=='all'?'#7C3AED':'#E2E8F0'};background:${_stockFilter!=='all'?'#EDE9FE':'#fff'};color:${_stockFilter!=='all'?'#7C3AED':'#64748B'};font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap">
+        <i class="fa-solid fa-sliders" style="font-size:12px"></i> ${filterLabels[_stockFilter]}
+      </button>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 14px 8px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:17px;font-weight:800;color:#0F172A">All Products</span>
-        <span style="font-size:11px;font-weight:700;color:#7C3AED;background:#EDE9FE;padding:2px 9px;border-radius:99px">${stock.length} Products</span>
+        <span style="font-size:17px;font-weight:800;color:#0F172A">${_stockFilter==='all'?'All Products':filterLabels[_stockFilter]}</span>
+        <span style="font-size:11px;font-weight:700;color:#7C3AED;background:#EDE9FE;padding:2px 9px;border-radius:99px">${filtered.length} Product${filtered.length===1?'':'s'}</span>
       </div>
-      <button class="scan-btn" onclick="openScanner('stockFind')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:13px;font-weight:700">
-        <i class="fa-solid fa-barcode" style="font-size:13px"></i> Scan
-      </button>
+      ${_stockFilter!=='all'?`<button onclick="_stockFilter='all';renderStock()" style="background:none;border:none;color:#7C3AED;font-size:12px;font-weight:700;cursor:pointer">Clear filter</button>`:''}
     </div>
     <div style="padding:0 12px 100px">${productsHtml}</div>
     ${(stock.length===0||_stockFormOpen)?`
