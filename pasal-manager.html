@@ -13025,6 +13025,20 @@ function startListening(){
   }
 }
 
+// Original 3-card markup for the ambiguous-intent row (Sale / Udhaar / Expense).
+// _showAmountSuggestions() temporarily replaces .voice-ambig-row's content with
+// amount-suggestion buttons, so this template lets us restore it afterwards.
+const _AMBIG_ROW_HTML=`
+  <button class="voice-ambig-btn" onclick="voiceResolve('sale')">
+    <span class="vab-emoji">💰</span><span id="vab-sale">Sale</span>
+  </button>
+  <button class="voice-ambig-btn" onclick="voiceResolve('udhaar-add')">
+    <span class="vab-emoji">📒</span><span id="vab-udhaar">Udhaar</span>
+  </button>
+  <button class="voice-ambig-btn" onclick="voiceResolve('expense')">
+    <span class="vab-emoji">🧾</span><span id="vab-expense">Kharcha</span>
+  </button>`;
+
 function _processVoiceResult(transcript){
   // Check if we're listening for the user's choice (udhaar/bikari/kharcha)
   if(_voiceListeningForIntent && _voiceAmbigAmt){
@@ -13057,6 +13071,9 @@ function _processVoiceResult(transcript){
     const cur_sym=S.country==='NP'?'रू':'₹';
     document.getElementById('vp-ambig-heard').textContent=`"${transcript}"`;
     document.getElementById('vp-ambig-title').textContent=`${cur_sym}${parsed.amount} — ${t('voiceWhatFor')}`;
+
+    // Restore the 3-card row (in case _showAmountSuggestions replaced it last time)
+    document.querySelector('.voice-ambig-row').innerHTML=_AMBIG_ROW_HTML;
 
     // Ask where to add it
     const vabSale=document.getElementById('vab-sale');
@@ -13162,14 +13179,14 @@ function _showAmountSuggestions(parsed, transcript){
 
   let btns='';
   suggestions.forEach(s=>{
-    btns+=`<button class="voice-amt-btn" onclick="_selectVoiceAmount(${s},'${parsed.intent}',\`${transcript}\`)" style="padding:12px;margin:8px 4px;border:2px solid #7c3aed;background:#f5f3ff;border-radius:8px;cursor:pointer;font-weight:600;min-width:100px">${cur_sym}${fmt(s).replace(/रू|₹/,'')}</button>`;
+    btns+=`<button class="voice-amt-btn" onclick="_selectVoiceAmount(${s},'${parsed.intent}',\`${transcript}\`)" style="flex:1;min-width:0;padding:12px 4px;margin:0 4px;border:2px solid #7c3aed;background:#f5f3ff;border-radius:8px;cursor:pointer;font-weight:600">${cur_sym}${fmt(s).replace(/रू|₹/,'')}</button>`;
   });
 
   document.getElementById('vp-ambig-heard').textContent=`"${transcript}"`;
-  document.getElementById('vp-ambig-title').innerHTML=`<div style="margin-bottom:12px">${cur_sym}${amt} — ${t('voiceWhatFor')}?</div><div style="font-size:13px;color:#666;font-weight:400">Or select:</div>`;
-  document.getElementById('vab-sale').innerHTML=btns;
-  document.getElementById('vab-udhaar').style.display='none';
-  document.getElementById('vab-expense').style.display='none';
+  document.getElementById('vp-ambig-title').innerHTML=`<div style="margin-bottom:12px">${cur_sym}${amt} — ${t('voiceWhatFor')}</div><div style="font-size:13px;color:#666;font-weight:400">Or select:</div>`;
+  // Replace the 3-card row with suggestion buttons as direct flex children
+  // (avoids nesting <button> inside .voice-ambig-btn, which breaks layout)
+  document.querySelector('.voice-ambig-row').innerHTML=btns;
   _showVoicePhase('ambig');
 }
 
