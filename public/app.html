@@ -13,6 +13,16 @@
     s.textContent = '.auto-login #auth-page{display:none!important;}';
     document.head.appendChild(s);
   }
+  // Some Android PWA (standalone) WebViews report 100dvh as the full screen
+  // height, including the area behind the gesture/nav bar — which pushes the
+  // bottom nav off-screen. Track the real visible height with JS instead.
+  function _setAppHeight(){
+    document.documentElement.style.setProperty('--app-height', (window.visualViewport ? window.visualViewport.height : window.innerHeight) + 'px');
+  }
+  _setAppHeight();
+  window.addEventListener('resize', _setAppHeight);
+  window.addEventListener('orientationchange', _setAppHeight);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', _setAppHeight);
 </script>
 <title>Pasal Manager - Shop Book & Business Manager</title>
 <meta name="description" content="Complete business management app for shopkeepers. Track sales, expenses, udhaar (credit), stock, staff, EMI plans, loans. Works offline. Free for India & Nepal shops.">
@@ -151,6 +161,7 @@ body {
   -webkit-tap-highlight-color: transparent;
   overflow: hidden;
   height: 100dvh;
+  height: var(--app-height, 100dvh);
 }
 
 .desktop-side { display: none !important; }
@@ -159,6 +170,7 @@ body {
 .app-shell {
   display: flex;
   height: 100dvh;
+  height: var(--app-height, 100dvh);
   overflow: hidden;
 }
 
