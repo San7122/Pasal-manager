@@ -37,8 +37,9 @@
   if (window.visualViewport) window.visualViewport.addEventListener('resize', _setAppHeight);
   // The visualViewport-shrink heuristic above misses keyboards that don't
   // shrink the viewport by >150px (compact/split layouts on some devices).
-  // Back it up with focus tracking: any text input/textarea/select getting
-  // focus means the keyboard is opening, regardless of viewport size.
+  // Back it up with focus tracking: a text input/textarea/select getting
+  // focus right after a user tap on it means the keyboard is opening,
+  // regardless of viewport size.
   function _isTextEntryEl(el){
     if (!el || !el.tagName) return false;
     const tag = el.tagName;
@@ -49,9 +50,23 @@
     }
     return !!el.isContentEditable;
   }
+  let _lastPointerTarget = null;
+  let _lastPointerTime = 0;
+  document.addEventListener('pointerdown', (e) => {
+    _lastPointerTarget = e.target;
+    _lastPointerTime = Date.now();
+  }, true);
   let _kbCloseTimer = null;
   document.addEventListener('focusin', (e) => {
     if (!_isTextEntryEl(e.target)) return;
+    // Only treat this as "keyboard opening" if focus followed a recent tap
+    // on (or around) this same element. Programmatic .focus() calls — e.g.
+    // auto-focusing a field after switching tabs — don't reliably open the
+    // on-screen keyboard, so don't hide the bottom nav for those (doing so
+    // left it permanently hidden after every tab switch).
+    const recentTap = _lastPointerTarget && (Date.now() - _lastPointerTime) < 500
+      && (e.target === _lastPointerTarget || e.target.contains(_lastPointerTarget) || _lastPointerTarget.contains(e.target));
+    if (!recentTap) return;
     if (_kbCloseTimer) { clearTimeout(_kbCloseTimer); _kbCloseTimer = null; }
     _kbFocusOpen = true;
     _updateKeyboardClass();
