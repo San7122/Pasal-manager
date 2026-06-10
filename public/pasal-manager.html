@@ -17,7 +17,14 @@
   // height, including the area behind the gesture/nav bar — which pushes the
   // bottom nav off-screen. Track the real visible height with JS instead.
   function _setAppHeight(){
-    document.documentElement.style.setProperty('--app-height', (window.visualViewport ? window.visualViewport.height : window.innerHeight) + 'px');
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    // On-screen keyboard shrinks visualViewport but not innerHeight — don't
+    // shrink the app shell for that (it strands the bottom nav above the
+    // keyboard); hide the bottom nav instead via the keyboard-open class.
+    const keyboardOpen = window.visualViewport && (window.innerHeight - vh) > 150;
+    document.documentElement.classList.toggle('keyboard-open', !!keyboardOpen);
+    if (keyboardOpen) return;
+    document.documentElement.style.setProperty('--app-height', vh + 'px');
   }
   _setAppHeight();
   window.addEventListener('resize', _setAppHeight);
@@ -342,6 +349,10 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
   z-index: 100;
 }
+/* Hide the bottom nav while the on-screen keyboard is open — otherwise it
+   gets stranded mid-screen above the keyboard (app-shell no longer shrinks
+   for the keyboard, see _setAppHeight). */
+html.keyboard-open .bottom-nav { display: none !important; }
 .nav-btn {
   flex: 1;
   min-width: 0;
