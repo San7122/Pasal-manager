@@ -560,6 +560,49 @@ body {
   .chart-row .chart-card:first-child { margin-left: 12px; }
   .chart-row .chart-card:last-child { margin-right: 12px; }
 }
+
+/* ===== Dashboard (premium redesign) — scoped to renderDashboard() only ===== */
+.dash-card {
+  background: #fff; border-radius: 24px;
+  padding: 20px; margin: 0 12px 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  position: relative;
+}
+.dash-card-title { font-size: 16px; font-weight: 800; color: var(--color-text-primary); letter-spacing: -0.2px; line-height: 1.2; }
+.dash-card-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+.dash-label { font-size: 11px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.dash-value-md { font-size: 22px; font-weight: 800; line-height: 1.15; color: var(--color-text-primary); }
+.dash-divider { height: 1px; background: #F1F5F9; margin: 16px 0; }
+.dash-section-title { font-size: 16px; font-weight: 800; color: var(--color-text-primary); margin: 4px 16px 10px; letter-spacing: -0.2px; }
+.dash-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #F8FAFC; border: 1px solid #E2E8F0; color: var(--color-text-secondary);
+  border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer;
+}
+.dash-qa-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 12px 14px; }
+.dash-qa-card {
+  background: #fff; border-radius: 18px; padding: 14px 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05); border: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center; font-family: inherit;
+}
+.dash-qa-icon { width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.dash-qa-label { font-size: 11.5px; font-weight: 700; color: var(--color-text-primary); line-height: 1.25; }
+.dash-analytics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 0 12px 14px; }
+.dash-analytics-card {
+  background: #fff; border-radius: 18px; padding: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05); border: none; cursor: pointer;
+  text-align: left; font-family: inherit;
+}
+.dash-analytics-card.expanded { grid-column: 1 / -1; }
+.dash-analytics-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.dash-insight-card {
+  background: linear-gradient(135deg,#faf5ff 0%,#f5f3ff 100%);
+  border: 1px solid #ede9fe; border-radius: 24px;
+  padding: 18px 20px; margin: 0 12px 18px;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+
 .btn-spinner {
   display: inline-block; width: 14px; height: 14px;
   border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
@@ -7092,6 +7135,11 @@ function getTrialReminderBanner(){
   </div>`;
 }
 
+let _dashExpanded=new Set();
+function toggleDashCard(id){
+  if(_dashExpanded.has(id)) _dashExpanded.delete(id); else _dashExpanded.add(id);
+  renderMore();
+}
 function renderDashboard(el){
   destroyCharts();
   const now=new Date();
@@ -7146,105 +7194,177 @@ function renderDashboard(el){
   const has7DayData=days.some(d=>d.s>0||d.e>0);
   const has6MoData=months6.some(m=>m.s>0||m.e>0);
 
+  // Additional data for "More Analytics" cards
+  const todayCount = sales.filter(s=>s.date===todayS).length;
+  const udhaarCustCount = udhaars.filter(u=>!u.paid).length;
+
+  const catMap={};
+  expenses.filter(e=>e.date.substring(0,7)===mk).forEach(e=>{
+    const c=e.category||'Shop';
+    catMap[c]=(catMap[c]||0)+e.amt;
+  });
+  const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+
+  const custMap={};
+  sales.forEach(s=>{
+    if(!s.customerId) return;
+    custMap[s.customerId]=(custMap[s.customerId]||0)+s.amt;
+  });
+  const top=Object.entries(custMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const topNames=top.map(([id,amt])=>{const c=customers.find(x=>x.id===id);return{name:c?c.name:'Unknown',amt};});
+
+  const hourMap=new Array(24).fill(0);
+  sales.forEach(s=>{if(s.ts){hourMap[new Date(s.ts).getHours()]+=s.amt;}});
+  const hasHour=hourMap.some(v=>v>0);
+
+  // Premium color system: success/danger/warning only when meaningful
+  const profitColor2 = monthProfit>0?'#10B981':monthProfit<0?'#EF4444':'var(--color-text-primary)';
+  const udhaarColor2 = udhaarPending>0?'#F59E0B':'var(--color-text-primary)';
+  const supplierColor2 = supplierOwed>0?'#EF4444':'var(--color-text-primary)';
+  const profitDisplay = `${monthProfit<0?'-':''}${fmt(Math.abs(monthProfit))}`;
+
+  // Smart insight: suggest paying down supplier debt from this week's earnings
+  let smartInsightHtml='';
+  if(supplierOwed>0 && weekAmt>0){
+    const suggested=Math.min(Math.round(weekAmt*0.30),supplierOwed);
+    if(suggested>=100){
+      smartInsightHtml=`<div class="dash-insight-card">
+        <div style="width:36px;height:36px;border-radius:12px;background:#ede9fe;display:flex;align-items:center;justify-content:center;flex-shrink:0">${licon('lightbulb',18,'color:var(--color-accent);')}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:800;color:var(--color-text-primary);margin-bottom:4px">Smart Insight</div>
+          <div style="font-size:13px;color:var(--color-text-secondary);line-height:1.5;margin-bottom:10px">You earned <strong style="color:var(--color-text-primary)">${fmt(weekAmt)}</strong> this week. Consider paying <strong style="color:var(--color-text-primary)">${fmt(suggested)}</strong> toward your ${fmt(supplierOwed)} supplier balance to stay in good standing.</div>
+          <button onclick="goMore('kharidi')" style="background:var(--color-accent);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer">Pay Now →</button>
+        </div>
+      </div>`;
+    }
+  }
+
+  // "More Analytics" — expandable cards (tap to drill in, no new routes)
+  const dashCard=(id,icon,iconBg,iconFg,title,sub,bodyHtml)=>{
+    const isOpen=_dashExpanded.has(id);
+    return `<div class="dash-analytics-card${isOpen?' expanded':''}" onclick="toggleDashCard('${id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="dash-analytics-icon" style="background:${iconBg}">${licon(icon,15,`color:${iconFg};`)}</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--color-text-primary)">${title}</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">${sub}</div>
+          </div>
+        </div>
+        ${licon(isOpen?'chevron-up':'chevron-down',16,'color:#CBD5E1;')}
+      </div>
+      ${isOpen?`<div style="margin-top:14px" onclick="event.stopPropagation()">${bodyHtml}</div>`:''}
+    </div>`;
+  };
+
+  const analyticsCards=[];
+  analyticsCards.push(dashCard('sixmo','line-chart','#ede9fe','#7c3aed','6-Month Overview','Sales, expenses & profit',
+    has6MoData
+      ? `<div style="position:relative;height:200px"><canvas id="chart-6mo"></canvas></div>
+         <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+           <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#7c3aed;display:inline-block"></span>Sales</span>
+           <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#FDA4AF;display:inline-block"></span>Expenses</span>
+           <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#10b981;display:inline-block"></span>Profit</span>
+         </div>`
+      : `<div style="text-align:center;padding:20px 0;color:var(--color-text-secondary);font-size:12px">No data for last 6 months yet</div>`
+  ));
+  if(cats.length) analyticsCards.push(dashCard('expcat','receipt','#fef2f2','#E11D48','Expenses by Category','This month',
+    `<div style="position:relative;height:200px"><canvas id="chart-exp-cat"></canvas></div>`
+  ));
+  if(hasHour) analyticsCards.push(dashCard('hour','clock','#eff6ff','#2563EB','Sales by Hour','All-time pattern',
+    `<div style="position:relative;height:180px"><canvas id="chart-hour"></canvas></div>
+     <div id="chart-hour-data" style="display:none">${encodeURIComponent(JSON.stringify(hourMap))}</div>`
+  ));
+  if(payLabels.length) analyticsCards.push(dashCard('paymethods','credit-card','#ecfdf5','#059669','Payment Methods','This month',
+    `<div style="display:flex;align-items:center;gap:16px">
+       <canvas id="chart-pay" width="100" height="100" style="flex-shrink:0;width:100px;height:100px"></canvas>
+       <div style="display:flex;flex-direction:column;gap:8px;flex:1" id="pay-legend"></div>
+     </div>`
+  ));
+  if(top.length) analyticsCards.push(dashCard('topcust','users','#fffbeb','#D97706','Top Customers','All-time leaders',
+    `<div style="position:relative;height:200px"><canvas id="chart-top-cust"></canvas></div>
+     <div id="chart-top-cust-data" style="display:none">${encodeURIComponent(JSON.stringify(topNames))}</div>`
+  ));
+
   el.innerHTML=backBtn()+`
-  <div style="padding:12px 0 28px">
+  <div style="padding:8px 0 28px">
 
     ${getTrialReminderBanner()}
 
-    <!-- Dashboard header -->
-    <div style="padding:6px 16px 16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#5b21b6);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(124,58,237,0.3)">${licon('layout-dashboard',18,'color:#fff;')}</div>
-          <div>
-            <div style="font-size:18px;font-weight:800;color:var(--color-text-primary);letter-spacing:-0.3px;line-height:1.2">Business Dashboard</div>
-            <div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">Real-time insights · ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
-          </div>
+    ${branches.length>0?`<div style="margin:0 12px 10px;display:flex;justify-content:flex-end">
+      <button onclick="showBranchSwitcher()" class="dash-pill" style="border-color:var(--pm-purple);color:var(--pm-purple);background:var(--pm-purple-light)">${licon('building-2',12,'')}${esc(branchLabel)}</button>
+    </div>`:''}
+
+    <!-- Section 1: Business Overview (hero) -->
+    <div class="dash-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:36px;height:36px;border-radius:12px;background:var(--pm-purple-light);display:flex;align-items:center;justify-content:center">${licon('sparkles',18,'color:var(--color-accent);')}</div>
+        <div>
+          <div class="dash-card-title">Business Overview</div>
+          <div class="dash-card-sub">Real-time business health</div>
         </div>
-        ${branches.length>0?`<button onclick="showBranchSwitcher()" style="background:var(--pm-purple-light);border:1.5px solid var(--pm-purple);color:var(--pm-purple);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer">${esc(branchLabel)}</button>`:''}
+      </div>
+      <div style="display:flex;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div class="dash-label">Today's Sales</div>
+          <div class="dash-value-md" style="color:var(--color-accent)">${fmt(todayAmt)}</div>
+          <div class="dash-card-sub">${todayCount} ${todayCount===1?'entry':'entries'} today</div>
+        </div>
+        <div style="flex:1;min-width:0;border-left:1px solid #F1F5F9;padding-left:14px;margin-left:14px">
+          <div class="dash-label">Profit (Month)</div>
+          <div class="dash-value-md" style="color:${profitColor2}">${profitDisplay}</div>
+          <div class="dash-card-sub">Sales − Expenses</div>
+        </div>
+        <div style="flex:1;min-width:0;border-left:1px solid #F1F5F9;padding-left:14px;margin-left:14px">
+          <div class="dash-label">Week Revenue</div>
+          <div class="dash-value-md">${fmt(weekAmt)}</div>
+          <div class="dash-card-sub">Last 7 days</div>
+        </div>
+      </div>
+      ${has7DayData?`<div style="height:48px;margin-top:14px"><canvas id="dash-sparkline"></canvas></div>`:''}
+      <div class="dash-divider"></div>
+      <div style="display:flex">
+        <div style="flex:1">
+          <div class="dash-label">To Collect</div>
+          <div class="dash-value-md" style="color:${udhaarColor2};font-size:18px">${fmt(udhaarPending)}</div>
+          <div class="dash-card-sub">${udhaarCustCount} customer${udhaarCustCount===1?'':'s'}</div>
+        </div>
+        <div style="flex:1;border-left:1px solid #F1F5F9;padding-left:14px;margin-left:14px">
+          <div class="dash-label">I Owe (Suppliers)</div>
+          <div class="dash-value-md" style="color:${supplierColor2};font-size:18px">${fmt(supplierOwed)}</div>
+          <div class="dash-card-sub">Total dues</div>
+        </div>
       </div>
     </div>
 
-    <!-- 4 KPI cards — monochrome by default. Color only when data is meaningful. -->
-    ${(()=>{
-      // Smart-color helpers: neutral when value is 0, semantic when meaningful.
-      const NEUTRAL_ICON_BG = '#F1F5F9';
-      const NEUTRAL_ICON_FG = '#64748B';
-      const NEUTRAL_VALUE   = 'var(--color-text-primary)';
-      const profitColor = monthProfit > 0 ? '#059669' : monthProfit < 0 ? '#E11D48' : NEUTRAL_VALUE;
-      const profitIconBg = monthProfit > 0 ? '#ECFDF5' : monthProfit < 0 ? '#FFF1F2' : NEUTRAL_ICON_BG;
-      const profitIconFg = monthProfit > 0 ? '#059669' : monthProfit < 0 ? '#E11D48' : NEUTRAL_ICON_FG;
-      const udhaarColor  = udhaarPending > 0 ? '#D97706' : NEUTRAL_VALUE;
-      const udhaarIconBg = udhaarPending > 0 ? '#FFFBEB' : NEUTRAL_ICON_BG;
-      const udhaarIconFg = udhaarPending > 0 ? '#D97706' : NEUTRAL_ICON_FG;
-      const supplierColor  = supplierOwed > 0 ? '#DC2626' : NEUTRAL_VALUE;
-      const supplierIconBg = supplierOwed > 0 ? '#FEF2F2' : NEUTRAL_ICON_BG;
-      const supplierIconFg = supplierOwed > 0 ? '#DC2626' : NEUTRAL_ICON_FG;
-      const sub = 'font-size:10px;font-weight:800;color:var(--color-text-secondary);letter-spacing:0.8px;text-transform:uppercase';
-      const iconBox = (bg, fg, icon) => `<div style="width:32px;height:32px;border-radius:10px;background:${bg};display:flex;align-items:center;justify-content:center">${licon(icon,16,`color:${fg};`)}</div>`;
-      const card = (iconBg, iconFg, icon, label, value, sub_text, valueColor) => `
-        <div class="summary-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            ${iconBox(iconBg, iconFg, icon)}
-            <span style="${sub}">${label}</span>
-          </div>
-          <div class="summary-card-value" style="color:${valueColor};font-size:24px">${value}</div>
-          <div class="summary-card-sub">${sub_text}</div>
-        </div>`;
-      return `<div class="summary-card-grid">
-        <!-- TODAY: stays the subtle hero with a soft purple tint -->
-        <div class="summary-card" style="background:linear-gradient(135deg,#faf5ff 0%,#ffffff 100%);border-color:#ede9fe">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            ${iconBox('#ede9fe', '#7c3aed', 'trending-up')}
-            <span style="${sub}">Today</span>
-          </div>
-          <div class="summary-card-value" style="color:#5b21b6;font-size:24px">${fmt(todayAmt)}</div>
-          <div class="summary-card-sub">${sales.filter(s=>s.date===todayS).length} entries today</div>
-        </div>
-        ${card(NEUTRAL_ICON_BG, NEUTRAL_ICON_FG, 'calendar-days', 'Week', fmt(weekAmt), 'Last 7 days', NEUTRAL_VALUE)}
-        ${card(profitIconBg, profitIconFg, 'bar-chart-2', 'Profit', `${monthProfit<0?'-':''}${fmt(Math.abs(monthProfit))}`, 'Sales − Exp this month', profitColor)}
-        ${card(udhaarIconBg, udhaarIconFg, 'arrow-down-left', 'To Collect', fmt(udhaarPending), `${udhaars.filter(u=>!u.paid).length} customers · udhaar`, udhaarColor)}
-        ${card(supplierIconBg, supplierIconFg, 'arrow-up-right', 'I Owe', fmt(supplierOwed), `to suppliers · ${supplierOwed>0?'tap Purchase Book':'all clear'}`, supplierColor)}
-      </div>`;
-    })()}
-
-    <!-- Smart suggestion: when this week's sales are healthy and supplier debt exists,
-         suggest a partial payment so the user doesn't have to mentally calculate it. -->
-    ${(()=>{
-      if (supplierOwed <= 0 || weekAmt <= 0) return '';
-      // Suggest paying ~30% of weekly sales toward suppliers (rough rule of thumb)
-      // Capped to actual amount owed.
-      const suggested = Math.min(Math.round(weekAmt * 0.30), supplierOwed);
-      if (suggested < 100) return '';
-      return `<div style="margin:6px 12px 14px;padding:14px 16px;background:linear-gradient(135deg,#fef9c3,#fef3c7);border:1.5px solid #facc15;border-radius:14px;display:flex;align-items:center;gap:12px">
-        <div style="font-size:22px;line-height:1">💡</div>
-        <div style="flex:1;font-size:13px;color:#713f12;line-height:1.4">
-          <strong>Smart suggestion:</strong> You earned ${fmt(weekAmt)} this week. Consider paying <strong>${fmt(suggested)}</strong> toward your ${fmt(supplierOwed)} supplier balance to stay in good standing.
-        </div>
-        <button onclick="goMore('kharidi')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Pay now →</button>
-      </div>`;
-    })()}
-
-    <!-- One-tap daily summary share -->
-    <div style="margin:6px 12px 14px;display:flex;gap:8px">
-      <button onclick="showEveningSummary()" style="flex:1;padding:11px;background:#fff;border:1.5px solid var(--color-border-tertiary);border-radius:12px;font-size:13px;font-weight:700;color:#1e1147;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">📊 View Today's Summary</button>
-      <button onclick="sendDailyWA()" style="flex:1;padding:11px;background:#25D366;border:none;border-radius:12px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">💬 Send via WhatsApp</button>
+    <!-- Section 2: Quick Actions -->
+    <div class="dash-section-title">Quick Actions</div>
+    <div class="dash-qa-grid">
+      <button class="dash-qa-card" onclick="showEveningSummary()">
+        <div class="dash-qa-icon" style="background:var(--pm-purple-light)">${licon('bar-chart-3',17,'color:var(--color-accent);')}</div>
+        <div class="dash-qa-label">Today's Summary</div>
+      </button>
+      <button class="dash-qa-card" onclick="sendDailyWA()">
+        <div class="dash-qa-icon" style="background:#dcfce7">${licon('message-circle',17,'color:#16a34a;')}</div>
+        <div class="dash-qa-label">Send via WhatsApp</div>
+      </button>
+      <button class="dash-qa-card" onclick="goMore('kharidi')">
+        <div class="dash-qa-icon" style="background:#fef3c7">${licon('wallet',17,'color:#D97706;')}</div>
+        <div class="dash-qa-label">Pay Supplier</div>
+      </button>
     </div>
 
-    <!-- 7-day bar chart -->
-    <div class="chart-card">
+    <!-- Section 3: Primary Analytics — Sales Trend -->
+    <div class="dash-card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:28px;height:28px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center">${licon('bar-chart-3',14,'color:#7c3aed;')}</div>
-          <div class="chart-card-title" style="margin:0">Sales — Last 7 Days</div>
+          ${licon('trending-up',16,'color:var(--color-accent);')}
+          <div class="dash-card-title" style="font-size:15px">Sales Trend</div>
         </div>
-        <div style="display:flex;gap:12px">
-          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#7c3aed;display:inline-block"></span>Sales</span>
-          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#FDA4AF;display:inline-block"></span>Expenses</span>
-        </div>
+        <span class="dash-pill">Last 7 Days</span>
       </div>
       ${has7DayData
-        ? `<div style="position:relative;height:200px"><canvas id="chart-7day"></canvas></div>`
+        ? `<div style="position:relative;height:200px"><canvas id="dash-trend"></canvas></div>`
         : `<div style="text-align:center;padding:40px 0;color:var(--color-text-secondary);font-size:13px">
             <div style="width:48px;height:48px;border-radius:12px;background:#f5f3ff;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px">${licon('bar-chart',22,'color:#a78bfa;')}</div>
             <div style="font-weight:600;color:var(--color-text-primary);margin-bottom:4px">No sales data yet this week</div>
@@ -7253,82 +7373,14 @@ function renderDashboard(el){
       }
     </div>
 
-    <!-- 6-month trend -->
-    <div class="chart-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:28px;height:28px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center">${licon('line-chart',14,'color:#7c3aed;')}</div>
-          <div class="chart-card-title" style="margin:0">6-Month Overview</div>
-        </div>
-        <div style="display:flex;gap:10px">
-          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#7c3aed;display:inline-block"></span>Sales</span>
-          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#FDA4AF;display:inline-block"></span>Expenses</span>
-          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:#10b981;display:inline-block"></span>Profit</span>
-        </div>
-      </div>
-      ${has6MoData
-        ? `<div style="position:relative;height:220px"><canvas id="chart-6mo"></canvas></div>`
-        : `<div style="text-align:center;padding:40px 0;color:var(--color-text-secondary);font-size:13px">
-            <div style="width:48px;height:48px;border-radius:12px;background:#f5f3ff;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px">${licon('line-chart',22,'color:#a78bfa;')}</div>
-            <div style="font-weight:600;color:var(--color-text-primary)">No data for last 6 months yet</div>
-          </div>`
-      }
+    <!-- Section 4: Smart Insight -->
+    ${smartInsightHtml}
+
+    <!-- Section 5: More Analytics -->
+    <div class="dash-section-title">More Analytics</div>
+    <div class="dash-analytics-grid">
+      ${analyticsCards.join('')}
     </div>
-
-    ${payLabels.length>0?`
-    <!-- Payment breakdown -->
-    <div class="chart-card">
-      <div class="chart-card-title" style="margin-bottom:14px">How Customers Pay — This Month</div>
-      <div style="display:flex;align-items:center;gap:16px">
-        <canvas id="chart-pay" width="120" height="120" style="flex-shrink:0;width:120px;height:120px"></canvas>
-        <div style="display:flex;flex-direction:column;gap:8px;flex:1" id="pay-legend"></div>
-      </div>
-    </div>`:''}
-
-    <!-- Expense by category -->
-    ${(()=>{
-      const catMap={};
-      expenses.filter(e=>e.date.substring(0,7)===mk).forEach(e=>{
-        const c=e.category||'Shop';
-        catMap[c]=(catMap[c]||0)+e.amt;
-      });
-      const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
-      if(!cats.length) return '';
-      return `<div class="chart-card">
-        <div class="chart-card-title" style="margin-bottom:14px">Expenses by Category — This Month</div>
-        <div style="position:relative;height:220px"><canvas id="chart-exp-cat"></canvas></div>
-      </div>`;
-    })()}
-
-    <!-- Top customers -->
-    ${(()=>{
-      const custMap={};
-      sales.forEach(s=>{
-        if(!s.customerId) return;
-        custMap[s.customerId]=(custMap[s.customerId]||0)+s.amt;
-      });
-      const top=Object.entries(custMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-      if(!top.length) return '';
-      const topNames=top.map(([id,amt])=>{const c=customers.find(x=>x.id===id);return{name:c?c.name:'Unknown',amt};});
-      return `<div class="chart-card">
-        <div class="chart-card-title" style="margin-bottom:14px">Top 5 Customers — All Time</div>
-        <div style="position:relative;height:220px"><canvas id="chart-top-cust"></canvas></div>
-        <div id="chart-top-cust-data" style="display:none">${encodeURIComponent(JSON.stringify(topNames))}</div>
-      </div>`;
-    })()}
-
-    <!-- Sales by hour -->
-    ${(()=>{
-      const hourMap=new Array(24).fill(0);
-      sales.forEach(s=>{if(s.ts){hourMap[new Date(s.ts).getHours()]+=s.amt;}});
-      const hasHour=hourMap.some(v=>v>0);
-      if(!hasHour) return '';
-      return `<div class="chart-card">
-        <div class="chart-card-title" style="margin-bottom:14px">Sales by Hour of Day</div>
-        <div style="position:relative;height:200px"><canvas id="chart-hour"></canvas></div>
-        <div id="chart-hour-data" style="display:none">${encodeURIComponent(JSON.stringify(hourMap))}</div>
-      </div>`;
-    })()}
 
   </div>`;
 
@@ -7362,20 +7414,36 @@ function renderDashboard(el){
       }
     };
 
-    // 7-day grouped bar: Sales + Expenses side by side
-    const c1=document.getElementById('chart-7day');
-    if(c1){
-      _charts.push(new Chart(c1,{
-        type:'bar',
+    // Sales Trend — single purple line (7 days)
+    const cTrend=document.getElementById('dash-trend');
+    if(cTrend){
+      _charts.push(new Chart(cTrend,{
+        type:'line',
         plugins:[datalabelPlugin],
         data:{labels:days.map(d=>d.label),datasets:[
-          {label:'Sales',data:days.map(d=>d.s),backgroundColor:days.map(d=>d.ds===todayS?PURPLE:'#a78bfa'),borderRadius:5,borderSkipped:false,barPercentage:0.7},
-          {label:'Expenses',data:days.map(d=>d.e),backgroundColor:'#FDA4AF',borderRadius:5,borderSkipped:false,barPercentage:0.7}
+          {label:'Sales',data:days.map(d=>d.s),borderColor:PURPLE,backgroundColor:'rgba(124,58,237,0.08)',fill:true,tension:0.35,pointRadius:3,pointBackgroundColor:PURPLE,pointBorderColor:'#fff',pointBorderWidth:2,borderWidth:2.5}
         ]},
         options:{
           animation:false,
-          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmt(ctx.raw)}`}}},
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Sales: ${fmt(ctx.raw)}`}}},
           scales:{...commonScales},
+          responsive:true,maintainAspectRatio:false
+        }
+      }));
+    }
+
+    // Hero sparkline (no axes/labels)
+    const cSpark=document.getElementById('dash-sparkline');
+    if(cSpark){
+      _charts.push(new Chart(cSpark,{
+        type:'line',
+        data:{labels:days.map(d=>d.label),datasets:[
+          {data:days.map(d=>d.s),borderColor:PURPLE,backgroundColor:'rgba(124,58,237,0.08)',fill:true,tension:0.4,pointRadius:0,borderWidth:2}
+        ]},
+        options:{
+          animation:false,
+          plugins:{legend:{display:false},tooltip:{enabled:false}},
+          scales:{x:{display:false},y:{display:false}},
           responsive:true,maintainAspectRatio:false
         }
       }));
@@ -7404,11 +7472,6 @@ function renderDashboard(el){
     // Expense by category horizontal bar
     const cExpCat=document.getElementById('chart-exp-cat');
     if(cExpCat){
-      const catMap={};
-      expenses.filter(e=>e.date.substring(0,7)===mk).forEach(e=>{
-        const c=e.category||'Shop'; catMap[c]=(catMap[c]||0)+e.amt;
-      });
-      const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
       const CAT_COLORS=['#E11D48','#F59E0B','#0891B2','#059669','#8B5CF6','#64748B'];
       _charts.push(new Chart(cExpCat,{
         type:'bar',
