@@ -1351,21 +1351,6 @@ body {
 .home-quick-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 1px; }
 
 /* ===== VOICE / MIC ===== */
-.mic-fab {
-  position: fixed; bottom: calc(144px + env(safe-area-inset-bottom, 0px)); right: 16px;
-  width: 48px; height: 48px; border-radius: 50%;
-  background: var(--color-accent); color: #fff;
-  border: none; cursor: pointer; z-index: 200;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 16px rgba(124,58,237,0.45);
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.mic-fab:active { transform: scale(0.93); }
-.mic-fab.listening {
-  background: #DC2626;
-  box-shadow: 0 4px 20px rgba(220,38,38,0.5);
-  animation: mic-pulse 1s infinite;
-}
 @keyframes mic-pulse {
   0%,100% { box-shadow: 0 4px 20px rgba(220,38,38,0.5); }
   50% { box-shadow: 0 4px 32px rgba(220,38,38,0.85), 0 0 0 8px rgba(220,38,38,0.15); }
@@ -1660,7 +1645,7 @@ body {
 .fab-photo{position:fixed;bottom:calc(82px + env(safe-area-inset-bottom, 0px));right:16px;width:48px;height:48px;border-radius:50%;background:#fff;border:1.5px solid var(--color-border-tertiary);cursor:pointer;z-index:900;box-shadow:0 4px 14px rgba(0,0,0,0.10);display:flex;align-items:center;justify-content:center;color:var(--pm-purple);transition:transform .15s,box-shadow .15s,background .15s;}
 .fab-photo:hover{background:var(--pm-purple);color:#fff;border-color:var(--pm-purple);box-shadow:0 6px 18px rgba(124,58,237,0.35);}
 .fab-photo:active{transform:scale(0.94);}
-@media(min-width:768px){.fab-photo{bottom:24px;} .mic-fab{bottom:84px;}}
+@media(min-width:768px){.fab-photo{bottom:24px;}}
 /* Bottom sheet overlay */
 .bottom-sheet{
   position:fixed;inset:0;z-index:2000;
@@ -2260,14 +2245,6 @@ body {
     <button class="pk-close-btn" onclick="closePhotoKhata()" id="pk-btn-cancel"></button>
   </div>
 </div>
-
-<!-- ===== MIC FAB ===== -->
-<button class="mic-fab" id="mic-fab" onclick="openVoice()" title="Voice command" style="display:none">
-  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-    <rect x="9" y="2" width="6" height="12" rx="3"/>
-    <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>
-  </svg>
-</button>
 
 <!-- ===== KATHA SPEED-DIAL FAB ===== -->
 <div id="katha-speed-dial" style="display:none;position:fixed;bottom:80px;right:16px;z-index:600;flex-direction:column;align-items:flex-end;gap:12px">
@@ -12850,23 +12827,7 @@ let _voiceListeningForIntent=false; // flag for listening to user's intent choic
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 function initVoice(){
-  const fab=document.getElementById('mic-fab');
-  if(!SpeechRec){
-    // iOS Safari blocks Web Speech API — BUT iPhone has its own keyboard mic dictation
-    const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
-    if(isIOS){
-      // On iPhone, the mic button now shows iOS dictation guide
-      fab.innerHTML='<i data-lucide="mic" style="width:20px;height:20px"></i>';
-      fab.style.background='var(--color-accent)';
-      fab.style.display='flex';
-      fab.onclick=()=>_showIOSDictationGuide();
-      try{lucide.createIcons();}catch(e){}
-    } else {
-      fab.style.display='none';
-    }
-    return;
-  }
-  fab.style.display='flex';
+  if(!SpeechRec) return;
   // Sync language from app setting
   if(S.language==='hi') _voiceLang='hi-IN';
   else if(S.language==='np') _voiceLang='ne-NP';
@@ -12938,7 +12899,6 @@ function closeVoice(){
   voiceRec=null;
   document.getElementById('voice-modal').classList.remove('open');
   document.getElementById('voice-ring').classList.remove('listening');
-  document.getElementById('mic-fab').classList.remove('listening');
 }
 
 function voiceRetry(){
@@ -12965,9 +12925,7 @@ function toggleVoiceExamples(){
 function startListening(){
   if(!SpeechRec) return;
   const ring=document.getElementById('voice-ring');
-  const fab=document.getElementById('mic-fab');
   if(ring) ring.classList.add('listening');
-  if(fab) fab.classList.add('listening');
 
   try{
     voiceRec=new SpeechRec();
