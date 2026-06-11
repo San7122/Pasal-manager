@@ -170,6 +170,8 @@
   --color-text-secondary:       #64748B;
   --color-border-secondary:     #CBD5E1;
   --color-border-tertiary:      #E2E8F0;
+  --color-card:                 #FFFFFF;
+  --color-border:               #E2E8F0;
 
   /* Layout */
   --sidebar-width:      240px;
@@ -3113,7 +3115,7 @@ const _TESS_URL    = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract
 // ─────────────────────────────────────────────────────────────────────────────
 let authMode='login';
 let scannerTarget='stock', scannerStream=null, scannerActive=false, _zxingReader=null;
-let returns=[], todayTab='sale', selReturnType='customer', selReturnReason='Defective';
+let returns=[], todayTab='sale', selReturnType='customer', selReturnReason='Defective', _todayTabUserSwitch=false;
 let emiPlans=[], emiPayments=[], currentEmiPlanId='', emiFreq='monthly';
 let loans=[], loanPayments=[], currentLoanId='';
 let sahiChhapMap={}; // udhaar_id → {txSig, hash, anchoredAt}
@@ -5156,7 +5158,8 @@ function switchTab(tab){
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+tab).classList.add('active');
-  document.getElementById('nav-'+tab)?.classList.add('active');
+  const _navTab=tab==='udhaar'?'today':tab;
+  document.getElementById('nav-'+_navTab)?.classList.add('active');
   _syncSidebarActive(tab);
   document.getElementById('scroll-area').scrollTop=0;
   const _fp=document.getElementById('fab-photo');
@@ -5409,9 +5412,9 @@ function renderToday(){
       </button>
     </div>
     <div class="sub-tabs">
-      <button class="sub-tab-btn${todayTab==='sale'?' active':''}" onclick="todayTab='sale';renderToday()">${t('todaySales')}</button>
-      <button class="sub-tab-btn${todayTab==='return'?' active':''}" onclick="todayTab='return';renderToday()" style="color:${todayTab==='return'?'var(--color-danger)':''};display:inline-flex;align-items:center;justify-content:center;gap:6px">${licon('undo-2',15,'')} ${t('addReturn')}</button>
-      <button class="sub-tab-btn${todayTab==='expense'?' active':''}" onclick="todayTab='expense';renderToday()" style="color:${todayTab==='expense'?'var(--color-danger)':''};display:inline-flex;align-items:center;justify-content:center;gap:6px">${licon('receipt',15,'')} ${t('expense')}</button>
+      <button class="sub-tab-btn${todayTab==='sale'?' active':''}" onclick="todayTab='sale';_todayTabUserSwitch=true;renderToday()">${t('todaySales')}</button>
+      <button class="sub-tab-btn${todayTab==='return'?' active':''}" onclick="todayTab='return';_todayTabUserSwitch=true;renderToday()" style="color:${todayTab==='return'?'var(--color-danger)':''};display:inline-flex;align-items:center;justify-content:center;gap:6px">${licon('undo-2',15,'')} ${t('addReturn')}</button>
+      <button class="sub-tab-btn${todayTab==='expense'?' active':''}" onclick="todayTab='expense';_todayTabUserSwitch=true;renderToday()" style="color:${todayTab==='expense'?'var(--color-danger)':''};display:inline-flex;align-items:center;justify-content:center;gap:6px">${licon('receipt',15,'')} ${t('expense')}</button>
     </div>
     ${todayTab==='return'?`
     <div style="padding:12px 16px;border-bottom:1px solid var(--color-border-tertiary);background:var(--color-danger-light)">
@@ -5505,10 +5508,13 @@ function renderToday(){
       </button>
     </div>`;
   _renderIcons();
-  setTimeout(()=>{
-    if(todayTab==='sale'){const el=document.getElementById('s-note');if(el)el.focus();}
-    else if(todayTab==='expense'){const el=document.getElementById('te-amt');if(el)el.focus();}
-  },50);
+  if(_todayTabUserSwitch){
+    _todayTabUserSwitch=false;
+    setTimeout(()=>{
+      if(todayTab==='sale'){const el=document.getElementById('s-note');if(el)el.focus();}
+      else if(todayTab==='expense'){const el=document.getElementById('te-amt');if(el)el.focus();}
+    },50);
+  }
 }
 
 // Track the matched stock item so qty changes can recalculate totals
@@ -12662,8 +12668,8 @@ function renderEmiPage(el){
         <input class="input-sm" id="emi-cust" placeholder="${t('emiCustomer')}" style="grid-column:span 2">
         <input class="input-sm" id="emi-phone" type="tel" placeholder="${t('phone')} (for WhatsApp)">
         <input class="input-sm" id="emi-total" type="number" inputmode="numeric" placeholder="${t('emiTotal')}">
-        <input class="input-sm" id="emi-down" type="number" inputmode="numeric" placeholder="${t('emiDown')} (0 if none)">
-        <input class="input-sm" id="emi-inst" type="number" inputmode="numeric" placeholder="${t('emiInstallments')} (e.g. 5)">
+        <input class="input-sm" id="emi-down" type="number" inputmode="numeric" placeholder="${t('emiDown')} (0 if none)" style="grid-column:span 2">
+        <input class="input-sm" id="emi-inst" type="number" inputmode="numeric" placeholder="${t('emiInstallments')} (e.g. 5)" style="grid-column:span 2">
         <input class="input-sm" id="emi-start" type="date" value="${today}" placeholder="${t('emiStart')}">
       </div>
       <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
