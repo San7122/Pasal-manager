@@ -2825,8 +2825,8 @@ const ANALYTICS = {
   track(eventType, eventData = {}) {
     try {
       const q = sb.from('analytics_events').insert({
-        user_id: currentUser?.id || 'guest',
-        event_type: eventType,
+        user_id: currentUser?.id || null,
+        event_name: eventType,
         event_data: eventData,
         device_type: window.innerWidth < 768 ? 'mobile' : 'desktop'
       });
@@ -8028,7 +8028,7 @@ async function _onRazorpaySuccess(response, amount, currency, tier, tierLabel){
 
     // Save approved payment to Supabase
     if(currentUser && sb){
-      await sb.from('pm_payment_requests').insert({
+      const {error: payReqErr} = await sb.from('pm_payment_requests').insert({
         user_id: currentUser.id,
         email: currentUser.email || '',
         shop_name: S.shopName || '',
@@ -8043,6 +8043,7 @@ async function _onRazorpaySuccess(response, amount, currency, tier, tierLabel){
         approved_until: expiry,
         approved_by: 'razorpay_auto',
       });
+      if(payReqErr) console.error('pm_payment_requests insert failed:', payReqErr.message);
     }
 
     // Unlock subscription immediately
@@ -8124,7 +8125,7 @@ async function submitPayment(){
   // Try to insert into Supabase (best effort — falls through to WhatsApp if offline)
   try {
     if(currentUser && sb){
-      await sb.from('pm_payment_requests').insert({
+      const {error: payReqErr} = await sb.from('pm_payment_requests').insert({
         user_id: currentUser.id,
         email: currentUser.email || '',
         shop_name: S.shopName || '',
@@ -8137,6 +8138,7 @@ async function submitPayment(){
         note,
         status: 'pending',
       });
+      if(payReqErr) console.warn('pm_payment_requests insert failed:', payReqErr.message);
     }
   } catch(e){ console.warn('Payment request DB insert failed:', e.message); }
 
@@ -8559,9 +8561,9 @@ async function adminGrantFreeAccess(){
   try {
     const expiry = new Date(Date.now() + days*86400000).toISOString();
     // Look up user by email in analytics_users
-    const {data:users} = await sb.from('analytics_users').select('id').eq('email', email).limit(1);
+    const {data:users} = await sb.from('analytics_users').select('user_id').eq('email', email).limit(1);
     if(!users || users.length===0){ _showToast('❌ User not found: ' + email); return; }
-    const userId = users[0].id;
+    const userId = users[0].user_id;
     await sb.from('pm_payment_requests').insert({
       user_id: userId, email, shop_name: '(admin grant)', country: 'IN',
       amount: 0, currency: 'INR', method: 'admin_grant', tier,
