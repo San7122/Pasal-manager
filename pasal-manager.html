@@ -1844,6 +1844,9 @@ html.keyboard-open .bottom-nav { display: none !important; }
 .fab-photo:hover{background:var(--pm-purple);color:#fff;border-color:var(--pm-purple);box-shadow:0 6px 18px rgba(124,58,237,0.35);}
 .fab-photo:active{transform:scale(0.94);}
 @media(min-width:768px){.fab-photo{bottom:24px;}}
+.fab-voice{position:fixed;bottom:24px;right:76px;width:48px;height:48px;border-radius:50%;background:#fff;border:1.5px solid var(--color-border-tertiary);cursor:pointer;z-index:900;box-shadow:0 4px 14px rgba(0,0,0,0.10);display:none;align-items:center;justify-content:center;color:#059669;transition:transform .15s,box-shadow .15s,background .15s;}
+.fab-voice:hover{background:#059669;color:#fff;border-color:#059669;box-shadow:0 6px 18px rgba(5,150,105,0.35);}
+.fab-voice:active{transform:scale(0.94);}
 /* Bottom sheet overlay */
 .bottom-sheet{
   position:fixed;inset:0;z-index:2000;
@@ -2393,6 +2396,7 @@ html.keyboard-open .bottom-nav { display: none !important; }
 
 <!-- ===== PHOTO KHATA FAB ===== -->
 <button class="fab-photo" id="fab-photo" style="display:none" onclick="openPhotoKhata()" title="Photo Khata"><i data-lucide="image-plus" style="width:22px;height:22px"></i></button>
+<button class="fab-voice" id="fab-voice" style="display:none" onclick="openVoice()" title="Voice Entry"><i class="fa-solid fa-microphone" style="font-size:20px"></i></button>
 
 <!-- ===== PHOTO KHATA BOTTOM SHEET ===== -->
 <div id="photo-khata-sheet" class="bottom-sheet" style="display:none" onclick="if(event.target===this)closePhotoKhata()">
@@ -4464,6 +4468,7 @@ async function afterLogin(){
   document.getElementById('app').style.display='flex';
   const _fp0=document.getElementById('fab-photo');
   if(_fp0) _fp0.style.display=currentTab==='today'?'flex':'none';
+  _syncFabVoice();
   // Remove any stale guest banner from previous session
   const oldBanner=document.getElementById('guest-banner-el');if(oldBanner)oldBanner.remove();
 
@@ -5128,7 +5133,12 @@ document.addEventListener('click',e=>{
 });
 window.addEventListener('resize',()=>{
   if(window.innerWidth >= 768) closeMobileSidebar();
+  _syncFabVoice();
 });
+function _syncFabVoice(){
+  const _fv=document.getElementById('fab-voice');
+  if(_fv) _fv.style.display=(currentUser||isGuestMode)&&window.innerWidth>=768?'flex':'none';
+}
 function _syncSidebarActive(tab){
   document.querySelectorAll('.sidebar-item[id^="snav-"]').forEach(b=>b.classList.remove('active'));
   const map={today:'sales',katha:'sales',udhaar:'udhaar',stock:'stock',more:'finance'};
