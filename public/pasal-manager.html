@@ -2392,7 +2392,7 @@ html.keyboard-open .bottom-nav { display: none !important; }
 </div>
 
 <!-- ===== PHOTO KHATA FAB ===== -->
-<button class="fab-photo" id="fab-photo" onclick="openPhotoKhata()" title="Photo Khata"><i data-lucide="image-plus" style="width:22px;height:22px"></i></button>
+<button class="fab-photo" id="fab-photo" style="display:none" onclick="openPhotoKhata()" title="Photo Khata"><i data-lucide="image-plus" style="width:22px;height:22px"></i></button>
 
 <!-- ===== PHOTO KHATA BOTTOM SHEET ===== -->
 <div id="photo-khata-sheet" class="bottom-sheet" style="display:none" onclick="if(event.target===this)closePhotoKhata()">
@@ -4462,6 +4462,8 @@ async function afterLogin(){
 
   document.getElementById('auth-page').style.display='none';
   document.getElementById('app').style.display='flex';
+  const _fp0=document.getElementById('fab-photo');
+  if(_fp0) _fp0.style.display=currentTab==='today'?'flex':'none';
   // Remove any stale guest banner from previous session
   const oldBanner=document.getElementById('guest-banner-el');if(oldBanner)oldBanner.remove();
 
@@ -5582,8 +5584,9 @@ async function delSale(id){
   sales=sales.filter(s=>s.id!==id);
   _rawSales=_rawSales.filter(s=>s.id!==id);
   confirmId=null;
-  await dbDel('pm_sales',id);
   renderToday();
+  try{await dbDel('pm_sales',id);}
+  catch(e){trackError(e?.name||'DeleteFailed',{operation:'delete',table:'pm_sales',message:e?.message,code:e?.code,online:navigator.onLine});}
 }
 // ===== UPI PAYMENT =====
 let _upiAmt=0, _upiLink='';
@@ -5799,9 +5802,10 @@ async function addReturn(){
 }
 async function delReturn(id){
   returns=returns.filter(r=>r.id!==id);confirmId=null;
-  await dbDel('pm_returns',id);
   cacheWrite();
   renderToday();
+  try{await dbDel('pm_returns',id);}
+  catch(e){trackError(e?.name||'DeleteFailed',{operation:'delete',table:'pm_returns',message:e?.message,code:e?.code,online:navigator.onLine});}
 }
 
 // =============== KATHA ===============
@@ -7654,7 +7658,7 @@ function renderDashboard(el){
         data:{labels:cats.map(([k])=>k),datasets:[{data:cats.map(([,v])=>v),backgroundColor:CAT_COLORS,borderRadius:6,borderSkipped:false}]},
         options:{
           indexAxis:'y',animation:false,
-          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${cur()}${fmt(ctx.raw)}`}}},
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${fmt(ctx.raw)}`}}},
           scales:{x:{grid:{color:'#F1F5F9'},ticks:{font:{size:10},color:'#64748B',callback:v=>cur()+fmtK(v)}},y:{grid:{display:false},ticks:{font:{size:12},color:'#1E293B'}}},
           responsive:true,maintainAspectRatio:false
         }
@@ -7670,7 +7674,7 @@ function renderDashboard(el){
         data:{labels:raw.map(r=>r.name),datasets:[{data:raw.map(r=>r.amt),backgroundColor:'#7c3aed',borderRadius:6,borderSkipped:false}]},
         options:{
           indexAxis:'y',animation:false,
-          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${cur()}${fmt(ctx.raw)}`}}},
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${fmt(ctx.raw)}`}}},
           scales:{x:{grid:{color:'#F1F5F9'},ticks:{font:{size:10},color:'#64748B',callback:v=>cur()+fmtK(v)}},y:{grid:{display:false},ticks:{font:{size:12},color:'#1E293B'}}},
           responsive:true,maintainAspectRatio:false
         }
@@ -7687,7 +7691,7 @@ function renderDashboard(el){
         data:{labels,datasets:[{data:hourData,borderColor:'#4F46E5',backgroundColor:'rgba(79,70,229,0.08)',fill:true,tension:0.4,pointRadius:2,borderWidth:2}]},
         options:{
           animation:false,
-          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${cur()}${fmt(ctx.raw)}`}}},
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${fmt(ctx.raw)}`}}},
           scales:{x:{grid:{display:false},ticks:{font:{size:9},color:'#94A3B8',maxRotation:0}},y:{grid:{color:'#F1F5F9'},ticks:{font:{size:10},color:'#64748B',callback:v=>cur()+fmtK(v)}}},
           responsive:true,maintainAspectRatio:false
         }
@@ -9251,8 +9255,9 @@ async function addCustomer(){
 async function delCustomer(id){
   customers=customers.filter(c=>c.id!==id);
   confirmId=null;
-  await dbDel('pm_customers',id);
   goMore('customers');
+  try{await dbDel('pm_customers',id);}
+  catch(e){trackError(e?.name||'DeleteFailed',{operation:'delete',table:'pm_customers',message:e?.message,code:e?.code,online:navigator.onLine});}
 }
 
 // =============== STAFF BOOK ===============
@@ -9671,8 +9676,9 @@ async function delExp(id){
   expenses=expenses.filter(e=>e.id!==id);
   _rawExpenses=_rawExpenses.filter(e=>e.id!==id);
   confirmId=null;
-  await dbDel('pm_expenses',id);
   goMore('expense');
+  try{await dbDel('pm_expenses',id);}
+  catch(e){trackError(e?.name||'DeleteFailed',{operation:'delete',table:'pm_expenses',message:e?.message,code:e?.code,online:navigator.onLine});}
 }
 
 // =============== SUPPLIER ===============
@@ -12590,7 +12596,7 @@ function emiWhatsApp(planId,paymentId){
   const pmt=emiPayments.find(p=>p.id===paymentId);
   if(!plan||!pmt) return;
   const shop=S.shopName||'Pasal Manager';
-  const msg=`*${shop}*\nHello ${plan.customerName}, your EMI installment of ${cur()}${fmt(pmt.amt)} is due on ${fmtDate(pmt.dueDate)}.\nRemaining balance: ${cur()}${fmt(emiPlanRemaining(plan))}.\nPlease pay on time. Thank you!`;
+  const msg=`*${shop}*\nHello ${plan.customerName}, your EMI installment of ${fmt(pmt.amt)} is due on ${fmtDate(pmt.dueDate)}.\nRemaining balance: ${fmt(emiPlanRemaining(plan))}.\nPlease pay on time. Thank you!`;
   const num=plan.phone.replace(/\D/g,'');
   trackEvent('whatsapp_send',{type:'emi_reminder'});
   window.open('https://wa.me/'+(num||'')+encodeURIComponent('?text='+msg));
@@ -12603,7 +12609,7 @@ function renderEmiPage(el){
   el.innerHTML=backBtn()+`
     <div style="background:linear-gradient(135deg,#059669,#10B981);padding:16px;color:#fff">
       <div style="font-size:13px;opacity:0.85;margin-bottom:4px">${t('emiRemaining')} · ${activeCount} active plans</div>
-      <div style="font-size:28px;font-weight:800">${cur()}${fmt(totalOutstanding)}</div>
+      <div style="font-size:28px;font-weight:800">${fmt(totalOutstanding)}</div>
     </div>
     <!-- New Plan Form -->
     <div style="background:var(--color-background-secondary);border-bottom:1px solid var(--color-border-tertiary);padding:14px 16px">
@@ -12644,7 +12650,7 @@ function renderEmiPage(el){
             <div style="font-size:12px;color:var(--color-text-secondary)">${paidCount}/${plan.installments} paid · ${plan.frequency==='weekly'?t('emiWeekly'):t('emiMonthly')}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:16px;font-weight:800;color:${isComplete?'var(--color-success)':overdueCount>0?'var(--color-danger)':'#059669'}">${isComplete?t('emiCompleted'):cur()+fmt(remaining)}</div>
+            <div style="font-size:16px;font-weight:800;color:${isComplete?'var(--color-success)':overdueCount>0?'var(--color-danger)':'#059669'}">${isComplete?t('emiCompleted'):fmt(remaining)}</div>
             ${overdueCount>0?`<div style="font-size:11px;color:var(--color-danger);font-weight:600">${overdueCount} overdue</div>`:nextDue?`<div style="font-size:11px;color:var(--color-text-secondary)">Next: ${fmtDate(nextDue.dueDate)}</div>`:''}
           </div>
         </div>
@@ -12678,15 +12684,15 @@ function renderEmiDetail(el){
       </div>
       <div style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
         <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:15px;font-weight:800">${cur()}${fmt(plan.totalAmt)}</div>
+          <div style="font-size:15px;font-weight:800">${fmt(plan.totalAmt)}</div>
           <div style="font-size:11px;opacity:0.8;margin-top:2px">Total</div>
         </div>
         <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:15px;font-weight:800">${cur()}${fmt(plan.downPayment)}</div>
+          <div style="font-size:15px;font-weight:800">${fmt(plan.downPayment)}</div>
           <div style="font-size:11px;opacity:0.8;margin-top:2px">${t('emiDown')}</div>
         </div>
         <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:15px;font-weight:800;color:${isComplete?'#D1FAE5':remaining>0?'#FDE68A':'#D1FAE5'}">${cur()}${fmt(Math.max(0,remaining))}</div>
+          <div style="font-size:15px;font-weight:800;color:${isComplete?'#D1FAE5':remaining>0?'#FDE68A':'#D1FAE5'}">${fmt(Math.max(0,remaining))}</div>
           <div style="font-size:11px;opacity:0.8;margin-top:2px">${t('emiRemaining')}</div>
         </div>
       </div>
@@ -12703,7 +12709,7 @@ function renderEmiDetail(el){
     </div>
     <!-- Info bar -->
     <div style="padding:10px 16px;background:var(--color-background-secondary);border-bottom:1px solid var(--color-border-tertiary);display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary)">
-      <span>${cur()}${fmt(instAmt)} × ${plan.installments} · ${plan.frequency==='weekly'?t('emiWeekly'):t('emiMonthly')}</span>
+      <span>${fmt(instAmt)} × ${plan.installments} · ${plan.frequency==='weekly'?t('emiWeekly'):t('emiMonthly')}</span>
       <span>Started ${fmtDate(plan.startDate)}</span>
       ${plan.note?`<span>📝 ${esc(plan.note)}</span>`:''}
     </div>
@@ -12731,7 +12737,7 @@ function renderEmiDetail(el){
                 <div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">${p.paid?'Paid on '+fmtDate(p.paidDate):fmtDate(p.dueDate)}</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
-                <div style="font-size:16px;font-weight:800;color:${p.paid?'var(--color-success)':isOverdue?'var(--color-danger)':'var(--color-text-primary)'}">${cur()}${fmt(p.amt)}</div>
+                <div style="font-size:16px;font-weight:800;color:${p.paid?'var(--color-success)':isOverdue?'var(--color-danger)':'var(--color-text-primary)'}">${fmt(p.amt)}</div>
                 ${!p.paid?`<div style="display:flex;gap:6px">
                   <button onclick="markEmiPaid('${p.id}')" style="background:var(--color-success);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer">${t('emiMarkPaid')}</button>
                   ${plan.phone?`<button onclick="emiWhatsApp('${plan.id}','${p.id}')" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:6px 8px;font-size:12px;cursor:pointer">WA</button>`:''}
@@ -12834,8 +12840,8 @@ function renderLoanPage(el){
   el.innerHTML=backBtn()+`
     <div style="background:linear-gradient(135deg,#DC2626,#EF4444);padding:16px;color:#fff">
       <div style="font-size:13px;opacity:0.85;margin-bottom:4px">Total Outstanding · ${loans.length} loan${loans.length!==1?'s':''}</div>
-      <div style="font-size:28px;font-weight:800">${cur()}${fmt(totalOutstanding)}</div>
-      ${totalEmiThisMonth>0?`<div style="font-size:13px;opacity:0.85;margin-top:6px">This month's EMI: ${cur()}${fmt(totalEmiThisMonth)}</div>`:''}
+      <div style="font-size:28px;font-weight:800">${fmt(totalOutstanding)}</div>
+      ${totalEmiThisMonth>0?`<div style="font-size:13px;opacity:0.85;margin-top:6px">This month's EMI: ${fmt(totalEmiThisMonth)}</div>`:''}
     </div>
     <!-- Add loan form -->
     <div style="background:var(--color-background-secondary);border-bottom:1px solid var(--color-border-tertiary);padding:14px 16px">
@@ -12870,7 +12876,7 @@ function renderLoanPage(el){
             <div style="font-size:12px;color:var(--color-text-secondary)">${fmt(loan.loanAmt)} · ${loan.tenure}mo · ${loan.interestRate}% · EMI ${fmt(loan.emiAmt)}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:16px;font-weight:800;color:${isComplete?'var(--color-success)':overdueCount>0?'var(--color-danger)':'#DC2626'}">${isComplete?t('loanCompleted'):cur()+fmt(outstanding)}</div>
+            <div style="font-size:16px;font-weight:800;color:${isComplete?'var(--color-success)':overdueCount>0?'var(--color-danger)':'#DC2626'}">${isComplete?t('loanCompleted'):fmt(outstanding)}</div>
             ${overdueCount>0?`<div style="font-size:11px;color:var(--color-danger);font-weight:600">${overdueCount} overdue</div>`:nextDue?`<div style="font-size:11px;color:var(--color-text-secondary)">Next: ${fmtDate(nextDue.dueDate)}</div>`:''}
           </div>
         </div>
@@ -12879,7 +12885,7 @@ function renderLoanPage(el){
         </div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary)">
           <span>${paidCount}/${loan.tenure} paid</span>
-          ${totalInterest>0?`<span>Total interest: ${cur()}${fmt(totalInterest)}</span>`:''}
+          ${totalInterest>0?`<span>Total interest: ${fmt(totalInterest)}</span>`:''}
         </div>
       </div>`;
     }).join('')}`;
@@ -12907,11 +12913,11 @@ function renderLoanDetail(el){
       </div>
       <div style="margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
         <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px;text-align:center">
-          <div style="font-size:13px;font-weight:800">${cur()}${fmt(loan.loanAmt)}</div>
+          <div style="font-size:13px;font-weight:800">${fmt(loan.loanAmt)}</div>
           <div style="font-size:10px;opacity:0.8;margin-top:1px">Loan</div>
         </div>
         <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px;text-align:center">
-          <div style="font-size:13px;font-weight:800">${cur()}${fmt(loan.emiAmt)}</div>
+          <div style="font-size:13px;font-weight:800">${fmt(loan.emiAmt)}</div>
           <div style="font-size:10px;opacity:0.8;margin-top:1px">EMI/mo</div>
         </div>
         <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px;text-align:center">
@@ -12919,13 +12925,13 @@ function renderLoanDetail(el){
           <div style="font-size:10px;opacity:0.8;margin-top:1px">Rate</div>
         </div>
         <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px;text-align:center">
-          <div style="font-size:13px;font-weight:800;color:${isComplete?'#D1FAE5':'#FDE68A'}">${cur()}${fmt(outstanding)}</div>
+          <div style="font-size:13px;font-weight:800;color:${isComplete?'#D1FAE5':'#FDE68A'}">${fmt(outstanding)}</div>
           <div style="font-size:10px;opacity:0.8;margin-top:1px">Balance</div>
         </div>
       </div>
       <div style="margin-top:12px">
         <div style="display:flex;justify-content:space-between;font-size:12px;opacity:0.85;margin-bottom:5px">
-          <span>${paidCount}/${loan.tenure} paid · ${cur()}${fmt(totalPaid)} paid</span>
+          <span>${paidCount}/${loan.tenure} paid · ${fmt(totalPaid)} paid</span>
           <span>${pct}%${isComplete?' · '+t('loanCompleted'):''}</span>
         </div>
         <div style="background:rgba(255,255,255,0.2);border-radius:4px;height:8px">
@@ -12936,11 +12942,11 @@ function renderLoanDetail(el){
     <!-- Summary bar -->
     <div style="display:flex;border-bottom:1px solid var(--color-border-tertiary)">
       <div style="flex:1;text-align:center;padding:10px;border-right:1px solid var(--color-border-tertiary)">
-        <div style="font-size:14px;font-weight:700">${cur()}${fmt(totalInterest>0?totalInterest:0)}</div>
+        <div style="font-size:14px;font-weight:700">${fmt(totalInterest>0?totalInterest:0)}</div>
         <div style="font-size:11px;color:var(--color-text-secondary)">${t('loanTotalInterest')}</div>
       </div>
       <div style="flex:1;text-align:center;padding:10px;border-right:1px solid var(--color-border-tertiary)">
-        <div style="font-size:14px;font-weight:700">${cur()}${fmt(loan.emiAmt*loan.tenure)}</div>
+        <div style="font-size:14px;font-weight:700">${fmt(loan.emiAmt*loan.tenure)}</div>
         <div style="font-size:11px;color:var(--color-text-secondary)">Total Payable</div>
       </div>
       <div style="flex:1;text-align:center;padding:10px">
@@ -12972,7 +12978,7 @@ function renderLoanDetail(el){
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:6px">
-                <div style="font-size:15px;font-weight:800;color:${p.paid?'var(--color-success)':isOverdue?'var(--color-danger)':'var(--color-text-primary)'}">${cur()}${fmt(p.emiAmt)}</div>
+                <div style="font-size:15px;font-weight:800;color:${p.paid?'var(--color-success)':isOverdue?'var(--color-danger)':'var(--color-text-primary)'}">${fmt(p.emiAmt)}</div>
                 ${!p.paid?`<button onclick="markLoanPaid('${p.id}')" style="background:#DC2626;color:#fff;border:none;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:600;cursor:pointer">${t('loanMarkPaid')}</button>`:''}
               </div>
             </div>
@@ -14772,11 +14778,11 @@ function _buildBriefingText(){
   let msg=`🌅 *Good morning${shopN?' — '+shopN:''}!*\n\n`;
   if(top.length){
     msg+=`💰 *Top Collections Today:*\n`;
-    top.forEach(u=>{msg+=`  • ${u.name}: ${cur()}${fmt(u.amount)}\n`;});
+    top.forEach(u=>{msg+=`  • ${u.name}: ${fmt(u.amount)}\n`;});
     msg+='\n';
   }
-  if(sDues>0) msg+=`📦 *Supplier Dues:* ${cur()}${fmt(sDues)}\n\n`;
-  msg+=`📊 *Yesterday:* Sales ${cur()}${fmt(ySales)} | Profit ${cur()}${fmt(yProfit)}\n`;
+  if(sDues>0) msg+=`📦 *Supplier Dues:* ${fmt(sDues)}\n\n`;
+  msg+=`📊 *Yesterday:* Sales ${fmt(ySales)} | Profit ${fmt(yProfit)}\n`;
   msg+=`\n_Pasal Manager_`;
   return msg;
 }
@@ -14786,8 +14792,8 @@ function _sendMorningBriefing(){
   const sDues=_getSupplierDues();
   let body='';
   if(top.length) body+=`Collect from: ${top.map(u=>u.name).join(', ')}. `;
-  if(sDues>0) body+=`Supplier dues: ${cur()}${fmt(sDues)}. `;
-  body+=`Yesterday: ${cur()}${fmt(ySales)} sales, ${cur()}${fmt(yProfit)} profit.`;
+  if(sDues>0) body+=`Supplier dues: ${fmt(sDues)}. `;
+  body+=`Yesterday: ${fmt(ySales)} sales, ${fmt(yProfit)} profit.`;
   try{
     new Notification('🌅 Good Morning — Pasal Manager',{body:body.trim()||'Have a great day!',icon:'/icons/icon-192.png'});
   }catch(e){}
@@ -14871,11 +14877,11 @@ function renderMorningPage(el){
         <div class="morning-summary-grid">
           <div class="morning-summary-card">
             <div class="morning-summary-label">${t('salesL')}</div>
-            <div class="morning-summary-val">${cur()}${fmt(ySales)}</div>
+            <div class="morning-summary-val">${fmt(ySales)}</div>
           </div>
           <div class="morning-summary-card">
             <div class="morning-summary-label">${t('briefingProfit')}</div>
-            <div class="morning-summary-val" style="color:${yProfit>=0?'var(--color-success)':'var(--color-danger)'}">${cur()}${fmt(yProfit)}</div>
+            <div class="morning-summary-val" style="color:${yProfit>=0?'var(--color-success)':'var(--color-danger)'}">${fmt(yProfit)}</div>
           </div>
         </div>
       </div>
@@ -14883,7 +14889,7 @@ function renderMorningPage(el){
         <div class="morning-section-title">${t('briefingSupplier')}</div>
         <div class="morning-debtor-card">
           <div><div class="morning-debtor-name">Total Supplier Dues</div></div>
-          <div class="morning-debtor-amt">${cur()}${fmt(sDues)}</div>
+          <div class="morning-debtor-amt">${fmt(sDues)}</div>
         </div>
       </div>`:''}
       <div class="morning-section">
@@ -14896,7 +14902,7 @@ function renderMorningPage(el){
               ${patt.hasPattern?`<span class="pattern-chip">Pays ~${patt.typicalDay}th</span>`:''}
             </div>
             <div style="display:flex;align-items:center;gap:8px">
-              <div class="morning-debtor-amt">${cur()}${fmt(u.amount)}</div>
+              <div class="morning-debtor-amt">${fmt(u.amount)}</div>
               <button class="morning-remind-btn" onclick="briefingRemindWA('${esc(u.name)}',${u.amount})">${t('briefingRemind')}</button>
             </div>
           </div>`;}).join(''):`<div style="text-align:center;padding:20px;color:var(--color-text-secondary);font-size:14px">${t('briefingNoCollect')}</div>`}
