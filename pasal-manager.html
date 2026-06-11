@@ -13203,14 +13203,12 @@ function startListening(){
       }
       if(final){
         if(ring) ring.classList.remove('listening');
-        if(fab) fab.classList.remove('listening');
         _processVoiceResult(final.trim());
       }
     };
 
     voiceRec.onerror=e=>{
       if(ring) ring.classList.remove('listening');
-      if(fab) fab.classList.remove('listening');
       if(e.error==='not-allowed'||e.error==='permission-denied'){
         document.getElementById('voice-transcript').textContent=t('voiceMicBlocked');
       } else if(e.error==='no-speech'){
@@ -13223,7 +13221,6 @@ function startListening(){
 
     voiceRec.onend=()=>{
       if(ring) ring.classList.remove('listening');
-      if(fab) fab.classList.remove('listening');
     };
 
     voiceRec.start();
