@@ -80,6 +80,20 @@
       _kbCloseTimer = null;
     }, 100);
   });
+  // Global safety net — never let an unexpected error leave the user stuck
+  // with no feedback. Logs via trackError (if loaded) and shows a generic
+  // message; never exposes stack traces to the user.
+  function _showGlobalErrorToast(){
+    if (typeof _showToast === 'function') _showToast('Something went wrong. Please try again.');
+  }
+  window.addEventListener('error', (e) => {
+    try { if (typeof trackError === 'function') trackError((e && e.error && e.error.name) || 'JSError', {message: e && e.message, online: navigator.onLine}); } catch(_) {}
+    _showGlobalErrorToast();
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    try { if (typeof trackError === 'function') trackError((e && e.reason && e.reason.name) || 'UnhandledRejection', {message: String((e && e.reason && e.reason.message) || (e && e.reason) || ''), online: navigator.onLine}); } catch(_) {}
+    _showGlobalErrorToast();
+  });
 </script>
 <title>Pasal Manager - Shop Book & Business Manager</title>
 <meta name="description" content="Complete business management app for shopkeepers. Track sales, expenses, udhaar (credit), stock, staff, EMI plans, loans. Works offline. Free for India & Nepal shops.">
@@ -406,6 +420,11 @@ body {
    gets stranded mid-screen above the keyboard (app-shell no longer shrinks
    for the keyboard, see _setAppHeight). */
 html.keyboard-open .bottom-nav { display: none !important; }
+/* The on-screen keyboard covers the bottom of #scroll-area without shrinking
+   it (see _setAppHeight). Add extra bottom padding while the keyboard is open
+   so users can scroll fields/buttons near the bottom (Save, Add, Note, etc.)
+   up above the keyboard. */
+html.keyboard-open .scroll-area { padding-bottom: 50vh !important; }
 .nav-btn {
   flex: 1;
   min-width: 0;
@@ -1558,7 +1577,7 @@ html.keyboard-open .bottom-nav { display: none !important; }
 }
 #voice-modal {
   display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6); z-index: 500;
+  background: rgba(0,0,0,0.6); z-index: 1000;
   align-items: flex-end; justify-content: center;
 }
 #voice-modal.open { display: flex; }
@@ -1792,7 +1811,7 @@ html.keyboard-open .bottom-nav { display: none !important; }
 .sahi-share-btn{width:100%;padding:13px;background:#25D366;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px;}
 .sahi-explorer-btn{width:100%;padding:11px;background:#EDE9FE;color:var(--pm-purple);border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;}
 #sp-verify{display:none;text-align:center;padding:24px 0;}
-.sc-get-btn{width:36px;height:36px;border:1px solid var(--color-border-secondary);background:var(--color-background-primary);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.sc-get-btn{width:44px;height:44px;border:1px solid var(--color-border-secondary);background:var(--color-background-primary);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
 .sc-get-btn:active{background:var(--color-accent-light);}
 .sc-verified-badge{width:36px;height:36px;border:1px solid #BBF7D0;background:#F0FDF4;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
 /* ===== VERIFY PAGE ===== */
@@ -1961,7 +1980,7 @@ html.keyboard-open .bottom-nav { display: none !important; }
 .k-kpi-lbl{font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.4px;}
 .k-kpi-val{font-size:14px;font-weight:800;line-height:1.1;}
 .k-date-nav{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin:12px 16px 0;padding:12px 16px;}
-.k-date-btn{width:36px;height:36px;border-radius:50%;background:#F8FAFC;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#475569;}
+.k-date-btn{width:44px;height:44px;border-radius:50%;background:#F8FAFC;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#475569;}
 .k-date-label{font-size:15px;font-weight:700;color:#0F172A;display:flex;align-items:center;gap:8px;}
 .k-perf-card{background:#fff;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin:12px 16px 0;padding:18px;}
 .k-perf-title{font-size:14px;font-weight:700;color:#0F172A;margin-bottom:14px;}
@@ -2001,8 +2020,8 @@ html.keyboard-open .bottom-nav { display: none !important; }
 .sk-product-card{background:#fff;border-radius:16px;border:1px solid #E2E8F0;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,0.04);position:relative}
 .sk-action-row{display:flex;gap:6px}
 .sk-action-btn{flex:1;height:36px;border-radius:9px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:700}
-.sk-menu-btn{width:28px;height:28px;border-radius:8px;border:none;background:#F1F5F9;color:#64748B;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.sk-menu-pop{position:absolute;top:42px;right:12px;background:#fff;border:1px solid #E2E8F0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);overflow:hidden;z-index:5;min-width:140px}
+.sk-menu-btn{width:44px;height:44px;border-radius:8px;border:none;background:#F1F5F9;color:#64748B;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sk-menu-pop{position:absolute;top:58px;right:12px;background:#fff;border:1px solid #E2E8F0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);overflow:hidden;z-index:5;min-width:140px}
 .sk-menu-pop button{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;text-align:left;color:#0F172A}
 .sk-menu-pop button:hover{background:#F8FAFC}
 /* Nav styles consolidated above in .bottom-nav / .nav-btn blocks */
@@ -5455,7 +5474,7 @@ function renderToday(){
         <datalist id="item-list-today">${stock.filter(it=>it.qty>0).map(it=>`<option value="${esc(it.name)}">${it.size?it.size+' · ':''}${fmt(it.sell)} · stock: ${it.qty}</option>`).join('')}</datalist>
         <div style="display:flex;gap:6px">
           <input class="input-big" id="s-qty" type="text" inputmode="numeric" placeholder="Qty" value="1" style="max-width:64px;text-align:center" oninput="_recalcSaleTotals();_updateProfitPreview()">
-          <input class="input-big" id="s-amt" type="text" inputmode="numeric" placeholder="Sell ${cur()}" style="flex:1" onkeydown="if(event.key==='Enter')addSale()" oninput="_updateProfitPreview()">
+          <input class="input-big" id="s-amt" type="text" inputmode="numeric" placeholder="Sell ${cur()}" style="flex:1" onkeydown="if(event.key==='Enter')addSale()" oninput="_saleAmtUserEdited=true;_updateProfitPreview()">
           <input class="input-big" id="s-cost" type="text" inputmode="numeric" placeholder="Cost ${cur()}" style="flex:1;font-size:16px;color:var(--color-text-secondary)" oninput="_updateProfitPreview()">
         </div>
         <div id="profit-preview" style="display:none"></div>
@@ -5519,12 +5538,16 @@ function renderToday(){
 
 // Track the matched stock item so qty changes can recalculate totals
 let _saleStockMatch=null;
+// True once the user manually edits the Sell price — once set, qty changes
+// must not overwrite their entered price.
+let _saleAmtUserEdited=false;
 
 // Autofill Sell/Cost when user picks an item from stock datalist (qty-aware)
 function _autofillFromStock(itemName){
   if(!itemName||!itemName.trim()){_saleStockMatch=null;return;}
   const match=stock.find(i=>i.name.toLowerCase()===itemName.trim().toLowerCase());
   if(!match){_saleStockMatch=null;return;}
+  if(!_saleStockMatch||_saleStockMatch.id!==match.id) _saleAmtUserEdited=false;
   _saleStockMatch=match;
   const qty=Math.max(1,parseInt(document.getElementById('s-qty')?.value)||1);
   const sellEl=document.getElementById('s-amt');
@@ -5541,7 +5564,7 @@ function _recalcSaleTotals(){
   const qty=Math.max(1,parseInt(document.getElementById('s-qty')?.value)||1);
   const sellEl=document.getElementById('s-amt');
   const costEl=document.getElementById('s-cost');
-  if(sellEl&&_saleStockMatch.sell>0) sellEl.value=_saleStockMatch.sell*qty;
+  if(sellEl&&_saleStockMatch.sell>0&&!_saleAmtUserEdited) sellEl.value=_saleStockMatch.sell*qty;
   if(costEl&&_saleStockMatch.buy>0) costEl.value=_saleStockMatch.buy*qty;
   _updateProfitPreview();
 }
@@ -5610,6 +5633,8 @@ async function addSale(){
     trackEvent('sale_added',{amt,payMode:selectedPay,qty,hasCost:cost>0});
     if(cost>0) trackEvent('profit_preview_sale_completed',{profit:(amt-cost)*qty,qty,profitPct:amt>0?Math.round((amt-cost)/amt*100):0});
     if(sales.length===1) trackEvent('onboarding_step',{step:'first_sale'});
+    _saleStockMatch=null;
+    _saleAmtUserEdited=false;
     renderToday();
   }finally{if(btn) btn.disabled=false;}
 }
@@ -6112,7 +6137,8 @@ async function addUdhaar(){
     const supRow=document.getElementById('sup-due-row');
     const supDue=supRow&&supRow.style.display!=='none'?document.getElementById('sup-due-input')?.value:'';
     const dueDate=supDue||document.getElementById('u-due').value||'';
-    if(!name||!amt||amt<=0||isNaN(amt)) return;
+    if(!name){_invalidField('u-name','Please enter customer name');return;}
+    if(!amt||amt<=0||isNaN(amt)){_invalidField('u-amt','Please enter a valid amount');return;}
     const u={id:uid(),name,phone,amt,date:todayStr(),ts:Date.now(),paid:false,dueDate,country:S.country};
     udhaars.push(u);
     await dbAdd('pm_udhaar',{id:u.id,user_id:currentUser?.id,name:u.name,phone:u.phone,amt:u.amt,date:u.date,ts:u.ts,paid:u.paid,due_date:dueDate,country:u.country});
@@ -6841,6 +6867,17 @@ function _flushToast(){
   b.textContent=msg; b.classList.add('show');
   _toastTimer=setTimeout(()=>{b.classList.remove('show');setTimeout(_flushToast,200);},2500);
 }
+// Focus an invalid field, flash its border, and show a toast message —
+// used by form validation so a failed Save isn't silent.
+function _invalidField(id,msg){
+  const el=document.getElementById(id);
+  if(el){
+    el.focus();
+    el.style.borderColor='var(--color-danger)';
+    setTimeout(()=>{if(el)el.style.borderColor='';},1500);
+  }
+  _showToast(msg);
+}
 
 // =============== STOCK ===============
 let _stockFormOpen=false;
@@ -7011,7 +7048,7 @@ async function addStock(){
     const buy=Math.round(parseFloat(document.getElementById('st-buy').value))||0;
     const sell=Math.round(parseFloat(document.getElementById('st-sell').value))||0;
     let barcode=(document.getElementById('st-barcode')?.value||'').trim();
-    if(!name) return;
+    if(!name){_invalidField('st-name','Please enter item name');return;}
 
     // FIX: If barcode already exists in stock, ADD to existing qty (don't duplicate)
     if(barcode){
@@ -9290,10 +9327,9 @@ async function addCustomer(){
   const phone=(document.getElementById('ct-phone')?.value||'').trim();
   const address=(document.getElementById('ct-address')?.value||'').trim();
   const note=(document.getElementById('ct-note')?.value||'').trim();
-  if(!name) return;
+  if(!name){_invalidField('ct-name','Please enter customer name');return;}
   if(customers.find(c=>c.name.toLowerCase()===name.toLowerCase())){
-    document.getElementById('ct-name').style.borderColor='var(--color-danger)';
-    setTimeout(()=>{const el=document.getElementById('ct-name');if(el)el.style.borderColor='';},1500);
+    _invalidField('ct-name','Customer with this name already exists');
     return;
   }
   const c={id:uid(),name,phone,address,note};
@@ -9458,8 +9494,9 @@ async function addStaff(){
   const type=document.getElementById('sf-type')?.value||'daily';
   const amt=parseInt(document.getElementById('sf-amt')?.value||'0');
   const phone=(document.getElementById('sf-phone')?.value||'').trim();
-  if(!name||!amt) return;
-  if(staffList.find(s=>s.name.toLowerCase()===name.toLowerCase())) return;
+  if(!name){_invalidField('sf-name','Please enter staff name');return;}
+  if(!amt){_invalidField('sf-amt','Please enter salary amount');return;}
+  if(staffList.find(s=>s.name.toLowerCase()===name.toLowerCase())){_invalidField('sf-name','Staff with this name already exists');return;}
   const staff={id:uid(),name,phone,salaryType:type,salaryAmt:amt};
   staffList.push(staff);
   await dbAdd('pm_staff',{id:staff.id,user_id:currentUser?.id,name,phone,salary_type:type,salary_amt:amt});
