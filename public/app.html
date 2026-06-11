@@ -5410,6 +5410,7 @@ function renderToday(){
     <div class="sub-tabs">
       <button class="sub-tab-btn${todayTab==='sale'?' active':''}" onclick="todayTab='sale';renderToday()">${t('todaySales')}</button>
       <button class="sub-tab-btn${todayTab==='return'?' active':''}" onclick="todayTab='return';renderToday()" style="color:${todayTab==='return'?'var(--color-danger)':''};display:inline-flex;align-items:center;justify-content:center;gap:6px">${licon('undo-2',15,'')} ${t('addReturn')}</button>
+      <button class="sub-tab-btn${todayTab==='expense'?' active':''}" onclick="todayTab='expense';renderToday()" style="color:${todayTab==='expense'?'var(--color-danger)':''};display:inline-flex;align-items:center;justify-content:center;gap:6px">${licon('receipt',15,'')} ${t('expense')}</button>
     </div>
     ${todayTab==='return'?`
     <div style="padding:12px 16px;border-bottom:1px solid var(--color-border-tertiary);background:var(--color-danger-light)">
@@ -5426,6 +5427,18 @@ function renderToday(){
       </div>
       <input class="input-sm" id="r-note" type="text" placeholder="${t('note')}" style="margin-bottom:8px">
       <button class="btn-block" style="background:var(--color-danger);display:inline-flex;align-items:center;justify-content:center;gap:6px" onclick="addReturn()">${licon('undo-2',16,'color:#fff;')} ${t('addReturn')}</button>
+    </div>`:todayTab==='expense'?`
+    <div style="padding:12px 16px;border-bottom:1px solid var(--color-border-tertiary);background:var(--color-danger-light)">
+      <div class="inline-form" style="margin-bottom:8px">
+        <div class="form-col">
+          <input class="input-big" id="te-amt" inputmode="numeric" placeholder="${t('amount')} ${cur()}" onkeydown="if(event.key==='Enter')addExpenseToday()">
+          <input class="input-sm" id="te-note" type="text" placeholder="${t('whatFor')}">
+        </div>
+        <button id="btn-add-exp-today" class="btn-add" style="background:var(--color-danger)" onclick="addExpenseToday()">+</button>
+      </div>
+      <div class="chip-row" style="padding:0;border:none">
+        ${CATS.map(c=>`<button class="chip${c===selectedExpCat?' selected-danger':''}" onclick="selectedExpCat='${c}';this.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('selected-danger'));this.classList.add('selected-danger')">${c}</button>`).join('')}
+      </div>
     </div>`:`
     <div class="inline-form">
       <div class="form-col">
@@ -5491,7 +5504,10 @@ function renderToday(){
       </button>
     </div>`;
   _renderIcons();
-  setTimeout(()=>{const el=document.getElementById('s-note');if(el&&todayTab==='sale')el.focus();},50);
+  setTimeout(()=>{
+    if(todayTab==='sale'){const el=document.getElementById('s-note');if(el)el.focus();}
+    else if(todayTab==='expense'){const el=document.getElementById('te-amt');if(el)el.focus();}
+  },50);
 }
 
 // Track the matched stock item so qty changes can recalculate totals
@@ -5816,6 +5832,23 @@ async function delReturn(id){
   renderToday();
   try{await dbDel('pm_returns',id);}
   catch(e){trackError(e?.name||'DeleteFailed',{operation:'delete',table:'pm_returns',message:e?.message,code:e?.code,online:navigator.onLine});}
+}
+async function addExpenseToday(){
+  const btn=document.getElementById('btn-add-exp-today');
+  if(btn?.disabled) return;
+  if(btn) btn.disabled=true;
+  try{
+    const inp=document.getElementById('te-amt');
+    const amt=Math.round(parseFloat(inp.value));
+    if(!amt||amt<=0||isNaN(amt)){inp.focus();return;}
+    const note=document.getElementById('te-note').value.trim();
+    const exp={id:uid(),date:todayStr(),ts:Date.now(),amt,note,category:selectedExpCat,country:S.country,branchId:currentBranchId||null};
+    expenses.push(exp);
+    _rawExpenses.unshift(exp);
+    await dbAdd('pm_expenses',{id:exp.id,user_id:currentUser?.id,date:exp.date,ts:exp.ts,amt:exp.amt,note:exp.note,category:exp.category,country:exp.country});
+    cacheWrite();
+    renderToday();
+  }finally{if(btn) btn.disabled=false;}
 }
 
 // =============== KATHA ===============
