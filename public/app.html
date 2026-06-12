@@ -6639,17 +6639,41 @@ async function openScanner(target){
       const config={
         fps:10,
         qrbox:{width:qbW, height:qbH},
-        aspectRatio:1.7777778, // request a wide (16:9) frame, helps 1D barcode width
         disableFlip:false,
         videoConstraints:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}, // hint for html5-qrcode
       };
+      // Explicitly restrict formats to retail-barcode + QR (matches Android's ZXing hint list)
+      const _fmts=window.Html5QrcodeSupportedFormats;
+      if(_fmts){
+        config.formatsToSupport=[
+          _fmts.EAN_13, _fmts.EAN_8, _fmts.UPC_A, _fmts.UPC_E,
+          _fmts.CODE_128, _fmts.CODE_39, _fmts.ITF, _fmts.CODABAR, _fmts.QR_CODE,
+        ];
+      }
 
+      // TEMP DIAGNOSTIC: throttle per-frame decode-failure logging to ~1/sec at fps:10
+      let _diagErrCount=0;
       await _html5QrScanner.start(
         cameraIdOrConfig,
         config,
-        (decodedText)=>{ if(scannerActive) _onBarcodeDetected(decodedText); },
-        ()=>{} // per-frame decode errors are noise; ignore
+        (decodedText)=>{
+          console.log('[scanner][DIAG] SUCCESS callback fired, decodedText=',decodedText);
+          if(scannerActive) _onBarcodeDetected(decodedText);
+        },
+        (errorMessage)=>{
+          _diagErrCount++;
+          if(_diagErrCount % 10 === 1){
+            console.log('[scanner][DIAG] decode attempt #'+_diagErrCount+' failed:', errorMessage);
+          }
+        }
       );
+      // TEMP DIAGNOSTIC: log actual video stream / qrbox / camera info
+      try{
+        const _diagVideo=qrContainer.querySelector('video');
+        console.log('[scanner][DIAG] video dimensions:', (_diagVideo?.videoWidth||'?')+'x'+(_diagVideo?.videoHeight||'?'),
+          '| qrbox:', qbW+'x'+qbH,
+          '| cameraIdOrConfig:', JSON.stringify(cameraIdOrConfig));
+      }catch(_){}
       // Release the warmup stream now that html5-qrcode holds its own camera
       // handle — stopping it earlier can race with html5-qrcode's getUserMedia on iOS
       try{warmupStream.getTracks().forEach(t=>t.stop());}catch(_){}
