@@ -28,7 +28,13 @@
     // keyboard); hide the bottom nav instead via the keyboard-open class.
     _kbViewportOpen = !!(window.visualViewport && (window.innerHeight - vh) > 150);
     _updateKeyboardClass();
-    if (_kbViewportOpen) return;
+    if (_kbViewportOpen) {
+      // Size the keyboard-open scroll padding to the actual keyboard height
+      // instead of a flat 50vh — a flat value leaves a huge blank gap below
+      // short forms (e.g. Home page's inline sale form + Recent Activity).
+      document.documentElement.style.setProperty('--kb-pad', (window.innerHeight - vh) + 'px');
+      return;
+    }
     document.documentElement.style.setProperty('--app-height', vh + 'px');
   }
   _setAppHeight();
@@ -65,6 +71,12 @@
     if (!scrollArea || !el || !scrollArea.contains(el)) return;
     const areaRect = scrollArea.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
+    const visibleHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    // Already fully visible above the keyboard — don't scroll. Scrolling
+    // unconditionally drags later sections (e.g. "Recent Activity" on the
+    // Home page) into view along with the keyboard-open bottom padding,
+    // leaving a big blank gap even though the field was fine where it was.
+    if (elRect.top >= areaRect.top - 1 && elRect.bottom <= visibleHeight - 8) return;
     const target = scrollArea.scrollTop + (elRect.top - areaRect.top) - 90;
     scrollArea.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
   }
@@ -444,7 +456,7 @@ html.keyboard-open .bottom-nav { display: none !important; }
    it (see _setAppHeight). Add extra bottom padding while the keyboard is open
    so users can scroll fields/buttons near the bottom (Save, Add, Note, etc.)
    up above the keyboard. */
-html.keyboard-open .scroll-area { padding-bottom: 50vh !important; }
+html.keyboard-open .scroll-area { padding-bottom: var(--kb-pad, 35vh) !important; }
 /* Floating "+" / voice / photo FABs sit on top of the on-screen keyboard's
    input accessory toolbar (next/prev/done), blocking those controls while
    filling out a form — hide them while the keyboard is open. */
