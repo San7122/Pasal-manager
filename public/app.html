@@ -2051,7 +2051,7 @@ html.keyboard-open #scroll-top-btn { display: none !important; }
 .sk-alert-title{font-size:14px;font-weight:700;color:#0F172A;line-height:1.35}
 .sk-alert-num{font-size:21px;font-weight:900;margin-right:4px}
 .sk-alert-desc{font-size:13px;color:#64748B;margin-top:2px}
-.sk-alert-btn{flex-shrink:0;background:#7C3AED;color:#fff;border:none;padding:10px 18px;border-radius:16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.sk-alert-btn{flex-shrink:0;background:#7C3AED;color:#fff;border:none;padding:10px 18px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
 .sk-search{display:flex;align-items:center;gap:8px;padding:14px;background:#fff;position:sticky;top:0;z-index:10}
 .sk-search-input{flex:1 1 auto;display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #E2E8F0;border-radius:16px;padding:0 14px;height:56px;min-width:0;transition:border-color .15s}
 .sk-search-input:focus-within{border-color:#C4B5FD}
@@ -7145,13 +7145,21 @@ function renderStock(){
     }).join('');
   })();
 
+  // renderStock() rebuilds the whole page, including the search <input> —
+  // if it's focused (user mid-typing), capture its cursor position so we can
+  // restore focus after the rebuild. Without this, every keystroke destroys
+  // the focused input and only the first typed character ever registers.
+  const _searchEl=document.getElementById('stock-search-input');
+  const _searchFocused=_searchEl&&document.activeElement===_searchEl
+    ?{start:_searchEl.selectionStart,end:_searchEl.selectionEnd}:null;
+
   document.getElementById('page-stock').innerHTML=`
     ${healthCard}
     ${alertSection}
     <div class="sk-search">
       <div class="sk-search-input">
         <i class="fa-solid fa-magnifying-glass" style="font-size:14px;color:#94A3B8;flex-shrink:0"></i>
-        <input class="input-sm" placeholder="Search products..." value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStock()" style="flex:1;min-width:0;border:none;background:transparent;font-size:14px;outline:none;height:54px;padding:0">
+        <input id="stock-search-input" class="input-sm" placeholder="Search products..." value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStock()" style="flex:1;min-width:0;border:none;background:transparent;font-size:14px;outline:none;height:54px;padding:0">
         ${stockSearch?`<button onclick="stockSearch='';renderStock()" style="background:none;border:none;color:#94A3B8;cursor:pointer;padding:0;font-size:14px;flex-shrink:0"><i class="fa-solid fa-xmark"></i></button>`:''}
       </div>
       <button class="sk-scan-btn" onclick="openScanner('stockFind')">
@@ -7199,6 +7207,13 @@ function renderStock(){
         </button>
       </div>
     </div>`:``}`;
+  if(_searchFocused){
+    const newSearchEl=document.getElementById('stock-search-input');
+    if(newSearchEl){
+      newSearchEl.focus();
+      try{newSearchEl.setSelectionRange(_searchFocused.start,_searchFocused.end);}catch(_){}
+    }
+  }
   _renderIcons();
 }
 function _autoBarcode(){
