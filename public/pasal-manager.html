@@ -4038,8 +4038,10 @@ function _updateOfflineBadge(){
   let el = document.getElementById('offline-badge');
   const queued = _wqLoad().length;
   const isOffline = !navigator.onLine;
-  // Only show if there's something to communicate (offline OR queue has items)
-  if(!isOffline && queued === 0){
+  // Only show while actually offline — the "Syncing N…" badge that used to
+  // appear while online (queue draining in the background) was distracting
+  // and overlapped the bottom nav, so it's been removed entirely.
+  if(!isOffline){
     if(el) el.remove();
     return;
   }
@@ -4049,15 +4051,10 @@ function _updateOfflineBadge(){
     el.style.cssText='position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;z-index:9998;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(0,0,0,0.25);cursor:default';
     document.body.appendChild(el);
   }
-  if(isOffline){
-    el.style.background='#dc2626';
-    el.innerHTML = queued
-      ? `📡 Offline · ${queued} waiting to sync`
-      : `📡 Offline — changes saved here`;
-  } else if(queued){
-    el.style.background='#f59e0b';
-    el.innerHTML = `🔄 Syncing ${queued}…`;
-  }
+  el.style.background='#dc2626';
+  el.innerHTML = queued
+    ? `📡 Offline · ${queued} waiting to sync`
+    : `📡 Offline — changes saved here`;
 }
 
 // ===== WEEKLY BACKUP REMINDER =====
