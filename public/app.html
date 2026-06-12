@@ -430,7 +430,8 @@ html.keyboard-open .scroll-area { padding-bottom: 50vh !important; }
    filling out a form — hide them while the keyboard is open. */
 html.keyboard-open #stock-speed-dial,
 html.keyboard-open #katha-speed-dial,
-html.keyboard-open #fab-photo { display: none !important; }
+html.keyboard-open #fab-photo,
+html.keyboard-open #scroll-top-btn { display: none !important; }
 .nav-btn {
   flex: 1;
   min-width: 0;
@@ -7007,7 +7008,17 @@ function _openStockAddForm(){
     // the global keyboard-open tracker, so the bottom nav / FABs would stay
     // visible and strand mid-screen above the keyboard. Force the class on.
     if(typeof _kbFocusOpen!=='undefined'){_kbFocusOpen=true;_updateKeyboardClass();}
-    el.scrollIntoView({block:'center'});
+    // scrollIntoView({block:'center'}) centers against the scroll area's
+    // pre-keyboard height (which doesn't shrink — see _setAppHeight), so on
+    // a real device it can land the field below the keyboard. Scroll
+    // directly instead, placing the field just under the sticky search bar.
+    const scrollArea=document.querySelector('.scroll-area');
+    if(scrollArea){
+      const areaTop=scrollArea.getBoundingClientRect().top;
+      const elTop=el.getBoundingClientRect().top;
+      const target=scrollArea.scrollTop+(elTop-areaTop)-90;
+      scrollArea.scrollTo({top:Math.max(0,target)});
+    }
   },80);
 }
 function _stockFilterCycle(){const order=['all','out','low','in'];_stockFilter=order[(order.indexOf(_stockFilter)+1)%order.length];renderStock();}
