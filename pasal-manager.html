@@ -3178,7 +3178,7 @@ const LANG = {
     noUdhaar:'No udhaar entries.',noStock:'No stock items.',noSupplier:'No suppliers yet.',
     saved:'Saved',daily:'Daily',monthly:'Monthly',yearly:'Yearly',
     country:'Country',language:'Language',data:'Data',settings:'Settings',
-    expense:'Expenses',supplier:'Suppliers',bill:'Digital Bill',
+    expense:'Expenses',supplier:'Suppliers',bill:'Digital Bill',dealerBook:'Dealer Book',
     plReport:'P&L Report',exportL:'Export',
     itemName:'Item name',qty:'Qty',buyPrice:'Buy',sellPrice:'Sell',
     lowStockAlert:'Low Stock Alert',inStock:'in stock',
@@ -3310,7 +3310,7 @@ const LANG = {
     noUdhaar:'कोई उधार नहीं।',noStock:'कोई स्टॉक नहीं।',noSupplier:'कोई सप्लायर नहीं।',
     saved:'सेव हुआ',daily:'रोज़',monthly:'महीना',yearly:'साल',
     country:'देश',language:'भाषा',data:'डेटा',settings:'सेटिंग',
-    expense:'खर्चा',supplier:'सप्लायर',bill:'डिजिटल बिल',
+    expense:'खर्चा',supplier:'सप्लायर',bill:'डिजिटल बिल',dealerBook:'डीलर बुक',
     plReport:'P&L रिपोर्ट',exportL:'एक्सपोर्ट',
     itemName:'आइटम',qty:'मात्रा',buyPrice:'खरीद',sellPrice:'बेच',
     lowStockAlert:'कम स्टॉक',inStock:'बचा है',
@@ -3442,7 +3442,7 @@ const LANG = {
     noUdhaar:'कुनै उधारो छैन।',noStock:'कुनै स्टक छैन।',noSupplier:'कुनै सप्लायर छैन।',
     saved:'सेभ भयो',daily:'दैनिक',monthly:'मासिक',yearly:'वार्षिक',
     country:'देश',language:'भाषा',data:'डेटा',settings:'सेटिङ',
-    expense:'खर्च',supplier:'सप्लायर',bill:'डिजिटल बिल',
+    expense:'खर्च',supplier:'सप्लायर',bill:'डिजिटल बिल',dealerBook:'डिलर किताब',
     plReport:'P&L रिपोर्ट',exportL:'एक्सपोर्ट',
     itemName:'आइटम',qty:'मात्रा',buyPrice:'किन्ने',sellPrice:'बेच्ने',
     lowStockAlert:'कम स्टक',inStock:'बाँकी',
@@ -5449,6 +5449,24 @@ function renderToday(){
           <i data-lucide="settings" style="color: #64748B"></i>
         </div>
         <div class="module-grid-label">Account</div>
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'DigitalBill'});switchTab('more');goMore('bill')">
+        <div class="module-grid-icon" style="background: #0EA5E91A">
+          <i data-lucide="file-text" style="color: #0EA5E9"></i>
+        </div>
+        <div class="module-grid-label">${t('bill')}</div>
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Supplier'});switchTab('more');goMore('supplier')">
+        <div class="module-grid-icon" style="background: #F59E0B1A">
+          <i data-lucide="truck" style="color: #F59E0B"></i>
+        </div>
+        <div class="module-grid-label">${t('supplier')}</div>
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'Dealer'});switchTab('more');goMore('dealer')">
+        <div class="module-grid-icon" style="background: #0891B21A">
+          <i data-lucide="handshake" style="color: #0891B2"></i>
+        </div>
+        <div class="module-grid-label">${t('dealerBook')}</div>
       </button>
     </div>
     <div class="sub-tabs">
