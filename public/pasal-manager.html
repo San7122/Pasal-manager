@@ -425,6 +425,12 @@ html.keyboard-open .bottom-nav { display: none !important; }
    so users can scroll fields/buttons near the bottom (Save, Add, Note, etc.)
    up above the keyboard. */
 html.keyboard-open .scroll-area { padding-bottom: 50vh !important; }
+/* Floating "+" / voice / photo FABs sit on top of the on-screen keyboard's
+   input accessory toolbar (next/prev/done), blocking those controls while
+   filling out a form — hide them while the keyboard is open. */
+html.keyboard-open #stock-speed-dial,
+html.keyboard-open #katha-speed-dial,
+html.keyboard-open #fab-photo { display: none !important; }
 .nav-btn {
   flex: 1;
   min-width: 0;
