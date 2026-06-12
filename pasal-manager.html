@@ -3178,7 +3178,7 @@ const LANG = {
     noUdhaar:'No udhaar entries.',noStock:'No stock items.',noSupplier:'No suppliers yet.',
     saved:'Saved',daily:'Daily',monthly:'Monthly',yearly:'Yearly',
     country:'Country',language:'Language',data:'Data',settings:'Settings',
-    expense:'Expenses',supplier:'Suppliers',bill:'Digital Bill',dealerBook:'Dealer Book',
+    expense:'Expenses',supplier:'Suppliers',bill:'Digital Bill',dealerBook:'Dealer Book',purchaseBook:'Purchase Book',
     plReport:'P&L Report',exportL:'Export',
     itemName:'Item name',qty:'Qty',buyPrice:'Buy',sellPrice:'Sell',
     lowStockAlert:'Low Stock Alert',inStock:'in stock',
@@ -3310,7 +3310,7 @@ const LANG = {
     noUdhaar:'कोई उधार नहीं।',noStock:'कोई स्टॉक नहीं।',noSupplier:'कोई सप्लायर नहीं।',
     saved:'सेव हुआ',daily:'रोज़',monthly:'महीना',yearly:'साल',
     country:'देश',language:'भाषा',data:'डेटा',settings:'सेटिंग',
-    expense:'खर्चा',supplier:'सप्लायर',bill:'डिजिटल बिल',dealerBook:'डीलर बुक',
+    expense:'खर्चा',supplier:'सप्लायर',bill:'डिजिटल बिल',dealerBook:'डीलर बुक',purchaseBook:'खरीद बुक',
     plReport:'P&L रिपोर्ट',exportL:'एक्सपोर्ट',
     itemName:'आइटम',qty:'मात्रा',buyPrice:'खरीद',sellPrice:'बेच',
     lowStockAlert:'कम स्टॉक',inStock:'बचा है',
@@ -3442,7 +3442,7 @@ const LANG = {
     noUdhaar:'कुनै उधारो छैन।',noStock:'कुनै स्टक छैन।',noSupplier:'कुनै सप्लायर छैन।',
     saved:'सेभ भयो',daily:'दैनिक',monthly:'मासिक',yearly:'वार्षिक',
     country:'देश',language:'भाषा',data:'डेटा',settings:'सेटिङ',
-    expense:'खर्च',supplier:'सप्लायर',bill:'डिजिटल बिल',dealerBook:'डिलर किताब',
+    expense:'खर्च',supplier:'सप्लायर',bill:'डिजिटल बिल',dealerBook:'डिलर किताब',purchaseBook:'खरिद किताब',
     plReport:'P&L रिपोर्ट',exportL:'एक्सपोर्ट',
     itemName:'आइटम',qty:'मात्रा',buyPrice:'किन्ने',sellPrice:'बेच्ने',
     lowStockAlert:'कम स्टक',inStock:'बाँकी',
@@ -5467,6 +5467,12 @@ function renderToday(){
           <i data-lucide="handshake" style="color: #0891B2"></i>
         </div>
         <div class="module-grid-label">${t('dealerBook')}</div>
+      </button>
+      <button class="module-grid-card" onclick="ANALYTICS.track('moduleGridClick',{module:'PurchaseBook'});switchTab('more');goMore('kharidi')">
+        <div class="module-grid-icon" style="background: #EA580C1A">
+          <i data-lucide="shopping-cart" style="color: #EA580C"></i>
+        </div>
+        <div class="module-grid-label">${t('purchaseBook')}</div>
       </button>
     </div>
     <div class="sub-tabs">
