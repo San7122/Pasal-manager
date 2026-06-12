@@ -6773,17 +6773,25 @@ function _runZXing(ZXing){
   document.getElementById('scanner-status').textContent='Scanning…';
   const video=document.getElementById('scanner-video');
   // decodeFromVideoElementContinuously works better on iOS than decodeFromVideoElement
+  // TEMP DIAGNOSTIC: track whether the continuous decode loop runs and what it returns
+  let _zxDiagCount=0;
+  console.log('[scanner][DIAG] ZXing: decodeFromVideoElementContinuously available?', !!_zxingReader.decodeFromVideoElementContinuously, '| video.videoWidth/Height:', video.videoWidth, video.videoHeight);
   try{
     _zxingReader.decodeFromVideoElementContinuously
       ? _zxingReader.decodeFromVideoElementContinuously(video,(result,err)=>{
+          _zxDiagCount++;
+          console.log('[scanner][DIAG] ZXing cb #'+_zxDiagCount+' result:',!!result,'| err:',err?.name,err?.message);
           if(!scannerActive) return;
           if(result) _onBarcodeDetected(result.getText());
         })
       : _zxingReader.decodeFromVideoElement(video,(result,err)=>{
+          _zxDiagCount++;
+          console.log('[scanner][DIAG] ZXing cb #'+_zxDiagCount+' result:',!!result,'| err:',err?.name,err?.message);
           if(!scannerActive) return;
           if(result) _onBarcodeDetected(result.getText());
         });
   }catch(e){
+    console.log('[scanner][DIAG] ZXing setup threw synchronously:', e?.name, e?.message);
     console.error('ZXing decode error:',e);
     document.getElementById('scanner-status').textContent='Scanner failed — use Enter Code';
   }
