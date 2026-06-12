@@ -1,5 +1,5 @@
 // Pasal Manager Service Worker — enables offline + PWA install
-const CACHE_VERSION = 'pm-v30-20260612';
+const CACHE_VERSION = 'pm-v31-20260612';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 

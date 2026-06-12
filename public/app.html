@@ -2763,6 +2763,8 @@ html.keyboard-open .scroll-area { padding-bottom: 50vh !important; }
   </div>
   <div style="background:#111;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
     <div id="scanner-status" style="text-align:center;color:#9CA3AF;font-size:13px;min-height:18px"></div>
+    <!-- TEMP DIAGNOSTIC: on-screen build/engine/camera info for iOS ZXing migration validation -->
+    <div id="scanner-diag" style="display:none;text-align:center;color:#6B7280;font-size:10px;font-family:monospace;white-space:pre-line"></div>
     <div id="scanner-actions" style="display:flex;gap:10px">
       <button onclick="scannerEnterManual()" style="flex:1;padding:13px;background:#1F2937;color:#D1D5DB;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer">✏ Enter Code</button>
       <button onclick="closeScanner()" style="flex:1;padding:13px;background:#374151;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer">✕ Cancel</button>
@@ -6549,6 +6551,8 @@ async function openScanner(target){
   modal.classList.add('open');
   document.getElementById('scanner-manual').style.display='none';
   document.getElementById('scanner-status').textContent='';
+  const diagEl0=document.getElementById('scanner-diag');
+  if(diagEl0){diagEl0.style.display='none';diagEl0.textContent='';}
   document.getElementById('scanner-frame').classList.remove('scanner-found');
   // Restore action buttons (in case they were hidden by a previous successful scan)
   const actionsEl=document.getElementById('scanner-actions');
@@ -6633,10 +6637,11 @@ async function openScanner(target){
             {tier:3, label:'facingMode only', constraints:{video:{facingMode:{ideal:'environment'}}}},
           ];
 
-      let liveStream;
+      let liveStream, _diagTier, _diagTierLabel;
       for(const attempt of attempts){
         try{
           liveStream = await navigator.mediaDevices.getUserMedia(attempt.constraints);
+          _diagTier=attempt.tier; _diagTierLabel=attempt.label;
           console.log('[scanner][DIAG] camera acquired via Tier '+attempt.tier+' ('+attempt.label+')');
           break;
         }catch(err){
@@ -6650,10 +6655,19 @@ async function openScanner(target){
       try{warmupStream.getTracks().forEach(t=>t.stop());}catch(_){}
       scannerStream = liveStream;
 
-      // TEMP DIAGNOSTIC: log the actual camera settings the browser granted
+      // TEMP DIAGNOSTIC: log the actual camera settings the browser granted, and
+      // show build/engine/tier/resolution on-screen so it's verifiable on-device
       try{
         const _diagSettings=liveStream.getVideoTracks()[0]?.getSettings();
         console.log('[scanner][DIAG] active camera settings:', JSON.stringify(_diagSettings));
+        const _diagEl=document.getElementById('scanner-diag');
+        if(_diagEl){
+          _diagEl.style.display='block';
+          _diagEl.textContent='Build: ios-zxing-2026-06-12 | Engine: ZXing | Tier: '+_diagTier+' ('+_diagTierLabel+')'
+            +'\nCam: '+(_diagSettings?.width||'?')+'x'+(_diagSettings?.height||'?')
+            +(_diagSettings?.facingMode?' | facing: '+_diagSettings.facingMode:'')
+            +(_diagSettings?.deviceId?' | dev: '+_diagSettings.deviceId.slice(0,8)+'…':'');
+        }
       }catch(_){}
 
       // STEP 4: Render into #scanner-video (same setup as Android); ensure
@@ -6808,6 +6822,8 @@ function closeScanner(){
   if(fb) fb.style.display='none';
   const photoInput=document.getElementById('scanner-photo-input');
   if(photoInput) photoInput.value='';
+  const diagEl=document.getElementById('scanner-diag');
+  if(diagEl){diagEl.style.display='none';diagEl.textContent='';}
   document.getElementById('scanner-modal').classList.remove('open');
 }
 function scannerEnterManual(){
