@@ -2008,11 +2008,11 @@ html.keyboard-open .scroll-area { padding-bottom: 50vh !important; }
 .ksd-option span{background:#fff;font-size:13px;font-weight:600;color:#0F172A;padding:6px 14px;border-radius:99px;box-shadow:0 2px 10px rgba(0,0,0,0.12);white-space:nowrap;}
 .ksd-icon{width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);flex-shrink:0;}
 /* ===== STOCK PAGE REDESIGN ===== */
-.sk-hero{background:#fff;border-radius:24px;padding:24px;margin:12px 14px 0;border:1px solid #E2E8F0;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
-.sk-hero-head{display:flex;align-items:center;gap:12px;margin-bottom:20px}
-.sk-hero-icon{width:44px;height:44px;border-radius:12px;background:#EDE9FE;color:#7C3AED;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
-.sk-hero-title{font-size:20px;font-weight:700;color:#0F172A;line-height:1.2}
-.sk-hero-sub{font-size:13px;color:#64748B;margin-top:2px}
+.sk-health-card{background:#fff;border-radius:24px;padding:24px;margin:12px 14px 0;border:1px solid #E2E8F0;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+.sk-health-head{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.sk-health-icon{width:44px;height:44px;border-radius:12px;background:#EDE9FE;color:#7C3AED;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.sk-health-title{font-size:20px;font-weight:700;color:#0F172A;line-height:1.2}
+.sk-health-sub{font-size:13px;color:#64748B;margin-top:2px}
 .sk-metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px 14px}
 .sk-metric-label{font-size:12px;font-weight:500;color:#64748B;margin-bottom:6px}
 .sk-metric-val{font-size:28px;font-weight:700;color:#0F172A;line-height:1}
@@ -6922,12 +6922,12 @@ function renderStock(){
   else if(_stockFilter==='in') filtered=filtered.filter(i=>i.qty>5);
   if(stockSearch) filtered=filtered.filter(i=>i.name.toLowerCase().includes(stockSearch.toLowerCase())||(i.barcode||'').includes(stockSearch));
 
-  const healthCard=`<div class="sk-hero">
-    <div class="sk-hero-head">
-      <div class="sk-hero-icon"><i class="fa-solid fa-cube"></i></div>
+  const healthCard=`<div class="sk-health-card">
+    <div class="sk-health-head">
+      <div class="sk-health-icon"><i class="fa-solid fa-cube"></i></div>
       <div>
-        <div class="sk-hero-title">Inventory Health</div>
-        <div class="sk-hero-sub">${stock.length} product${stock.length===1?'':'s'} tracked</div>
+        <div class="sk-health-title">Inventory Health</div>
+        <div class="sk-health-sub">${stock.length} product${stock.length===1?'':'s'} tracked</div>
       </div>
     </div>
     <div class="sk-metric-grid">
