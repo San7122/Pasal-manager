@@ -70,7 +70,7 @@ const HeroBanner = () => {
                         </a>
                     </div>
                     <div className="flex items-center gap-3 mt-5 text-xs sm:text-sm text-white/80 font-medium">
-                        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>Free forever</span>
+                        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>Try for free</span>
                         <span className="text-white/30">·</span>
                         <span>Works offline</span>
                         <span className="text-white/30">·</span>
