@@ -2520,7 +2520,7 @@ body.stock-tab-active .nav-center-fab i{color:#7C3AED !important}
 <!-- ===== STOCK SPEED-DIAL FAB ===== -->
 <div id="stock-speed-dial" style="display:none;position:fixed;bottom:92px;right:16px;z-index:600;flex-direction:column;align-items:flex-end;gap:12px">
   <div id="ssd-options" style="display:none;flex-direction:column;gap:10px;align-items:flex-end">
-    <div class="ksd-option" onclick="_ssdClose();if(!_stockFormOpen)toggleStockForm();setTimeout(()=>document.getElementById('st-name')?.focus(),80)"><span>Add Product</span><div class="ksd-icon"><i class="fa-solid fa-plus" style="font-size:16px;color:#7C3AED"></i></div></div>
+    <div class="ksd-option" onclick="_ssdClose();_openStockAddForm()"><span>Add Product</span><div class="ksd-icon"><i class="fa-solid fa-plus" style="font-size:16px;color:#7C3AED"></i></div></div>
     <div class="ksd-option" onclick="_ssdClose();openVoice()"><span>Voice Entry</span><div class="ksd-icon"><i class="fa-solid fa-microphone" style="font-size:16px;color:#059669"></i></div></div>
     <div class="ksd-option" onclick="_ssdClose();document.querySelector('#page-stock input[type=file]')?.click()"><span>Import CSV</span><div class="ksd-icon"><i class="fa-solid fa-file-arrow-up" style="font-size:16px;color:#F59E0B"></i></div></div>
   </div>
@@ -6997,6 +6997,19 @@ let _stockFilter='all';
 let _skMenuOpenId=null;
 let _ssdOpen=false;
 function toggleStockForm(){_stockFormOpen=!_stockFormOpen;renderStock();}
+function _openStockAddForm(){
+  if(!_stockFormOpen) toggleStockForm();
+  setTimeout(()=>{
+    const el=document.getElementById('st-name');
+    if(!el) return;
+    el.focus();
+    // Programmatic focus from a FAB tap doesn't pass the recent-tap check in
+    // the global keyboard-open tracker, so the bottom nav / FABs would stay
+    // visible and strand mid-screen above the keyboard. Force the class on.
+    if(typeof _kbFocusOpen!=='undefined'){_kbFocusOpen=true;_updateKeyboardClass();}
+    el.scrollIntoView({block:'center'});
+  },80);
+}
 function _stockFilterCycle(){const order=['all','out','low','in'];_stockFilter=order[(order.indexOf(_stockFilter)+1)%order.length];renderStock();}
 function _skMenuToggle(id){_skMenuOpenId=(_skMenuOpenId===id)?null:id;renderStock();}
 function renderStock(){
