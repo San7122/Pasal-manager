@@ -5,7 +5,7 @@
 <!-- Version: 3.0 (Fintech UI Redesign) | Updated: 2026-06-08 -->
 <meta name="cache-version" content="v5.7-20260609-profit-preview">
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
   if (new URLSearchParams(location.search).get('guest')) {
     document.documentElement.classList.add('auto-login');
@@ -372,13 +372,13 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: env(safe-area-inset-top, 0px) 20px 0;
   gap: 10px;
   background: #fff;
   border-bottom: 1px solid #EFF2F7;
   box-shadow: 0 1px 4px rgba(15,23,42,0.06);
-  min-height: var(--topbar-height);
-  height: var(--topbar-height);
+  min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+  height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
   flex-shrink: 0;
   color: var(--color-text-primary);
 }
