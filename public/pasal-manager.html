@@ -14342,11 +14342,11 @@ function calcBusinessScore() {
   const total = s1 + s2 + s3 + s4;
 
   // ─── Grade ───
-  let grade, gradeColor, gradeEmoji;
-  if (total >= 80) { grade = 'Excellent'; gradeColor = '#16A34A'; gradeEmoji = '🏆'; }
-  else if (total >= 60) { grade = 'Good'; gradeColor = '#2563EB'; gradeEmoji = '✅'; }
-  else if (total >= 40) { grade = 'Fair'; gradeColor = '#D97706'; gradeEmoji = '⚡'; }
-  else { grade = 'Building'; gradeColor = '#6B7280'; gradeEmoji = '📈'; }
+  let grade, gradeColor, gradeEmoji, gradeIcon;
+  if (total >= 80) { grade = 'Excellent'; gradeColor = '#16A34A'; gradeEmoji = '🏆'; gradeIcon = 'trophy'; }
+  else if (total >= 60) { grade = 'Good'; gradeColor = '#2563EB'; gradeEmoji = '✅'; gradeIcon = 'check-circle'; }
+  else if (total >= 40) { grade = 'Fair'; gradeColor = '#D97706'; gradeEmoji = '⚡'; gradeIcon = 'bolt'; }
+  else { grade = 'Building'; gradeColor = '#6B7280'; gradeEmoji = '📈'; gradeIcon = 'chart-line'; }
 
   // ─── Per-component insight text ───
   const insightTexts = [
@@ -14381,7 +14381,7 @@ function calcBusinessScore() {
 
   return {
     total, s1, s2, s3, s4,
-    grade, gradeColor, gradeEmoji, insightTexts, improvements,
+    grade, gradeColor, gradeEmoji, gradeIcon, insightTexts, improvements,
     meta: {
       totalSales: sales.reduce((a, s) => a + s.amt, 0),
       txCount: sales.length + expenses.length,
@@ -14460,7 +14460,9 @@ function renderScorePage(el) {
 
   el.innerHTML = backBtn() + `
   <div class="score-hero">
-    <div style="font-size:40px;margin-bottom:6px">${sc.gradeEmoji}</div>
+    <div style="width:64px;height:64px;border-radius:18px;background:${sc.gradeColor}1A;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">
+      <i class="fas fa-${sc.gradeIcon}" style="font-size:30px;color:${sc.gradeColor}"></i>
+    </div>
     <div><span class="score-number" id="score-num">0</span><span class="score-denom"> / 100</span></div>
     <div class="score-master-bar">
       <div class="score-master-bar-fill" data-w="${sc.total}" style="background:${sc.gradeColor}"></div>
