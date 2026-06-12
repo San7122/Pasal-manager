@@ -6616,68 +6616,65 @@ async function openScanner(target){
       }catch(_){/* getCameras can fail — fall through to facingMode */}
       if(!cameraIdOrConfig) cameraIdOrConfig = {facingMode:{ideal:'environment'}};
 
-      // STEP 3: Set up html5-qrcode's container element
-      const videoEl=document.getElementById('scanner-video');
-      if(videoEl) videoEl.style.display='none';
-      let qrContainer=document.getElementById('h5qr-container');
-      if(!qrContainer){
-        qrContainer=document.createElement('div');
-        qrContainer.id='h5qr-container';
-        qrContainer.style.cssText='position:absolute;inset:0;z-index:1;width:100%;height:100%;background:#000;overflow:hidden';
-        videoEl.parentNode.appendChild(qrContainer);
-      } else {
-        qrContainer.style.display='block';
-        qrContainer.innerHTML=''; // clear any leftover state
-      }
-      _html5QrScanner=new Html5Qrcode('h5qr-container',{verbose:false});
+      // STEP 3: Acquire the live camera stream with a constraint fallback chain.
+      // html5-qrcode's bundled iOS decoder lacks TRY_HARDER (needed for 1D/EAN-13),
+      // so live decoding now goes through _runZXing() on a raw <video> element —
+      // the same proven path Android uses. html5-qrcode is still used above for
+      // getCameras() and remains available for the photo-fallback decoder.
+      const isDeviceId = typeof cameraIdOrConfig === 'string';
+      const attempts = isDeviceId
+        ? [
+            {tier:1, label:'deviceId + resolution', constraints:{video:{deviceId:{exact:cameraIdOrConfig}, width:{ideal:1280}, height:{ideal:720}}}},
+            {tier:2, label:'deviceId only', constraints:{video:{deviceId:{exact:cameraIdOrConfig}}}},
+            {tier:3, label:'facingMode fallback', constraints:{video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}}},
+          ]
+        : [
+            {tier:3, label:'facingMode + resolution', constraints:{video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}}},
+            {tier:3, label:'facingMode only', constraints:{video:{facingMode:{ideal:'environment'}}}},
+          ];
 
-      // STEP 4: qrbox sized wide+short to fit retail (EAN/CODE128) barcodes,
-      // still capped to fit any iPhone viewport
-      const vw = Math.min(window.innerWidth, qrContainer.clientWidth||window.innerWidth);
-      const qbW = Math.min(300, Math.floor(vw * 0.9));
-      const qbH = Math.floor(qbW * 0.35); // wide rectangle for 1D barcodes
-      const config={
-        fps:10,
-        qrbox:{width:qbW, height:qbH},
-        disableFlip:false,
-        videoConstraints:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}, // hint for html5-qrcode
-      };
-      // Explicitly restrict formats to retail-barcode + QR (matches Android's ZXing hint list)
-      const _fmts=window.Html5QrcodeSupportedFormats;
-      if(_fmts){
-        config.formatsToSupport=[
-          _fmts.EAN_13, _fmts.EAN_8, _fmts.UPC_A, _fmts.UPC_E,
-          _fmts.CODE_128, _fmts.CODE_39, _fmts.ITF, _fmts.CODABAR, _fmts.QR_CODE,
-        ];
-      }
-
-      // TEMP DIAGNOSTIC: throttle per-frame decode-failure logging to ~1/sec at fps:10
-      let _diagErrCount=0;
-      await _html5QrScanner.start(
-        cameraIdOrConfig,
-        config,
-        (decodedText)=>{
-          console.log('[scanner][DIAG] SUCCESS callback fired, decodedText=',decodedText);
-          if(scannerActive) _onBarcodeDetected(decodedText);
-        },
-        (errorMessage)=>{
-          _diagErrCount++;
-          if(_diagErrCount % 10 === 1){
-            console.log('[scanner][DIAG] decode attempt #'+_diagErrCount+' failed:', errorMessage);
-          }
+      let liveStream;
+      for(const attempt of attempts){
+        try{
+          liveStream = await navigator.mediaDevices.getUserMedia(attempt.constraints);
+          console.log('[scanner][DIAG] camera acquired via Tier '+attempt.tier+' ('+attempt.label+')');
+          break;
+        }catch(err){
+          if(err.name !== 'OverconstrainedError') throw err;
+          console.log('[scanner][DIAG] Tier '+attempt.tier+' ('+attempt.label+') OverconstrainedError, trying next…');
         }
-      );
-      // TEMP DIAGNOSTIC: log actual video stream / qrbox / camera info
-      try{
-        const _diagVideo=qrContainer.querySelector('video');
-        console.log('[scanner][DIAG] video dimensions:', (_diagVideo?.videoWidth||'?')+'x'+(_diagVideo?.videoHeight||'?'),
-          '| qrbox:', qbW+'x'+qbH,
-          '| cameraIdOrConfig:', JSON.stringify(cameraIdOrConfig));
-      }catch(_){}
-      // Release the warmup stream now that html5-qrcode holds its own camera
-      // handle — stopping it earlier can race with html5-qrcode's getUserMedia on iOS
+      }
+      if(!liveStream) throw new Error('All camera constraint fallbacks failed');
+
+      // Acquire-new-before-stop-old — avoids the iOS camera-handoff race
       try{warmupStream.getTracks().forEach(t=>t.stop());}catch(_){}
-      setStatus('Scanning…');
+      scannerStream = liveStream;
+
+      // TEMP DIAGNOSTIC: log the actual camera settings the browser granted
+      try{
+        const _diagSettings=liveStream.getVideoTracks()[0]?.getSettings();
+        console.log('[scanner][DIAG] active camera settings:', JSON.stringify(_diagSettings));
+      }catch(_){}
+
+      // STEP 4: Render into #scanner-video (same setup as Android); ensure
+      // html5-qrcode's container (unused for live scan now) stays hidden
+      const qrContainer=document.getElementById('h5qr-container');
+      if(qrContainer){qrContainer.style.display='none';qrContainer.innerHTML='';}
+      const video=document.getElementById('scanner-video');
+      video.style.display='block';
+      video.setAttribute('playsinline','true');
+      video.muted=true; video.autoplay=true;
+      video.srcObject=scannerStream;
+      await new Promise((resolve)=>{
+        if(video.readyState>=2) resolve();
+        else video.onloadedmetadata=()=>resolve();
+      });
+      try{await video.play();}catch(e){}
+
+      // STEP 5: Decode with ZXing (TRY_HARDER + full-frame), same proven path as Android
+      setStatus('Loading scanner…');
+      const ZXing=await _zxingLoad();
+      _runZXing(ZXing);
     }catch(e){
       try{warmupStream && warmupStream.getTracks().forEach(t=>t.stop());}catch(_){}
       console.error('Scanner failed:',e);
