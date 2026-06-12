@@ -56,6 +56,18 @@
     _lastPointerTarget = e.target;
     _lastPointerTime = Date.now();
   }, true);
+  // Keep the focused field positioned near the top of .scroll-area while the
+  // on-screen keyboard is open — otherwise the field (and everything below
+  // the previous scroll position) sits hidden behind the keyboard, leaving a
+  // big blank gap above it.
+  function _scrollFieldAboveKeyboard(el){
+    const scrollArea = document.querySelector('.scroll-area');
+    if (!scrollArea || !el || !scrollArea.contains(el)) return;
+    const areaRect = scrollArea.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const target = scrollArea.scrollTop + (elRect.top - areaRect.top) - 90;
+    scrollArea.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+  }
   let _kbCloseTimer = null;
   document.addEventListener('focusin', (e) => {
     if (!_isTextEntryEl(e.target)) return;
@@ -66,10 +78,18 @@
     // left it permanently hidden after every tab switch).
     const recentTap = _lastPointerTarget && (Date.now() - _lastPointerTime) < 500
       && (e.target === _lastPointerTarget || e.target.contains(_lastPointerTarget) || _lastPointerTarget.contains(e.target));
-    if (!recentTap) return;
-    if (_kbCloseTimer) { clearTimeout(_kbCloseTimer); _kbCloseTimer = null; }
-    _kbFocusOpen = true;
-    _updateKeyboardClass();
+    if (recentTap) {
+      if (_kbCloseTimer) { clearTimeout(_kbCloseTimer); _kbCloseTimer = null; }
+      _kbFocusOpen = true;
+      _updateKeyboardClass();
+    }
+    // While the keyboard is open, reposition on every field change — covers
+    // both direct taps and the keyboard's prev/next navigation buttons (which
+    // don't count as a "recent tap" on the field itself).
+    if (_kbFocusOpen || _kbViewportOpen) {
+      const target = e.target;
+      setTimeout(() => _scrollFieldAboveKeyboard(target), 150);
+    }
   });
   document.addEventListener('focusout', (e) => {
     if (!_isTextEntryEl(e.target)) return;
