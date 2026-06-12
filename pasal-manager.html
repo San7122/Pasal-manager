@@ -1265,7 +1265,7 @@ html.keyboard-open .scroll-area { padding-bottom: 50vh !important; }
 #scanner-modal.open { display:flex; }
 #scanner-video { width:100%; height:100%; object-fit:cover; display:block; }
 .scanner-overlay {
-  position:absolute; inset:0;
+  position:absolute; inset:0; z-index:2;
   display:flex; align-items:center; justify-content:center;
   pointer-events:none;
 }
@@ -2738,7 +2738,7 @@ html.keyboard-open .scroll-area { padding-bottom: 50vh !important; }
         <div class="scanner-line" id="scanner-line"></div>
       </div>
     </div>
-    <div style="position:absolute;top:16px;left:0;right:0;text-align:center">
+    <div style="position:absolute;top:16px;left:0;right:0;text-align:center;z-index:2">
       <div style="display:inline-block;background:rgba(0,0,0,0.6);color:#fff;font-size:13px;font-weight:600;padding:6px 16px;border-radius:20px" id="scanner-label">Point camera at barcode</div>
     </div>
   </div>
@@ -6558,13 +6558,13 @@ async function openScanner(target){
       document.getElementById('scanner-manual').style.display='block';
       setTimeout(()=>document.getElementById('scanner-manual-input')?.focus(),100);
     };
+    let warmupStream;
     try{
       setStatus('Requesting camera…');
       // STEP 1: Pre-grant camera permission with a minimal getUserMedia call.
       // This is the trick — calling getUserMedia FIRST (in the user-gesture context
       // of the scan button click) makes iOS Safari actually show the permission prompt,
       // and primes html5-qrcode's later .start() call to succeed.
-      let warmupStream;
       try{
         warmupStream = await navigator.mediaDevices.getUserMedia({
           video:{facingMode:{ideal:'environment'}},
@@ -6595,8 +6595,6 @@ async function openScanner(target){
           cameraIdOrConfig = back.id;
         }
       }catch(_){/* getCameras can fail — fall through to facingMode */}
-      // Stop the warmup stream NOW (before html5-qrcode tries to open its own)
-      try{warmupStream.getTracks().forEach(t=>t.stop());}catch(_){}
       if(!cameraIdOrConfig) cameraIdOrConfig = {facingMode:{ideal:'environment'}};
 
       // STEP 3: Set up html5-qrcode's container element
@@ -6606,7 +6604,7 @@ async function openScanner(target){
       if(!qrContainer){
         qrContainer=document.createElement('div');
         qrContainer.id='h5qr-container';
-        qrContainer.style.cssText='position:absolute;inset:0;width:100%;height:100%;background:#000;overflow:hidden';
+        qrContainer.style.cssText='position:absolute;inset:0;z-index:1;width:100%;height:100%;background:#000;overflow:hidden';
         videoEl.parentNode.appendChild(qrContainer);
       } else {
         qrContainer.style.display='block';
@@ -6631,8 +6629,12 @@ async function openScanner(target){
         (decodedText)=>{ if(scannerActive) _onBarcodeDetected(decodedText); },
         ()=>{} // per-frame decode errors are noise; ignore
       );
+      // Release the warmup stream now that html5-qrcode holds its own camera
+      // handle — stopping it earlier can race with html5-qrcode's getUserMedia on iOS
+      try{warmupStream.getTracks().forEach(t=>t.stop());}catch(_){}
       setStatus('Scanning…');
     }catch(e){
+      try{warmupStream && warmupStream.getTracks().forEach(t=>t.stop());}catch(_){}
       console.error('Scanner failed:',e);
       const errName = e?.name || '';
       const errMsg = String(e?.message || e);
