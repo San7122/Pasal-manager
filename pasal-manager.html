@@ -2013,28 +2013,32 @@ html.keyboard-open .scroll-area { padding-bottom: 50vh !important; }
 .sk-health-icon{width:44px;height:44px;border-radius:12px;background:#EDE9FE;color:#7C3AED;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
 .sk-health-title{font-size:20px;font-weight:700;color:#0F172A;line-height:1.2}
 .sk-health-sub{font-size:13px;color:#64748B;margin-top:2px}
-.sk-metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px 14px}
+.sk-metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:26px 16px}
 .sk-metric-label{font-size:12px;font-weight:500;color:#64748B;margin-bottom:6px}
-.sk-metric-val{font-size:28px;font-weight:700;color:#0F172A;line-height:1}
-.sk-metric-cap{font-size:12px;color:#94A3B8;margin-top:6px;display:flex;align-items:center;gap:5px}
+.sk-metric-val{font-size:28px;font-weight:800;color:#0F172A;line-height:1}
+.sk-metric-cap{font-size:12px;color:#94A3B8;margin-top:8px;display:flex;align-items:center;gap:6px}
 .sk-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.sk-alert-card{display:flex;align-items:center;gap:14px;background:#FFF1F2;border-radius:20px;padding:18px;margin:14px 14px 0}
-.sk-alert-icon{width:44px;height:44px;border-radius:50%;background:#FFE1E5;color:#E11D48;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
-.sk-alert-title{font-size:16px;font-weight:700;color:#0F172A;line-height:1.25}
+.sk-metric-icon{width:20px;height:20px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.sk-alert-card{display:flex;align-items:center;gap:14px;background:#FEE2E2;border:1px solid #FECACA;border-radius:20px;padding:18px;margin:14px 14px 0}
+.sk-alert-icon{width:52px;height:52px;border-radius:50%;background:#FECACA;color:#DC2626;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px}
+.sk-alert-title{font-size:15px;font-weight:700;color:#0F172A;line-height:1.3}
+.sk-alert-num{font-size:24px;font-weight:900;margin-right:3px}
 .sk-alert-desc{font-size:13px;color:#64748B;margin-top:2px}
-.sk-alert-btn{flex-shrink:0;background:#7C3AED;color:#fff;border:none;padding:10px 18px;border-radius:16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.sk-alert-btn{flex-shrink:0;background:#DC2626;color:#fff;border:none;padding:10px 18px;border-radius:16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
 .sk-search{display:flex;align-items:center;gap:8px;padding:14px;background:#fff;position:sticky;top:0;z-index:10}
-.sk-search-input{flex:1;display:flex;align-items:center;gap:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:16px;padding:0 14px;height:56px;min-width:0}
-.sk-scan-btn{flex-shrink:0;height:56px;padding:0 18px;border-radius:16px;border:none;background:#7C3AED;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sk-search-input{flex:1;display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #E2E8F0;border-radius:16px;padding:0 14px;height:56px;min-width:0;transition:border-color .15s}
+.sk-search-input:focus-within{border-color:#C4B5FD}
+.sk-scan-btn{flex-shrink:0;height:56px;padding:0 16px;border-radius:16px;border:none;background:#7C3AED;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .sk-filter-btn{flex-shrink:0;height:56px;padding:0 16px;border-radius:16px;border:1px solid #E2E8F0;background:#fff;color:#64748B;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
-.sk-filter-btn.active{border-color:#7C3AED;background:#EDE9FE;color:#7C3AED}
+.sk-filter-btn.active{border-color:#C4B5FD;background:#F5F3FF;color:#7C3AED}
 .sk-section-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px 12px;flex-wrap:wrap}
 .sk-section-title{font-size:22px;font-weight:700;color:#0F172A}
-.sk-count-chip{font-size:12px;font-weight:700;color:#7C3AED;background:#EDE9FE;padding:4px 12px;border-radius:99px}
+.sk-count-chip{font-size:12px;font-weight:700;color:#7C3AED;background:#F5F3FF;padding:4px 12px;border-radius:99px}
 .sk-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:5px 12px;border-radius:99px;margin-top:6px}
 .sk-product-card{background:#fff;border-radius:24px;border:1px solid #E2E8F0;padding:18px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.05);position:relative}
+.sk-sku{font-size:12px;color:#94A3B8;font-weight:500;margin-bottom:6px}
 .sk-pl-label{font-size:12px;color:#94A3B8;font-weight:600;text-align:right;margin-bottom:4px}
-.sk-pl-chip{font-size:14px;font-weight:700;padding:5px 12px;border-radius:10px;white-space:nowrap}
+.sk-pl-chip{font-size:13px;font-weight:600;padding:4px 10px;border-radius:10px;white-space:nowrap}
 .sk-action-row{display:flex;gap:8px;margin-top:14px}
 .sk-action-btn{flex:1;height:48px;border-radius:14px;border:1px solid #E2E8F0;background:#fff;color:#475569;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700}
 .sk-action-btn.sk-primary{background:#7C3AED;border-color:#7C3AED;color:#fff}
@@ -2043,6 +2047,10 @@ html.keyboard-open .scroll-area { padding-bottom: 50vh !important; }
 .sk-menu-pop{position:absolute;top:66px;right:18px;background:#fff;border:1px solid #E2E8F0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);overflow:hidden;z-index:5;min-width:140px}
 .sk-menu-pop button{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;text-align:left;color:#0F172A}
 .sk-menu-pop button:hover{background:#F8FAFC}
+/* Stock tab: soften the global voice FAB + reduce "+" speed-dial shadow so Scan reads as the primary action */
+body.stock-tab-active .nav-center-fab{background:#fff;border:2px solid #DDD6FE;box-shadow:0 2px 10px rgba(124,58,237,0.15)}
+body.stock-tab-active .nav-center-fab i{color:#7C3AED !important}
+#ssd-main-btn{box-shadow:0 3px 12px rgba(124,58,237,0.28)}
 /* Nav styles consolidated above in .bottom-nav / .nav-btn blocks */
 </style>
 </head>
@@ -5208,6 +5216,7 @@ function switchTab(tab){
   if(_kf){_kf.style.display=tab==='katha'?'flex':'none';if(tab!=='katha')_ksdClose();}
   const _sf=document.getElementById('stock-speed-dial');
   if(_sf){_sf.style.display=tab==='stock'?'flex':'none';if(tab!=='stock')_ssdClose();}
+  document.body.classList.toggle('stock-tab-active',tab==='stock');
 
   confirmId=null;
   const tabNames={today:t('today'),katha:t('katha'),udhaar:t('udhaar'),stock:t('stock'),more:t('more')};
@@ -7007,23 +7016,23 @@ function renderStock(){
     <div class="sk-metric-grid">
       <div>
         <div class="sk-metric-label">Out of Stock</div>
-        <div class="sk-metric-val">${outStock.length}</div>
-        <div class="sk-metric-cap"><span class="sk-dot" style="background:#E11D48"></span>Needs attention</div>
+        <div class="sk-metric-val" style="color:#DC2626">${outStock.length}</div>
+        <div class="sk-metric-cap"><span class="sk-metric-icon" style="background:#FEE2E2;color:#DC2626"><i class="fa-solid fa-circle-exclamation" style="font-size:10px"></i></span>Needs attention</div>
       </div>
       <div>
         <div class="sk-metric-label">Low Stock</div>
-        <div class="sk-metric-val">${lowStock.length}</div>
-        <div class="sk-metric-cap"><span class="sk-dot" style="background:#D97706"></span>Monitor</div>
+        <div class="sk-metric-val" style="color:#F59E0B">${lowStock.length}</div>
+        <div class="sk-metric-cap"><span class="sk-metric-icon" style="background:#FEF3C7;color:#F59E0B"><i class="fa-solid fa-triangle-exclamation" style="font-size:10px"></i></span>Monitor</div>
       </div>
       <div>
         <div class="sk-metric-label">Total Products</div>
-        <div class="sk-metric-val">${stock.length}</div>
-        <div class="sk-metric-cap"><i class="fa-solid fa-box" style="font-size:10px;color:#7C3AED"></i>All items</div>
+        <div class="sk-metric-val" style="color:#7C3AED">${stock.length}</div>
+        <div class="sk-metric-cap"><span class="sk-metric-icon" style="background:#EDE9FE;color:#7C3AED"><i class="fa-solid fa-box" style="font-size:10px"></i></span>All items</div>
       </div>
       <div>
         <div class="sk-metric-label">Inventory Value</div>
-        <div class="sk-metric-val" style="font-size:20px">${fmt(totalValue)}</div>
-        <div class="sk-metric-cap"><i class="fa-solid fa-sack-dollar" style="font-size:10px;color:#7C3AED"></i>Total value</div>
+        <div class="sk-metric-val" style="font-size:20px;color:#16A34A">${fmt(totalValue)}</div>
+        <div class="sk-metric-cap"><span class="sk-metric-icon" style="background:#DCFCE7;color:#16A34A"><i class="fa-solid fa-sack-dollar" style="font-size:10px"></i></span>Total value</div>
       </div>
     </div>
   </div>`;
@@ -7032,19 +7041,19 @@ function renderStock(){
   <div class="sk-alert-card">
     <div class="sk-alert-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
     <div style="flex:1;min-width:0">
-      <div class="sk-alert-title">${outStock.length} Product${outStock.length===1?'':'s'} Need${outStock.length===1?'s':''} Restocking</div>
+      <div class="sk-alert-title"><span class="sk-alert-num" style="color:#DC2626">${outStock.length}</span>Product${outStock.length===1?'':'s'} Need${outStock.length===1?'s':''} Restocking</div>
       <div class="sk-alert-desc">Restock to avoid missed sales</div>
     </div>
     <button class="sk-alert-btn" onclick="_stockFilter='out';renderStock()">View Products</button>
   </div>`
   :lowStock.length>0?`
-  <div class="sk-alert-card" style="background:#FFFBEB">
-    <div class="sk-alert-icon" style="background:#FEF3C7;color:#D97706"><i class="fa-solid fa-triangle-exclamation"></i></div>
+  <div class="sk-alert-card" style="background:#FFFBEB;border-color:#FDE68A">
+    <div class="sk-alert-icon" style="background:#FEF3C7;color:#F59E0B"><i class="fa-solid fa-triangle-exclamation"></i></div>
     <div style="flex:1;min-width:0">
-      <div class="sk-alert-title">${lowStock.length} Product${lowStock.length===1?'':'s'} Running Low</div>
+      <div class="sk-alert-title"><span class="sk-alert-num" style="color:#D97706">${lowStock.length}</span>Product${lowStock.length===1?'':'s'} Running Low</div>
       <div class="sk-alert-desc">Restock soon to stay ahead</div>
     </div>
-    <button class="sk-alert-btn" onclick="_stockFilter='low';renderStock()">View Products</button>
+    <button class="sk-alert-btn" style="background:#D97706" onclick="_stockFilter='low';renderStock()">View Products</button>
   </div>`:'';
 
   const productsHtml=(()=>{
@@ -7052,17 +7061,18 @@ function renderStock(){
     if(filtered.length===0) return _emptyState('search','No results','Try a different filter or search term','','');
     return filtered.map(i=>{
       const profit=Math.round(i.sell-i.buy);
-      const qtyColor=i.qty<=0?'#E11D48':i.qty<=5?'#D97706':'#0F172A';
+      const qtyColor=i.qty<=0?'#DC2626':i.qty<=5?'#F59E0B':'#0F172A';
       const statusChip=i.qty<=0
-        ?`<span class="sk-badge" style="background:#FFE1E5;color:#E11D48"><i class="fa-solid fa-circle-xmark" style="font-size:10px"></i>Out of Stock</span>`
+        ?`<span class="sk-badge" style="background:#FEE2E2;color:#DC2626"><i class="fa-solid fa-circle-xmark" style="font-size:10px"></i>Out of Stock</span>`
         :i.qty<=5
-        ?`<span class="sk-badge" style="background:#FEF3C7;color:#D97706"><i class="fa-solid fa-triangle-exclamation" style="font-size:10px"></i>Low Stock</span>`
-        :`<span class="sk-badge" style="background:#F1F5F9;color:#475569"><i class="fa-solid fa-circle-check" style="font-size:10px"></i>In Stock</span>`;
+        ?`<span class="sk-badge" style="background:#FEF3C7;color:#F59E0B"><i class="fa-solid fa-triangle-exclamation" style="font-size:10px"></i>Low Stock</span>`
+        :`<span class="sk-badge" style="background:#DCFCE7;color:#16A34A"><i class="fa-solid fa-circle-check" style="font-size:10px"></i>In Stock</span>`;
       if(confirmId===i.id) return `<div class="sk-product-card"><div style="font-size:15px;font-weight:700;color:#0F172A;margin-bottom:6px">${esc(i.name)}</div><div style="font-size:13px;color:#E11D48;font-weight:600;margin-bottom:12px">${t('delete')}</div><div style="display:flex;gap:8px"><button class="btn-confirm yes" onclick="delStock('${i.id}')">${t('yesDelete')}</button><button class="btn-confirm no" onclick="confirmId=null;renderStock()">${t('cancel')}</button></div></div>`;
       return `<div class="sk-product-card"${i.barcode?` data-barcode="${esc(i.barcode)}"`:''}>
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px">
           <div style="flex:1;min-width:0">
             <div style="font-size:18px;font-weight:700;color:#0F172A;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(i.name)}${i.size?`<span style="font-size:12px;font-weight:500;color:#64748B;margin-left:6px">${esc(i.size)}</span>`:''}</div>
+            ${i.barcode?`<div class="sk-sku">SKU: ${esc(i.barcode)}</div>`:''}
             ${statusChip}
           </div>
           <button class="sk-menu-btn" onclick="_skMenuToggle('${i.id}')"><i class="fa-solid fa-ellipsis-vertical" style="font-size:14px"></i></button>
@@ -7074,7 +7084,7 @@ function renderStock(){
           <div style="font-size:14px;color:#64748B">Stock: <b style="font-size:17px;color:${qtyColor}">${i.qty}</b> Units</div>
           <div style="text-align:right">
             <div class="sk-pl-label">Net P/L</div>
-            <div class="sk-pl-chip" style="background:${profit>=0?'#D1FAE5':'#FFE1E5'};color:${profit>=0?'#059669':'#E11D48'}">${fmt(profit)}</div>
+            <div class="sk-pl-chip" style="background:${profit>=0?'#F0FDF4':'#FEF2F2'};color:${profit>=0?'#16A34A':'#DC2626'}">${fmt(profit)}</div>
           </div>
         </div>
         <div style="font-size:13px;color:#94A3B8">Buy ${fmt(i.buy)} &nbsp;·&nbsp; Sell ${fmt(i.sell)}</div>
@@ -7111,7 +7121,7 @@ function renderStock(){
       </div>
       ${_stockFilter!=='all'?`<button onclick="_stockFilter='all';renderStock()" style="background:none;border:none;color:#7C3AED;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">Clear filter</button>`:''}
     </div>
-    <div style="padding:0 14px 100px">${productsHtml}</div>
+    <div style="padding:0 14px 150px">${productsHtml}</div>
     ${(stock.length===0||_stockFormOpen)?`
     <div style="border-top:1px solid var(--color-border-tertiary);padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:#fff">
       ${stock.length>0?`<div style="display:flex;justify-content:flex-end"><button onclick="toggleStockForm()" style="background:none;border:none;color:var(--color-text-secondary);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 0"><i class="fa-solid fa-xmark" style="font-size:14px"></i> Close</button></div>`:''}
