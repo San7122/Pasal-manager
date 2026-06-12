@@ -6685,7 +6685,12 @@ async function openScanner(target){
       });
       try{await video.play();}catch(e){}
 
-      // STEP 5: Decode with ZXing (TRY_HARDER + full-frame), same proven path as Android
+      // STEP 5: Decode with ZXing (TRY_HARDER + full-frame), same proven path as Android.
+      // IMPORTANT: pause the video first — decodeFromVideoElementContinuously()
+      // internally waits for a "playing" event before starting its decode loop.
+      // If the video is already playing, that event never fires again and the
+      // loop never starts. Pausing here ensures ZXing's own play() triggers it.
+      try{video.pause();}catch(_){}
       setStatus('Loading scanner…');
       const ZXing=await _zxingLoad();
       _runZXing(ZXing);
