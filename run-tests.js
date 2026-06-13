@@ -1129,6 +1129,90 @@ const WARN  = `${C.yellow}${C.bold}⚠ WARN${C.reset}`;
     if (!hasInter) throw new Error('Inter font link not found');
   });
 
+  // ── SECTION 9: Mobile UI audit fixes (2026-06-13) ──────────
+  await uiTest('QRCode global: loaded from CDN (qrcode 1.5.1)', async () => {
+    const ok = await page.evaluate(() => typeof window.QRCode !== 'undefined');
+    if (!ok) throw new Error('window.QRCode is undefined');
+  });
+
+  await uiTest('Stock alert colors: theme vars defined (no orphans)', async () => {
+    const vals = await page.evaluate(() => {
+      const cs = getComputedStyle(document.documentElement);
+      return {
+        dangerIcon: cs.getPropertyValue('--color-stock-alert-danger-icon').trim(),
+        warningIcon: cs.getPropertyValue('--color-stock-alert-warning-icon').trim(),
+        warningBorder: cs.getPropertyValue('--color-stock-alert-warning-border').trim(),
+      };
+    });
+    if (!vals.dangerIcon || !vals.warningIcon || !vals.warningBorder) {
+      throw new Error(`Missing var(s): ${JSON.stringify(vals)}`);
+    }
+  });
+
+  await uiTest('Dead .stock-alert CSS class removed', async () => {
+    const found = await page.evaluate(() => {
+      for (const sheet of document.styleSheets) {
+        try {
+          for (const rule of sheet.cssRules) {
+            if (rule.selectorText === '.stock-alert') return true;
+          }
+        } catch(e) {}
+      }
+      return false;
+    });
+    if (found) throw new Error('.stock-alert rule still present');
+  });
+
+  await uiTest('Scanner frame: responsive width (min(270px, 80vw))', async () => {
+    const found = await page.evaluate(() => {
+      for (const sheet of document.styleSheets) {
+        try {
+          for (const rule of sheet.cssRules) {
+            if (rule.selectorText === '.scanner-frame' && rule.style.width.includes('min(270px')) return true;
+          }
+        } catch(e) {}
+      }
+      return false;
+    });
+    if (!found) throw new Error('.scanner-frame width is not min(270px, 80vw)');
+  });
+
+  await uiTest('Sub-tab buttons: min-height >= 44px (touch target)', async () => {
+    await page.evaluate(() => switchTab('today'));
+    await new Promise(r => setTimeout(r, 200));
+    const minHeight = await page.$eval('.sub-tab-btn', el => parseFloat(getComputedStyle(el).minHeight));
+    if (minHeight < 44) throw new Error(`min-height=${minHeight}px`);
+  });
+
+  await uiTest('Katha segment buttons: min-height >= 44px (touch target)', async () => {
+    await page.evaluate(() => switchTab('katha'));
+    await new Promise(r => setTimeout(r, 200));
+    const minHeight = await page.$eval('.k-seg-btn', el => parseFloat(getComputedStyle(el).minHeight));
+    if (minHeight < 44) throw new Error(`min-height=${minHeight}px`);
+    await page.evaluate(() => switchTab('today'));
+  });
+
+  await uiTest('Add Product: --kb-pad reset to 0px on open (no blank gap)', async () => {
+    await page.evaluate(() => _openStockAddForm());
+    await new Promise(r => setTimeout(r, 150));
+    const kbPad = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--kb-pad').trim());
+    await page.evaluate(() => { toggleStockForm(); document.documentElement.style.removeProperty('--kb-pad'); });
+    if (kbPad !== '0px') throw new Error(`--kb-pad="${kbPad}"`);
+  });
+
+  await uiTest('Expense tab focus: uses preventScroll (no scroll jump)', async () => {
+    await page.evaluate(() => switchTab('today'));
+    await new Promise(r => setTimeout(r, 200));
+    const scrollBefore = await page.$eval('.scroll-area', el => el.scrollTop);
+    await page.evaluate(() => { todayTab='expense'; _todayTabUserSwitch=true; renderToday(); });
+    await new Promise(r => setTimeout(r, 150));
+    const scrollAfter = await page.$eval('.scroll-area', el => el.scrollTop);
+    const active = await page.evaluate(() => document.activeElement?.id);
+    if (active !== 'te-amt') throw new Error(`Focused element: ${active}`);
+    if (scrollAfter !== scrollBefore) throw new Error(`scrollTop ${scrollBefore} -> ${scrollAfter}`);
+    await page.evaluate(() => { todayTab='sale'; renderToday(); });
+  });
+
   // ── Final summary ─────────────────────────────────────────
   const uiPassed  = uiResults.filter(r => r.ok).length;
   const uiFailed  = uiResults.filter(r => !r.ok).length;

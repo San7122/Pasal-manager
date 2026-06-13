@@ -171,7 +171,7 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js" defer></script>
 <!-- Lazy-loaded on demand (see _lazyLoad helper below) -->
@@ -208,6 +208,23 @@
   --color-warning:            #D97706;
   --color-warning-light:      #FFFBEB;
 
+  /* Alert banner accents (today-alert-*, sk-alert-card) */
+  --color-alert-danger-border:    #FFE4E6;
+  --color-alert-danger-title:     #BE123C;
+  --color-alert-danger-sub:       #9F1239;
+  --color-alert-warning-border:   #FEF3C7;
+  --color-alert-warning-title:    #B45309;
+  --color-alert-warning-sub:      #92400E;
+  --color-alert-success-border:   #D1FAE5;
+  --color-alert-success-title:    #047857;
+  --color-alert-success-sub:      #065F46;
+  --color-stock-alert-danger-bg:      #FEE2E2;
+  --color-stock-alert-danger-border:  #FECACA;
+  --color-stock-alert-danger-icon:    #DC2626;
+  --color-stock-alert-warning-border: #FDE68A;
+  --color-stock-alert-warning-icon-bg: #FEF3C7;
+  --color-stock-alert-warning-icon:   #F59E0B;
+
   /* Neutrals */
   --color-background-primary:   #FFFFFF;
   --color-background-secondary: #F8FAFC;
@@ -239,7 +256,6 @@
     --pm-purple-light:            #ede9fe;
     --color-success-light:        #ECFDF5;
     --color-danger-light:         #FFF1F2;
-    --color-warning-light:        #1C1207;
   }
   body { background: var(--color-background-secondary); }
   .topbar, .bottom-nav, .list-item, .summary-card,
@@ -874,7 +890,7 @@ html.keyboard-open #scroll-top-btn { display: none !important; }
   font-weight: 600; background: none;
   border: none; border-bottom: 2px solid transparent;
   color: var(--color-text-secondary);
-  cursor: pointer; min-height: 42px;
+  cursor: pointer; min-height: 44px;
 }
 .sub-tab-btn.active {
   color: var(--color-accent);
@@ -1051,14 +1067,6 @@ html.keyboard-open #scroll-top-btn { display: none !important; }
 .uh-empty-sub { font-size: 12px; color: var(--color-text-secondary); max-width: 240px; line-height: 1.5; }
 
 /* ===== STOCK ===== */
-.stock-alert {
-  display: flex; align-items: center;
-  gap: 8px; padding: 10px 16px;
-  background: var(--color-warning-light);
-  border-bottom: 1px solid var(--color-border-tertiary);
-  font-size: 13px; font-weight: 600;
-  color: var(--color-warning);
-}
 .stock-item-profit {
   font-size: 12px; color: var(--color-success); font-weight: 600;
 }
@@ -1115,7 +1123,7 @@ html.keyboard-open #scroll-top-btn { display: none !important; }
   display: flex; align-items: center; gap: 8px;
   background: var(--color-background-secondary);
   border: 1px solid var(--color-border-tertiary);
-  border-radius: 12px; padding: 10px 14px;
+  border-radius: 12px; padding: 14px 14px;
 }
 .more-search-input {
   flex: 1; border: none; background: transparent;
@@ -1309,7 +1317,7 @@ html.keyboard-open #scroll-top-btn { display: none !important; }
   pointer-events:none;
 }
 .scanner-frame {
-  width:270px; height:170px;
+  width:min(270px, 80vw); height:170px;
   border:3px solid var(--color-accent);
   border-radius:14px;
   box-shadow:0 0 0 9999px rgba(0,0,0,0.55);
@@ -1538,18 +1546,18 @@ html.keyboard-open #scroll-top-btn { display: none !important; }
 .today-alert-body { flex: 1; min-width: 0; }
 .today-alert-title { font-size: 13px; font-weight: 700; line-height: 1.3; }
 .today-alert-sub { font-size: 11px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8; }
-.today-alert-danger { background: #FFF1F2; border-bottom-color: #FFE4E6; }
-.today-alert-danger .today-alert-icon { background: #FFE4E6; color: #E11D48; }
-.today-alert-danger .today-alert-title { color: #BE123C; }
-.today-alert-danger .today-alert-sub { color: #9F1239; }
-.today-alert-warning { background: #FFFBEB; border-bottom-color: #FEF3C7; }
-.today-alert-warning .today-alert-icon { background: #FEF3C7; color: #D97706; }
-.today-alert-warning .today-alert-title { color: #B45309; }
-.today-alert-warning .today-alert-sub { color: #92400E; }
-.today-alert-success { background: #ECFDF5; border-bottom-color: #D1FAE5; }
-.today-alert-success .today-alert-icon { background: #D1FAE5; color: #059669; }
-.today-alert-success .today-alert-title { color: #047857; }
-.today-alert-success .today-alert-sub { color: #065F46; }
+.today-alert-danger { background: var(--color-danger-light); border-bottom-color: var(--color-alert-danger-border); }
+.today-alert-danger .today-alert-icon { background: var(--color-alert-danger-border); color: var(--color-danger); }
+.today-alert-danger .today-alert-title { color: var(--color-alert-danger-title); }
+.today-alert-danger .today-alert-sub { color: var(--color-alert-danger-sub); }
+.today-alert-warning { background: var(--color-warning-light); border-bottom-color: var(--color-alert-warning-border); }
+.today-alert-warning .today-alert-icon { background: var(--color-alert-warning-border); color: var(--color-warning); }
+.today-alert-warning .today-alert-title { color: var(--color-alert-warning-title); }
+.today-alert-warning .today-alert-sub { color: var(--color-alert-warning-sub); }
+.today-alert-success { background: var(--color-success-light); border-bottom-color: var(--color-alert-success-border); }
+.today-alert-success .today-alert-icon { background: var(--color-alert-success-border); color: var(--color-success); }
+.today-alert-success .today-alert-title { color: var(--color-alert-success-title); }
+.today-alert-success .today-alert-sub { color: var(--color-alert-success-sub); }
 
 .today-hero {
   margin: 12px 16px 4px;
@@ -1775,6 +1783,11 @@ html.keyboard-open #scroll-top-btn { display: none !important; }
 .guest-banner-link {
   font-size:11px; font-weight:700; text-decoration:underline;
   cursor:pointer; white-space:nowrap; color:#4C1D95;
+  /* Expand the tap target to ~44px tall without growing the banner itself —
+     the padding enlarges the hit area, the matching negative margin keeps
+     the layout box (and visible banner height) unchanged. */
+  padding:16px 0; margin:-16px 0;
+  display:inline-flex; align-items:center;
 }
 .guest-nudge {
   position:fixed; bottom:68px; left:50%; transform:translateX(-50%);
@@ -2000,7 +2013,7 @@ html.keyboard-open #scroll-top-btn { display: none !important; }
 
 /* ===== KATHA PREMIUM REDESIGN ===== */
 .k-seg-ctrl{display:flex;background:#F1F5F9;border-radius:14px;padding:4px;gap:2px;}
-.k-seg-btn{flex:1;padding:8px 4px;font-size:13px;font-weight:600;border:none;background:transparent;color:#64748B;border-radius:10px;cursor:pointer;transition:all 0.2s;}
+.k-seg-btn{flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;padding:8px 4px;font-size:13px;font-weight:600;border:none;background:transparent;color:#64748B;border-radius:10px;cursor:pointer;transition:all 0.2s;}
 .k-seg-active{background:linear-gradient(135deg,#7C3AED,#6D28D9)!important;color:#fff!important;box-shadow:0 4px 12px rgba(124,58,237,0.25);}
 .k-hero{background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 60%,#4C1D95 100%);border-radius:24px;padding:24px;color:#fff;position:relative;overflow:hidden;}
 .k-hero::before{content:'';position:absolute;right:-20px;top:-20px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.06);}
@@ -2058,11 +2071,11 @@ html.keyboard-open #scroll-top-btn { display: none !important; }
 .sk-metric-cap{font-size:12px;color:#94A3B8;margin-top:8px;display:flex;align-items:center;gap:6px}
 .sk-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .sk-metric-icon{width:20px;height:20px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
-.sk-alert-card{display:flex;align-items:center;gap:14px;background:#FEE2E2;border:1px solid #FECACA;border-radius:20px;padding:18px;margin:14px 14px 0}
-.sk-alert-icon{width:52px;height:52px;border-radius:50%;background:#FECACA;color:#DC2626;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px}
-.sk-alert-title{font-size:14px;font-weight:700;color:#0F172A;line-height:1.35}
+.sk-alert-card{display:flex;align-items:center;gap:14px;background:var(--color-stock-alert-danger-bg);border:1px solid var(--color-stock-alert-danger-border);border-radius:20px;padding:18px;margin:14px 14px 0}
+.sk-alert-icon{width:52px;height:52px;border-radius:50%;background:var(--color-stock-alert-danger-border);color:var(--color-stock-alert-danger-icon);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px}
+.sk-alert-title{font-size:14px;font-weight:700;color:var(--color-text-primary);line-height:1.35}
 .sk-alert-num{font-size:21px;font-weight:900;margin-right:4px}
-.sk-alert-desc{font-size:13px;color:#64748B;margin-top:2px}
+.sk-alert-desc{font-size:13px;color:var(--color-text-secondary);margin-top:2px}
 .sk-alert-btn{flex-shrink:0;background:#7C3AED;color:#fff;border:none;padding:10px 18px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
 .sk-search{display:flex;align-items:center;gap:8px;padding:14px;background:#fff;position:sticky;top:0;z-index:10}
 .sk-search-input{flex:1 1 auto;display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #E2E8F0;border-radius:16px;padding:0 14px;height:56px;min-width:0;transition:border-color .15s}
@@ -5584,7 +5597,7 @@ function renderToday(){
       </div>
       <button id="btn-add-sale" class="btn-add" onclick="addSale()">+</button>
     </div>`}
-    <div class="section-header"><span>Recent Activity</span><button onclick="switchTab('katha')" style="background:none;border:none;color:var(--color-accent);font-size:12px;font-weight:700;cursor:pointer;padding:0">View All</button></div>
+    <div class="section-header"><span>Recent Activity</span><button onclick="switchTab('katha')" style="background:none;border:none;color:var(--color-accent);font-size:12px;font-weight:700;cursor:pointer;padding:15px 0;margin:-15px 0">View All</button></div>
     ${combined.length===0?_emptyState('shopping-bag',t('noEntries'),'Record your first sale above','',''):
       combined.map(i=>{
         if(i._type==='return'){
@@ -5620,8 +5633,11 @@ function renderToday(){
   if(_todayTabUserSwitch){
     _todayTabUserSwitch=false;
     setTimeout(()=>{
-      if(todayTab==='sale'){const el=document.getElementById('s-note');if(el)el.focus();}
-      else if(todayTab==='expense'){const el=document.getElementById('te-amt');if(el)el.focus();}
+      // preventScroll: this focus follows a tap on the sub-tab header, not the
+      // field itself — the browser's default focus-scroll would otherwise jump
+      // the page to center the field, hiding the header/sub-tabs just tapped.
+      if(todayTab==='sale'){const el=document.getElementById('s-note');if(el)el.focus({preventScroll:true});}
+      else if(todayTab==='expense'){const el=document.getElementById('te-amt');if(el)el.focus({preventScroll:true});}
     },50);
   }
 }
@@ -7034,11 +7050,19 @@ function _openStockAddForm(){
   setTimeout(()=>{
     const el=document.getElementById('st-name');
     if(!el) return;
-    el.focus();
+    el.focus({preventScroll:true});
     // Programmatic focus from a FAB tap doesn't pass the recent-tap check in
     // the global keyboard-open tracker, so the bottom nav / FABs would stay
     // visible and strand mid-screen above the keyboard. Force the class on.
-    if(typeof _kbFocusOpen!=='undefined'){_kbFocusOpen=true;_updateKeyboardClass();}
+    if(typeof _kbFocusOpen!=='undefined'){
+      _kbFocusOpen=true;_updateKeyboardClass();
+      // --kb-pad hasn't been measured yet (no real keyboard has opened/resized
+      // the viewport), so reset it to 0 — otherwise .scroll-area's padding
+      // falls back to a flat 35vh, leaving a permanent blank gap below this
+      // short form. _setAppHeight() will set the real value once the keyboard
+      // actually opens and shrinks visualViewport.
+      document.documentElement.style.setProperty('--kb-pad','0px');
+    }
     // scrollIntoView({block:'center'}) centers against the scroll area's
     // pre-keyboard height (which doesn't shrink — see _setAppHeight), so on
     // a real device it can land the field below the keyboard. Scroll
@@ -7102,16 +7126,16 @@ function renderStock(){
   <div class="sk-alert-card">
     <div class="sk-alert-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
     <div style="flex:1;min-width:0">
-      <div class="sk-alert-title"><span class="sk-alert-num" style="color:#DC2626">${outStock.length}</span> Product${outStock.length===1?'':'s'} Need${outStock.length===1?'s':''} Restocking</div>
+      <div class="sk-alert-title"><span class="sk-alert-num" style="color:var(--color-stock-alert-danger-icon)">${outStock.length}</span> Product${outStock.length===1?'':'s'} Need${outStock.length===1?'s':''} Restocking</div>
       <div class="sk-alert-desc">Restock to avoid missed sales</div>
     </div>
     <button class="sk-alert-btn" onclick="_stockFilter='out';renderStock()">View Products</button>
   </div>`
   :lowStock.length>0?`
-  <div class="sk-alert-card" style="background:#FFFBEB;border-color:#FDE68A">
-    <div class="sk-alert-icon" style="background:#FEF3C7;color:#F59E0B"><i class="fa-solid fa-triangle-exclamation"></i></div>
+  <div class="sk-alert-card" style="background:var(--color-warning-light);border-color:var(--color-stock-alert-warning-border)">
+    <div class="sk-alert-icon" style="background:var(--color-stock-alert-warning-icon-bg);color:var(--color-stock-alert-warning-icon)"><i class="fa-solid fa-triangle-exclamation"></i></div>
     <div style="flex:1;min-width:0">
-      <div class="sk-alert-title"><span class="sk-alert-num" style="color:#D97706">${lowStock.length}</span> Product${lowStock.length===1?'':'s'} Running Low</div>
+      <div class="sk-alert-title"><span class="sk-alert-num" style="color:var(--color-warning)">${lowStock.length}</span> Product${lowStock.length===1?'':'s'} Running Low</div>
       <div class="sk-alert-desc">Restock soon to stay ahead</div>
     </div>
     <button class="sk-alert-btn" onclick="_stockFilter='low';renderStock()">View Products</button>
@@ -9365,7 +9389,7 @@ function renderCustomers(el){
       </div>
 
       <!-- Search bar -->
-      <div style="display:flex;align-items:center;gap:8px;background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);border-radius:12px;padding:9px 12px">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);border-radius:12px;padding:14px 12px">
         ${licon('search',16,'color:var(--color-text-secondary);flex-shrink:0')}
         <input id="cust-search" placeholder="${t('searchCust')}" value="${esc(custSearch)}" oninput="custSearch=this.value;renderCustomers(document.getElementById('page-more'))" style="flex:1;border:none;background:transparent;font-size:14px;outline:none;color:var(--color-text-primary)">
         ${custSearch?`<button onclick="custSearch='';renderCustomers(document.getElementById('page-more'))" style="background:none;border:none;color:var(--color-text-secondary);cursor:pointer;padding:0;display:flex">${licon('x',16,'color:var(--color-text-secondary)')}</button>`:''}
@@ -12928,8 +12952,8 @@ function renderEmiPage(el){
       </div>
       <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
         <span style="font-size:13px;color:var(--color-text-secondary)">${t('emiFreq')}:</span>
-        <button onclick="emiFreq='monthly';this.style.background='#059669';this.style.color='#fff';this.nextElementSibling.style.background='';this.nextElementSibling.style.color=''" style="padding:5px 14px;border-radius:20px;border:1.5px solid #059669;background:#059669;color:#fff;font-size:13px;font-weight:600;cursor:pointer">${t('emiMonthly')}</button>
-        <button onclick="emiFreq='weekly';this.style.background='#059669';this.style.color='#fff';this.previousElementSibling.style.background='';this.previousElementSibling.style.color=''" style="padding:5px 14px;border-radius:20px;border:1.5px solid #059669;font-size:13px;font-weight:600;cursor:pointer">${t('emiWeekly')}</button>
+        <button onclick="emiFreq='monthly';this.style.background='#059669';this.style.color='#fff';this.nextElementSibling.style.background='';this.nextElementSibling.style.color=''" style="padding:5px 14px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:20px;border:1.5px solid #059669;background:#059669;color:#fff;font-size:13px;font-weight:600;cursor:pointer">${t('emiMonthly')}</button>
+        <button onclick="emiFreq='weekly';this.style.background='#059669';this.style.color='#fff';this.previousElementSibling.style.background='';this.previousElementSibling.style.color=''" style="padding:5px 14px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:20px;border:1.5px solid #059669;font-size:13px;font-weight:600;cursor:pointer">${t('emiWeekly')}</button>
       </div>
       <input class="input-sm" id="emi-note" placeholder="${t('emiNote')}" style="width:100%;margin-bottom:10px">
       <button class="btn-block" onclick="createEmiPlan()" style="background:#059669">${t('addEmiPlan')}</button>
