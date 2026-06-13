@@ -225,6 +225,17 @@ ALTER TABLE pm_settings ADD COLUMN IF NOT EXISTS biz_state   text DEFAULT '';
 ALTER TABLE pm_settings ADD COLUMN IF NOT EXISTS own_phone   text DEFAULT '';
 ALTER TABLE pm_settings ADD COLUMN IF NOT EXISTS reminder_time text DEFAULT '21:00';
 
+-- ===== Opening balances + subscription columns (added to pm_settings, 2026-06-13) =====
+-- These were referenced by saveSettings() but never added — every settings
+-- save was failing with PGRST204 "could not find column" for all users.
+ALTER TABLE pm_settings ADD COLUMN IF NOT EXISTS own_name            text DEFAULT '';
+ALTER TABLE pm_settings ADD COLUMN IF NOT EXISTS opening_cash        numeric DEFAULT 0;
+ALTER TABLE pm_settings ADD COLUMN IF NOT EXISTS opening_capital     numeric DEFAULT 0;
+ALTER TABLE pm_settings ADD COLUMN IF NOT EXISTS opening_stock       numeric DEFAULT 0;
+ALTER TABLE pm_settings ADD COLUMN IF NOT EXISTS trial_start_date    bigint DEFAULT 0;
+ALTER TABLE pm_settings ADD COLUMN IF NOT EXISTS subscription_status text;
+ALTER TABLE pm_settings ADD COLUMN IF NOT EXISTS subscription_expiry bigint DEFAULT 0;
+
 -- ===== GST INVOICES =====
 CREATE TABLE IF NOT EXISTS pm_gst_bills (
   id           text PRIMARY KEY,

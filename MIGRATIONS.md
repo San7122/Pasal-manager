@@ -3,6 +3,32 @@
 Run these against your Supabase project (`dmacgmvideuylcpkocmz.supabase.co`):
 SQL Editor → New query → paste → Run.
 
+## 2026-06-13 — Opening balances + subscription columns on pm_settings (APPLIED)
+
+`saveSettings()` has been writing `own_name`, `opening_cash`, `opening_capital`,
+`opening_stock`, `trial_start_date`, `subscription_status`, and
+`subscription_expiry` to `pm_settings` since these fields were added to the
+app — but the columns were never created. Every settings save failed with
+`PGRST204 — Could not find the 'opening_capital' column of 'pm_settings'`,
+fell back to local-only storage, and queued an infinite retry (140+ failed
+attempts logged for one user in 20 minutes). This meant opening balances,
+owner name, and subscription/trial status never synced to the cloud for
+ANY user.
+
+```sql
+ALTER TABLE pm_settings
+  ADD COLUMN IF NOT EXISTS own_name            text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS opening_cash        numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS opening_capital     numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS opening_stock       numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS trial_start_date    bigint DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS subscription_status text,
+  ADD COLUMN IF NOT EXISTS subscription_expiry bigint DEFAULT 0;
+```
+
+Applied 2026-06-13 — `saveSettings()` upserts now succeed without any app
+code changes (PostgREST schema cache picks up new columns automatically).
+
 ## 2026-05-25 — Nepal payment fields on pm_settings
 
 Adds Fonepay merchant code, eSewa ID, and Khalti ID to the cloud settings
