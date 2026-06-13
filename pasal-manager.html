@@ -10048,9 +10048,10 @@ function renderSimpleBillForm(){
       <input class="input-md" id="b-cust" placeholder="${t('custName')}" value="${esc(savedCust)}" oninput="window._billCustName=this.value">
       <div style="display:flex;gap:8px">
         <input class="input-md" id="b-item" placeholder="${t('itemName')}">
-        <input class="input-md" id="b-qty" inputmode="numeric" placeholder="${t('qty')}" style="max-width:60px">
-        <input class="input-md" id="b-price" inputmode="numeric" placeholder="${t('amount')}">
+        <input class="input-md" id="b-qty" inputmode="numeric" placeholder="${t('qty')}" style="max-width:60px" oninput="_updateBillLineTotal()">
+        <input class="input-md" id="b-price" inputmode="numeric" placeholder="${t('amount')}" oninput="_updateBillLineTotal()">
       </div>
+      <div id="b-line-total" style="font-size:13px;font-weight:700;color:var(--color-accent);text-align:right;min-height:18px"></div>
       <div style="display:flex;gap:8px">
         <button class="scan-btn" onclick="openScanner('bill')" style="flex-shrink:0">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="7" y2="12.01"/><line x1="12" y1="12" x2="17" y2="12"/></svg>
@@ -10128,6 +10129,13 @@ function renderGSTBillForm(){
     <div id="gst-invoice-area"></div>`;
 }
 
+function _updateBillLineTotal(){
+  const out=document.getElementById('b-line-total');
+  if(!out) return;
+  const qty=parseFloat(document.getElementById('b-qty')?.value)||0;
+  const price=parseFloat(document.getElementById('b-price')?.value)||0;
+  out.textContent=(qty>0&&price>0)?`= ${fmt(Math.round(qty*price))}`:'';
+}
 function addBillLine(){
   const item=document.getElementById('b-item').value.trim();
   const qty=Math.round(parseFloat(document.getElementById('b-qty').value))||1;
