@@ -15,12 +15,12 @@ const CORE_ASSETS = [
   '/icons/icon-512.png?v=2',
 ];
 
-// Install — pre-cache core assets
+// Install — activate immediately, pre-cache core assets in the background
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => cache.addAll(CORE_ASSETS).catch(() => {}))
-      .then(() => self.skipWaiting())
   );
 });
 
