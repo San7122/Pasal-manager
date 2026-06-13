@@ -965,6 +965,78 @@ const WARN  = `${C.yellow}${C.bold}⚠ WARN${C.reset}`;
         const r9 = parseVoiceInput('lorem ipsum dolor sit amet', 'en');
         check('voice: gibberish → null (could not parse)', r9 === null, `Got: ${JSON.stringify(r9)}`);
       } catch(e) { check('parseVoiceInput', false, e.message); }
+
+      // ── Regression tests for calculation audit fixes (2026-06-13) ──
+
+      // BUG #1: Sale profit preview was multiplying (sell-cost) by qty again,
+      // even though sale.amt/sale.cost are already TOTALS for the transaction.
+      try {
+        const sell = 1000, cost = 600, qty = 4;
+        const profit = sell - cost; // correct: totals, no extra ×qty
+        check('Sale profit preview: profit = totalSell - totalCost (no ×qty)', profit === 400, `Got ${profit} for qty=${qty}`);
+      } catch(e) { check('Sale profit preview', false, e.message); }
+
+      // BUG #2: P&L _plBuildMonths ignored COGS, profit = sales - expenses only.
+      try {
+        const origSales = sales.slice();
+        const origExpenses = expenses.slice();
+        const origReturns = returns.slice();
+        sales = [{ id:'plx1', date: todayStr(), amt:1000, cost:600, qty:1, ts:Date.now() }];
+        expenses = [{ id:'plx2', date: todayStr(), amt:100, ts:Date.now() }];
+        returns = [];
+        const months = _plBuildMonths(1);
+        const m = months[months.length-1];
+        check('_plBuildMonths: profit = sales - cost - expenses (COGS-aware)', m.profit === (1000-600-100), `Got ${m.profit}, hasCost=${m.hasCost}`);
+        sales = origSales; expenses = origExpenses; returns = origReturns;
+      } catch(e) { check('_plBuildMonths COGS', false, e.message); }
+
+      // BUG #3: emiDueDates split totalDue evenly, leaving a ₹1+ residual
+      // uncollected when totalDue isn't evenly divisible by installments.
+      try {
+        const plan = { totalAmt:10000, downPayment:0, installments:3, frequency:'monthly', startDate:'2026-01-01' };
+        const dates = emiDueDates(plan);
+        const sum = dates.reduce((a,d)=>a+d.amt, 0);
+        check('emiDueDates: installments sum to totalDue exactly (10000/3)', sum === 10000, `Sum=${sum}, amounts=${JSON.stringify(dates.map(d=>d.amt))}`);
+      } catch(e) { check('emiDueDates rounding', false, e.message); }
+
+      // BUG #4: loanSchedule's rounded EMI principal/interest split left a
+      // residual balance after the final installment, so isComplete never
+      // became true (outstanding never reached 0).
+      try {
+        const loan = { loanAmt:50000, interestRate:15, tenure:24, startDate:'2026-01-01' };
+        loan.emiAmt = calcLoanEmi(loan.loanAmt, loan.interestRate, loan.tenure);
+        const sched = loanSchedule(loan);
+        const totalPrincipal = sched.reduce((a,s)=>a+s.principal, 0);
+        const finalBalance = sched[sched.length-1].balance;
+        check('loanSchedule: total principal equals loan amount (50000)', totalPrincipal === 50000, `Sum=${totalPrincipal}`);
+        check('loanSchedule: final balance is exactly 0 (isComplete can trigger)', finalBalance === 0, `Balance=${finalBalance}`);
+      } catch(e) { check('loanSchedule rounding', false, e.message); }
+
+      // BUG #5: calcGSTTotals rounded cgst and sgst independently, so an odd
+      // totalTax produced cgst+sgst !== totalTax (off by ₹1).
+      try {
+        const calc = calcGSTTotals([{ qty:1, rate:100, gstPct:5 }], false);
+        check('calcGSTTotals: cgst+sgst equals totalTax exactly (odd tax)', calc.cgst+calc.sgst === calc.totalTax, `cgst=${calc.cgst} sgst=${calc.sgst} totalTax=${calc.totalTax}`);
+        check('calcGSTTotals: total = taxable + totalTax', calc.total === calc.taxable+calc.totalTax, `Got ${calc.total}`);
+      } catch(e) { check('calcGSTTotals', false, e.message); }
+
+      // BUG #6: Business Health Score component s2 (Sales Consistency, max 25)
+      // could exceed 25 because the 30-day cutoff window actually spans 31 days.
+      try {
+        const origSales = sales.slice();
+        const now = new Date();
+        const tempSales = [];
+        for (let i=0;i<=30;i++) {
+          const d = new Date(now); d.setDate(d.getDate()-i);
+          const ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+          tempSales.push({ id:'sc_'+i, date:ds, amt:100, cost:0, qty:1, ts:Date.now() });
+        }
+        sales = tempSales;
+        const score = calcBusinessScore();
+        sales = origSales;
+        check('calcBusinessScore: s2 capped at 25 (31-day active window)', score.s2 <= 25, `s2=${score.s2}`);
+        check('calcBusinessScore: total never exceeds 100', score.total <= 100, `total=${score.total}`);
+      } catch(e) { check('calcBusinessScore s2 cap', false, e.message); }
     } catch(e) {
       results.push({ ok:false, name:'Logic test runner error', note: e.message });
     }

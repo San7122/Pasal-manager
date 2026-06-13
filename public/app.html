@@ -5668,8 +5668,10 @@ function _updateProfitPreview(){
   const cost=parseFloat(document.getElementById('s-cost')?.value)||0;
   const qty=Math.max(1,parseInt(document.getElementById('s-qty')?.value)||1);
   if(!sell||!cost){el.style.display='none';return;}
-  const profit=(sell-cost)*qty;
-  const totalSell=sell*qty;
+  // sell/cost already represent the full transaction total (autofill multiplies
+  // by qty), and addSale() stores them as-is — do not multiply by qty again.
+  const profit=sell-cost;
+  const totalSell=sell;
   const pct=totalSell>0?((profit/totalSell)*100).toFixed(1):'0.0';
   const pos=profit>=0;
   const col=pos?'#16a34a':'#dc2626';
@@ -5721,7 +5723,7 @@ async function addSale(){
     _rawSales.unshift(sale);
     await dbAdd('pm_sales',{id:sale.id,user_id:currentUser?.id,date:sale.date,ts:sale.ts,amt:sale.amt,cost:sale.cost,note:sale.note,pay_mode:sale.payMode,country:sale.country,customer_id:customerId});
     trackEvent('sale_added',{amt,payMode:selectedPay,qty,hasCost:cost>0});
-    if(cost>0) trackEvent('profit_preview_sale_completed',{profit:(amt-cost)*qty,qty,profitPct:amt>0?Math.round((amt-cost)/amt*100):0});
+    if(cost>0) trackEvent('profit_preview_sale_completed',{profit:(amt-cost),qty,profitPct:amt>0?Math.round((amt-cost)/amt*100):0});
     if(sales.length===1) trackEvent('onboarding_step',{step:'first_sale'});
     _saleStockMatch=null;
     _saleAmtUserEdited=false;
@@ -10530,8 +10532,9 @@ function calcGSTTotals(items,isInterstate){
     if(!byRate[b.gstPct]) byRate[b.gstPct]={taxable:0,tax:0};
     byRate[b.gstPct].taxable+=tx;byRate[b.gstPct].tax+=tax;
   });
-  const cgst=isInterstate?0:Math.round(totalTax/2);
-  const sgst=isInterstate?0:Math.round(totalTax/2);
+  // floor+remainder so cgst+sgst always equals totalTax exactly, even when odd
+  const cgst=isInterstate?0:Math.floor(totalTax/2);
+  const sgst=isInterstate?0:(totalTax-cgst);
   const igst=isInterstate?totalTax:0;
   return {taxable,cgst,sgst,igst,totalTax,total:taxable+totalTax,byRate};
 }
@@ -10560,8 +10563,8 @@ function generateGSTInvoice(){
 
   const taxRows=Object.entries(calc.byRate).map(([pct,v])=>`
     <div class="gst-tax-row"><span>GST ${pct}% on ${fmt(v.taxable)}</span><span>${fmt(v.tax)}</span></div>
-    ${!isInterstate?`<div class="gst-tax-row" style="color:var(--color-text-secondary);font-size:12px"><span>&nbsp;&nbsp;${t('cgst')} ${pct/2}%</span><span>${fmt(Math.round(v.tax/2))}</span></div>
-    <div class="gst-tax-row" style="color:var(--color-text-secondary);font-size:12px"><span>&nbsp;&nbsp;${t('sgst')} ${pct/2}%</span><span>${fmt(Math.round(v.tax/2))}</span></div>`
+    ${!isInterstate?(()=>{const c=Math.floor(v.tax/2),s=v.tax-c;return `<div class="gst-tax-row" style="color:var(--color-text-secondary);font-size:12px"><span>&nbsp;&nbsp;${t('cgst')} ${pct/2}%</span><span>${fmt(c)}</span></div>
+    <div class="gst-tax-row" style="color:var(--color-text-secondary);font-size:12px"><span>&nbsp;&nbsp;${t('sgst')} ${pct/2}%</span><span>${fmt(s)}</span></div>`})()
     :`<div class="gst-tax-row" style="color:var(--color-text-secondary);font-size:12px"><span>&nbsp;&nbsp;${t('igst')} ${pct}%</span><span>${fmt(v.tax)}</span></div>`}
   `).join('');
 
@@ -10684,11 +10687,17 @@ function _plBuildMonths(period){
   for(let i=0;i<monthsCount;i++){
     const d=new Date(startD.getFullYear(),startD.getMonth()+i,1);
     const mk=monthKey(d);
-    const s=sales.filter(s=>s.date.substring(0,7)===mk).reduce((a,s)=>a+s.amt,0);
+    const monthSales=sales.filter(s=>s.date.substring(0,7)===mk);
+    const s=monthSales.reduce((a,s)=>a+s.amt,0);
+    const cost=monthSales.reduce((a,s)=>a+(s.cost||0),0);
+    const hasCost=monthSales.some(s=>s.cost>0);
     const ret=returns.filter(r=>r.date.substring(0,7)===mk&&r.type==='customer').reduce((a,r)=>a+r.amt,0);
     const e=expenses.filter(e=>e.date.substring(0,7)===mk).reduce((a,e)=>a+e.amt,0);
     const netS=s-ret;
-    months.push({mk,label:fmtMonth(mk),sales:netS,grossSales:s,returns:ret,expenses:e,profit:netS-e});
+    // True profit = Sales − Cost − Expenses (matches Home/Khata); falls back to
+    // Sales − Expenses for months where no per-sale cost was recorded.
+    const profit=hasCost?(netS-cost-e):(netS-e);
+    months.push({mk,label:fmtMonth(mk),sales:netS,grossSales:s,returns:ret,expenses:e,cost,hasCost,profit});
   }
   return months;
 }
@@ -10709,7 +10718,7 @@ function renderPL(el){
   const months=_plBuildMonths(period);
   const totalS=months.reduce((a,m)=>a+m.sales,0);
   const totalE=months.reduce((a,m)=>a+m.expenses,0);
-  const totalP=totalS-totalE;
+  const totalP=months.reduce((a,m)=>a+m.profit,0);
   const margin=totalS>0 ? (totalP/totalS*100) : 0;
   const active=months.filter(m=>m.sales>0||m.expenses>0);
   const best=active.length ? active.reduce((a,m)=>m.profit>a.profit?m:a, active[0]) : null;
@@ -10722,10 +10731,13 @@ function renderPL(el){
     for(let i=0;i<period;i++){
       const d=new Date(now.getFullYear(),now.getMonth()-period*2+i+1,1);
       const mk=monthKey(d);
-      const s=sales.filter(s=>s.date.substring(0,7)===mk).reduce((a,s)=>a+s.amt,0);
+      const monthSales=sales.filter(s=>s.date.substring(0,7)===mk);
+      const s=monthSales.reduce((a,s)=>a+s.amt,0);
+      const cost=monthSales.reduce((a,s)=>a+(s.cost||0),0);
+      const hasCost=monthSales.some(s=>s.cost>0);
       const ret=returns.filter(r=>r.date.substring(0,7)===mk&&r.type==='customer').reduce((a,r)=>a+r.amt,0);
       const e=expenses.filter(e=>e.date.substring(0,7)===mk).reduce((a,e)=>a+e.amt,0);
-      out.push({profit:s-ret-e});
+      out.push({profit:hasCost?(s-ret-cost-e):(s-ret-e)});
     }
     return out;
   })();
@@ -10830,7 +10842,7 @@ function sharePLWhatsApp(){
   const months=_plBuildMonths(period);
   const totalS=months.reduce((a,m)=>a+m.sales,0);
   const totalE=months.reduce((a,m)=>a+m.expenses,0);
-  const totalP=totalS-totalE;
+  const totalP=months.reduce((a,m)=>a+m.profit,0);
   const margin=totalS>0?(totalP/totalS*100).toFixed(1):'0.0';
   const shop=S.shopName||'My Shop';
   const cur=S.country==='NP'?'रू':'₹';
@@ -10860,7 +10872,7 @@ async function downloadPLPdf(){
   const months=_plBuildMonths(period);
   const totalS=months.reduce((a,m)=>a+m.sales,0);
   const totalE=months.reduce((a,m)=>a+m.expenses,0);
-  const totalP=totalS-totalE;
+  const totalP=months.reduce((a,m)=>a+m.profit,0);
   const margin=totalS>0?(totalP/totalS*100).toFixed(1):'0.0';
   const shop=S.shopName||'My Shop';
   // PDF-safe currency code (Helvetica has no ₹/रू glyph). Use ISO code.
@@ -12806,14 +12818,19 @@ function renderBranchesPage(el){
 // ===== EMI / INSTALLMENT TRACKER =====
 function emiDueDates(plan){
   const dates=[];
-  const instAmt=Math.round((plan.totalAmt-plan.downPayment)/plan.installments);
+  const totalDue=plan.totalAmt-plan.downPayment;
+  // Last installment absorbs the rounding remainder so the sum of all
+  // installments always equals totalDue exactly (no permanent ₹1+ residual).
+  const instAmt=Math.floor(totalDue/plan.installments);
+  const remainder=totalDue-instAmt*plan.installments;
   const start=new Date(plan.startDate+'T00:00:00');
   for(let i=0;i<plan.installments;i++){
     const d=new Date(start);
     if(plan.frequency==='weekly') d.setDate(d.getDate()+(i+1)*7);
     else d.setMonth(d.getMonth()+i+1);
     const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    dates.push({dueDate:ds,amt:instAmt,idx:i});
+    const amt=instAmt+(i===plan.installments-1?remainder:0);
+    dates.push({dueDate:ds,amt,idx:i});
   }
   return dates;
 }
@@ -13055,7 +13072,10 @@ function loanSchedule(loan){
     d.setMonth(d.getMonth()+i);
     const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     const interestPart=r?Math.round(balance*r):0;
-    const principalPart=Math.min(balance,loan.emiAmt-interestPart);
+    // Last installment absorbs any rounding residual so the balance clears to
+    // exactly 0 — otherwise loanOutstanding never reaches 0 and isComplete
+    // never becomes true.
+    const principalPart=(i===loan.tenure-1)?balance:Math.min(balance,loan.emiAmt-interestPart);
     balance=Math.max(0,balance-principalPart);
     schedule.push({dueDate:ds,emiAmt:loan.emiAmt,principal:principalPart,interest:interestPart,balance,idx:i});
   }
@@ -14399,7 +14419,8 @@ function calcBusinessScore() {
   const cutoffStr = cutoff.toISOString().slice(0, 10);
   const activeDateSet = new Set(sales.filter(s => s.date >= cutoffStr).map(s => s.date));
   const activeDays = activeDateSet.size;
-  const s2 = Math.round((activeDays / 30) * 25);
+  // cutoffStr is inclusive, spanning 31 days, so activeDays can hit 31 — clamp to the stated max of 25
+  const s2 = Math.min(25, Math.round((activeDays / 30) * 25));
 
   // ─── Component 3: Payment Discipline (max 25) ───
   const paidLoans = loanPayments.filter(p => p.paid);
