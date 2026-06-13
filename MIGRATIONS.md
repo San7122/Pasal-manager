@@ -62,6 +62,11 @@ ALTER TABLE pm_settings
 Applied 2026-06-13 — `saveSettings()` upserts now succeed without any app
 code changes (PostgREST schema cache picks up new columns automatically).
 
+**Verified 2026-06-13**: confirmed via `information_schema.columns` that all
+7 columns exist on `pm_settings`, and `analytics_events` shows no
+`opening_capital` PGRST204 errors after 10:41 UTC (last one was a stale
+schema-cache hit right after the ALTER ran). Issue fully resolved.
+
 ## 2026-05-25 — Nepal payment fields on pm_settings
 
 Adds Fonepay merchant code, eSewa ID, and Khalti ID to the cloud settings
