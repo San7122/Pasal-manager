@@ -8998,11 +8998,13 @@ async function renderAdminDashboard(el){
   `;
   try {
     await _renderAdminMetrics();
-    document.getElementById('admin-loading').style.display='none';
-    document.getElementById('admin-content').style.display='block';
+    const loadingEl=document.getElementById('admin-loading'), contentEl=document.getElementById('admin-content');
+    if(loadingEl) loadingEl.style.display='none';
+    if(contentEl) contentEl.style.display='block';
   } catch(e) {
     console.error('Admin load failed:', e);
-    document.getElementById('admin-loading').innerHTML = `<div style="color:#DC2626">⚠️ Failed to load: ${esc(e.message||'unknown error')}<br><small style="color:var(--color-text-secondary);margin-top:8px;display:block">Have you run the analytics SQL migration? See MIGRATIONS.md</small></div>`;
+    const loadingEl=document.getElementById('admin-loading');
+    if(loadingEl) loadingEl.innerHTML = `<div style="color:#DC2626">⚠️ Failed to load: ${esc(e.message||'unknown error')}<br><small style="color:var(--color-text-secondary);margin-top:8px;display:block">Have you run the analytics SQL migration? See MIGRATIONS.md</small></div>`;
   }
 }
 

@@ -96,6 +96,20 @@ CREATE POLICY "own_udhaar"   ON pm_udhaar   FOR ALL USING (auth.uid() = user_id)
 CREATE POLICY "own_stock"    ON pm_stock    FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own_suppliers"ON pm_suppliers FOR ALL USING (auth.uid() = user_id);
 
+-- ===== Cost (COGS) column on pm_sales — PGRST204 on EVERY sale (2026-06-13) =====
+-- addSale() and the voice-sale handler have always written `cost` on every
+-- insert into pm_sales, but this column never existed. Every sale failed with
+-- PGRST204 "Could not find the 'cost' column of 'pm_sales'", fell back to
+-- local-only storage, and queued an infinite retry. pm_sales has effectively
+-- never synced to the cloud for ANY user.
+ALTER TABLE pm_sales ADD COLUMN IF NOT EXISTS cost integer DEFAULT 0;
+
+-- ===== Timestamp column on pm_customers (2026-06-13) =====
+-- CSV customer import and the guest->cloud data migration both write `ts`,
+-- which never existed on pm_customers (PGRST204). This means customers
+-- created in Guest Mode never synced to the cloud on signup.
+ALTER TABLE pm_customers ADD COLUMN IF NOT EXISTS ts bigint DEFAULT 0;
+
 -- KHARIDI (Purchase Ledger — what you owe to suppliers)
 CREATE TABLE IF NOT EXISTS pm_kharidi (
   id text PRIMARY KEY,

@@ -3,6 +3,39 @@
 Run these against your Supabase project (`dmacgmvideuylcpkocmz.supabase.co`):
 SQL Editor → New query → paste → Run.
 
+## 2026-06-13 — Sale cost, customer timestamp, payment tier columns (NOT YET APPLIED — CRITICAL)
+
+Found while auditing for the same "missing column" bug class as the
+pm_settings fix below. Run all three in one go:
+
+```sql
+-- 1) CRITICAL: every "Add Sale" (manual AND voice) writes `cost` to pm_sales,
+-- but this column has never existed. Every sale insert fails with
+-- PGRST204 "Could not find the 'cost' column of 'pm_sales'", falls back to
+-- local-only + infinite retry. pm_sales is effectively EMPTY in the cloud
+-- for every user — this is why the audited shops show 0 sales in Supabase
+-- despite actively using the app.
+ALTER TABLE pm_sales ADD COLUMN IF NOT EXISTS cost integer DEFAULT 0;
+
+-- 2) pm_customers: CSV import AND the guest->cloud migration write `ts`,
+-- which doesn't exist (PGRST204). Customers created in Guest Mode never
+-- sync to the cloud after signup.
+ALTER TABLE pm_customers ADD COLUMN IF NOT EXISTS ts bigint DEFAULT 0;
+
+-- 3) pm_payment_requests: the Razorpay-success, manual UPI/eSewa, and
+-- admin-grant flows all write `tier`, which doesn't exist (PGRST204).
+-- These errors are only console-logged (not trackError), so they never
+-- show up in analytics_events. The Admin Dashboard "Payment Requests"
+-- queue stays empty — owner can't review/approve subscriptions in-app.
+ALTER TABLE pm_payment_requests ADD COLUMN IF NOT EXISTS tier text DEFAULT 'pro';
+```
+
+After running, PostgREST's schema cache picks up the new columns
+automatically — no app redeploy needed. Existing rows get the defaults;
+new sales/customers/payment-requests will start saving correctly.
+
+---
+
 ## 2026-06-13 — Opening balances + subscription columns on pm_settings (APPLIED)
 
 `saveSettings()` has been writing `own_name`, `opening_cash`, `opening_capital`,
