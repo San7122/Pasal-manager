@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "REPLACE_WITH_ANDROID_PACKAGE_NAME",
+      "package_name": "com.pasalmanagers.twa",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_SHA256_FINGERPRINT"
+        "90:D1:46:A6:9B:BD:B6:30:53:86:12:95:F7:1F:56:1D:B6:0C:87:12:9F:E2:E1:1B:08:51:AE:58:EC:B6:02:6C"
       ]
     }
   }
