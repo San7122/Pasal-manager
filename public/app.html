@@ -12760,7 +12760,7 @@ async function addBranch(){
   if(!name){_showToast('Enter branch name.');return;}
   const id='br_'+uid();
   const isFirst=branches.length===0;
-  const row={id,user_id:currentUser.id,name,location:loc,is_default:isFirst,created_at:new Date().toISOString()};
+  const row={id,user_id:currentUser?.id,name,location:loc,is_default:isFirst,created_at:new Date().toISOString()};
   branches.push({id,name,location:loc,isDefault:isFirst});
   if(isFirst) currentBranchId=id;
   cacheWrite();

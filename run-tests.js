@@ -283,6 +283,10 @@ const WARN  = `${C.yellow}${C.bold}⚠ WARN${C.reset}`;
 
   await uiTest('Stock: empty name blocked', async () => {
     const countBefore = await page.evaluate(() => stock.length);
+    // Form auto-collapses once stock is non-empty; reopen it first.
+    await page.evaluate(() => { if (!_stockFormOpen) toggleStockForm(); });
+    await new Promise(r => setTimeout(r, 200));
+    await page.waitForSelector('#st-name', { timeout: 3000 });
     await page.evaluate(() => {
       document.getElementById('st-name').value = '';
       document.getElementById('st-qty').value = '10';
@@ -335,6 +339,475 @@ const WARN  = `${C.yellow}${C.bold}⚠ WARN${C.reset}`;
     });
     const name = await page.evaluate(() => S.shopName);
     if (name !== 'Updated Test Shop') throw new Error(`Got: ${name}`);
+  });
+
+  // ── SECTION 5b: Customers ─────────────────────────────────
+  console.log(`\n${C.bold}  👥 CUSTOMERS${C.reset}\n`);
+
+  await uiTest('Customers: renders', async () => {
+    await page.evaluate(() => goMore('customers'));
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+  });
+
+  await uiTest('Customers: add customer works', async () => {
+    const countBefore = await page.evaluate(() => customers.length);
+    await page.evaluate(() => {
+      document.getElementById('ct-name').value = 'Sita Sharma';
+      document.getElementById('ct-phone').value = '9812345678';
+    });
+    await page.evaluate(() => addCustomer());
+    await new Promise(r => setTimeout(r, 500));
+    const countAfter = await page.evaluate(() => customers.length);
+    if (countAfter <= countBefore) throw new Error('Customer not added');
+    const found = await page.evaluate(() => customers.some(c => c.name === 'Sita Sharma'));
+    if (!found) throw new Error('New customer not found in customers[]');
+  });
+
+  await uiTest('Customers: empty name blocked (validation)', async () => {
+    const countBefore = await page.evaluate(() => customers.length);
+    await page.evaluate(() => {
+      document.getElementById('ct-name').value = '';
+      document.getElementById('ct-phone').value = '9800000000';
+    });
+    await page.evaluate(() => addCustomer());
+    await new Promise(r => setTimeout(r, 300));
+    const countAfter = await page.evaluate(() => customers.length);
+    if (countAfter !== countBefore) throw new Error('Customer added without name!');
+  });
+
+  await uiTest('Customers: duplicate name blocked (validation)', async () => {
+    const countBefore = await page.evaluate(() => customers.length);
+    await page.evaluate(() => {
+      document.getElementById('ct-name').value = 'Sita Sharma';
+      document.getElementById('ct-phone').value = '9811111111';
+    });
+    await page.evaluate(() => addCustomer());
+    await new Promise(r => setTimeout(r, 300));
+    const countAfter = await page.evaluate(() => customers.length);
+    if (countAfter !== countBefore) throw new Error('Duplicate customer was added!');
+  });
+
+  await uiTest('Customers: customerDetail renders', async () => {
+    const id = await page.evaluate(() => {
+      const c = customers.find(c => c.name === 'Sita Sharma');
+      return c ? c.id : null;
+    });
+    if (!id) throw new Error('Test customer not found');
+    await page.evaluate(cid => { currentCustomerId = cid; goMore('customerDetail'); }, id);
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Customer detail appears empty');
+    if (!html.includes('Sita Sharma')) throw new Error('Customer name not shown in detail');
+  });
+
+  // ── SECTION 5c: Staff Book ─────────────────────────────────
+  console.log(`\n${C.bold}  🧑‍💼 STAFF BOOK${C.reset}\n`);
+
+  await uiTest('StaffBook: renders', async () => {
+    await page.evaluate(() => goMore('staffBook'));
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+  });
+
+  await uiTest('StaffBook: add staff works', async () => {
+    const countBefore = await page.evaluate(() => staffList.length);
+    await page.evaluate(() => {
+      document.getElementById('sf-name').value = 'Hari Thapa';
+      document.getElementById('sf-type').value = 'monthly';
+      document.getElementById('sf-amt').value = '15000';
+      document.getElementById('sf-phone').value = '9800011122';
+    });
+    await page.evaluate(() => addStaff());
+    await new Promise(r => setTimeout(r, 500));
+    const countAfter = await page.evaluate(() => staffList.length);
+    if (countAfter <= countBefore) throw new Error('Staff not added');
+    const found = await page.evaluate(() => staffList.some(s => s.name === 'Hari Thapa'));
+    if (!found) throw new Error('New staff not found in staffList[]');
+  });
+
+  await uiTest('StaffBook: empty name blocked (validation)', async () => {
+    const countBefore = await page.evaluate(() => staffList.length);
+    await page.evaluate(() => goMore('staffBook'));
+    await new Promise(r => setTimeout(r, 300));
+    await page.evaluate(() => {
+      document.getElementById('sf-name').value = '';
+      document.getElementById('sf-amt').value = '5000';
+    });
+    await page.evaluate(() => addStaff());
+    await new Promise(r => setTimeout(r, 300));
+    const countAfter = await page.evaluate(() => staffList.length);
+    if (countAfter !== countBefore) throw new Error('Staff added without name!');
+  });
+
+  await uiTest('StaffBook: staffDetail renders with attendance grid', async () => {
+    await page.evaluate(() => { currentStaffName = 'Hari Thapa'; goMore('staffDetail'); });
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Staff detail appears empty');
+    if (!html.includes('Hari Thapa')) throw new Error('Staff name not shown in detail');
+  });
+
+  await uiTest('StaffBook: toggle attendance works', async () => {
+    const today = await page.evaluate(() => todayStr());
+    const before = await page.evaluate(() => staffEntries.filter(e => e.type === 'attendance').length);
+    await page.evaluate((staffName, ds) => toggleAttendance(staffName, ds), 'Hari Thapa', today);
+    await new Promise(r => setTimeout(r, 400));
+    const after = await page.evaluate(() => staffEntries.filter(e => e.type === 'attendance').length);
+    if (after <= before) throw new Error('Attendance entry not recorded');
+  });
+
+  await uiTest('StaffBook: give advance works', async () => {
+    const before = await page.evaluate(() => staffEntries.filter(e => e.type === 'advance').length);
+    await page.evaluate(() => { currentStaffName = 'Hari Thapa'; goMore('staffDetail'); });
+    await new Promise(r => setTimeout(r, 300));
+    await page.evaluate(() => {
+      document.getElementById('adv-amt').value = '500';
+      document.getElementById('adv-note').value = 'Test advance';
+    });
+    await page.evaluate(name => addAdvance(name), 'Hari Thapa');
+    await new Promise(r => setTimeout(r, 400));
+    const after = await page.evaluate(() => staffEntries.filter(e => e.type === 'advance').length);
+    if (after <= before) throw new Error('Advance entry not recorded');
+  });
+
+  // ── SECTION 5d: Cash Book ───────────────────────────────────
+  console.log(`\n${C.bold}  💵 CASH BOOK${C.reset}\n`);
+
+  await uiTest('CashBook: renders', async () => {
+    await page.evaluate(() => goMore('cashbook'));
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+  });
+
+  await uiTest('CashBook: save opening balance works', async () => {
+    const dateStr = await page.evaluate(() => cbDateStr(cashbookViewDate));
+    await page.evaluate(() => {
+      document.getElementById('cb-opening').value = '1000';
+    });
+    await page.evaluate(ds => saveCashbookOpening(ds), dateStr);
+    await new Promise(r => setTimeout(r, 400));
+    const rec = await page.evaluate(ds => cashbookEntries.find(r => r.date === ds), dateStr);
+    if (!rec || rec.opening !== 1000) throw new Error(`Opening not saved, got ${JSON.stringify(rec)}`);
+  });
+
+  // ── SECTION 5e: Digital Bill ────────────────────────────────
+  console.log(`\n${C.bold}  🧾 DIGITAL BILL${C.reset}\n`);
+
+  await uiTest('Bill: renders', async () => {
+    await page.evaluate(() => goMore('bill'));
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+  });
+
+  await uiTest('Bill: add line item works', async () => {
+    const before = await page.evaluate(() => billItems.length);
+    await page.evaluate(() => {
+      document.getElementById('b-cust').value = 'Walk-in';
+      document.getElementById('b-item').value = 'Soap';
+      document.getElementById('b-qty').value = '2';
+      document.getElementById('b-price').value = '50';
+    });
+    await page.evaluate(() => addBillLine());
+    await new Promise(r => setTimeout(r, 400));
+    const after = await page.evaluate(() => billItems.length);
+    if (after <= before) throw new Error('Bill line not added');
+  });
+
+  // ── SECTION 5f: Kharidi (Purchase Book) ─────────────────────
+  console.log(`\n${C.bold}  📥 KHARIDI (PURCHASE BOOK)${C.reset}\n`);
+
+  await uiTest('Kharidi: setup — add a supplier first', async () => {
+    await page.evaluate(() => goMore('supplier'));
+    await new Promise(r => setTimeout(r, 300));
+    const before = await page.evaluate(() => suppliers.length);
+    await page.evaluate(() => {
+      document.getElementById('sp-name').value = 'Kathmandu Traders';
+      document.getElementById('sp-phone').value = '9851000000';
+    });
+    await page.evaluate(() => addSupplier());
+    await new Promise(r => setTimeout(r, 400));
+    const after = await page.evaluate(() => suppliers.length);
+    if (after <= before) throw new Error('Supplier not added (precondition for Kharidi)');
+  });
+
+  await uiTest('Kharidi: list renders with supplier', async () => {
+    await page.evaluate(() => goMore('kharidi'));
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+    if (!html.includes('Kathmandu Traders')) throw new Error('Supplier not listed');
+  });
+
+  await uiTest('Kharidi: add purchase entry works', async () => {
+    await page.evaluate(() => { currentKharidiSupplier = 'Kathmandu Traders'; kharidiEntryType = 'purchase'; goMore('kharidiDetail'); });
+    await new Promise(r => setTimeout(r, 300));
+    const before = await page.evaluate(() => kharidiEntries.length);
+    await page.evaluate(() => {
+      document.getElementById('kh-amt').value = '3000';
+      document.getElementById('kh-note').value = 'Test purchase';
+    });
+    await page.evaluate(name => addKharidiEntry(name), 'Kathmandu Traders');
+    await new Promise(r => setTimeout(r, 400));
+    const after = await page.evaluate(() => kharidiEntries.length);
+    if (after <= before) throw new Error('Kharidi entry not added');
+    const entry = await page.evaluate(() => kharidiEntries.find(e => e.note === 'Test purchase'));
+    if (!entry || entry.amt !== 3000 || entry.type !== 'purchase') throw new Error(`Bad entry: ${JSON.stringify(entry)}`);
+  });
+
+  await uiTest('Kharidi: kharidiDetail renders with running balance', async () => {
+    await page.evaluate(() => { currentKharidiSupplier = 'Kathmandu Traders'; goMore('kharidiDetail'); });
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+    if (!html.includes('3,000') && !html.includes('3000')) throw new Error('Purchase amount not shown');
+  });
+
+  // ── SECTION 5g: Dealer Book ──────────────────────────────────
+  console.log(`\n${C.bold}  🤝 DEALER BOOK${C.reset}\n`);
+
+  await uiTest('Dealer Book: renders', async () => {
+    await page.evaluate(() => goMore('dealer'));
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+  });
+
+  await uiTest('Dealer Book: add dealer works', async () => {
+    const before = await page.evaluate(() => dealers.length);
+    await page.evaluate(() => {
+      document.getElementById('dl-name').value = 'Pokhara Wholesale';
+      document.getElementById('dl-phone').value = '9861000000';
+    });
+    await page.evaluate(() => addDealer());
+    await new Promise(r => setTimeout(r, 400));
+    const after = await page.evaluate(() => dealers.length);
+    if (after <= before) throw new Error('Dealer not added');
+  });
+
+  await uiTest('Dealer Book: add ledger entry (goods given) works', async () => {
+    await page.evaluate(() => { currentDealerName = 'Pokhara Wholesale'; dealerEntryType = 'given'; goMore('dealerDetail'); });
+    await new Promise(r => setTimeout(r, 300));
+    const before = await page.evaluate(() => dealerEntries.length);
+    await page.evaluate(() => {
+      document.getElementById('de-amt').value = '2000';
+      document.getElementById('de-note').value = 'Test given';
+    });
+    await page.evaluate(name => addDealerEntry(name), 'Pokhara Wholesale');
+    await new Promise(r => setTimeout(r, 400));
+    const after = await page.evaluate(() => dealerEntries.length);
+    if (after <= before) throw new Error('Dealer entry not added');
+  });
+
+  await uiTest('Dealer Book: dealerDetail renders with balance', async () => {
+    await page.evaluate(() => { currentDealerName = 'Pokhara Wholesale'; goMore('dealerDetail'); });
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+    if (!html.includes('2,000') && !html.includes('2000')) throw new Error('Given amount not shown');
+  });
+
+  // ── SECTION 5h: Branches ──────────────────────────────────────
+  console.log(`\n${C.bold}  🏬 BRANCHES${C.reset}\n`);
+
+  await uiTest('Branches: renders', async () => {
+    await page.evaluate(() => goMore('branches'));
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+  });
+
+  await uiTest('Branches: add branch works (guest mode)', async () => {
+    const before = await page.evaluate(() => branches.length);
+    await page.evaluate(() => {
+      document.getElementById('new-branch-name').value = 'Main Branch';
+      document.getElementById('new-branch-loc').value = 'Kathmandu';
+    });
+    await page.evaluate(() => addBranch());
+    await new Promise(r => setTimeout(r, 400));
+    const after = await page.evaluate(() => branches.length);
+    if (after <= before) throw new Error('Branch not added');
+  });
+
+  // ── SECTION 5i: EMI Tracker ───────────────────────────────────
+  console.log(`\n${C.bold}  💳 EMI TRACKER${C.reset}\n`);
+
+  await uiTest('EMI: renders', async () => {
+    await page.evaluate(() => goMore('emi'));
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+  });
+
+  await uiTest('EMI: create plan works (navigates to detail)', async () => {
+    const before = await page.evaluate(() => emiPlans.length);
+    await page.evaluate(() => {
+      document.getElementById('emi-cust').value = 'Gita Rai';
+      document.getElementById('emi-phone').value = '9841234567';
+      document.getElementById('emi-total').value = '6000';
+      document.getElementById('emi-down').value = '0';
+      document.getElementById('emi-inst').value = '3';
+    });
+    await page.evaluate(() => createEmiPlan());
+    await new Promise(r => setTimeout(r, 500));
+    const after = await page.evaluate(() => emiPlans.length);
+    if (after <= before) throw new Error('EMI plan not created');
+    const plan = await page.evaluate(() => emiPlans.find(p => p.customerName === 'Gita Rai'));
+    if (!plan) throw new Error('New plan not found');
+    const pmts = await page.evaluate(id => emiPayments.filter(p => p.planId === id), plan.id);
+    if (pmts.length !== 3) throw new Error(`Expected 3 installments, got ${pmts.length}`);
+    if (!pmts.every(p => p.amt === 2000)) throw new Error(`Expected each installment 2000, got ${pmts.map(p=>p.amt)}`);
+  });
+
+  await uiTest('EMI: emiDetail renders after creation', async () => {
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('EMI detail appears empty');
+    if (!html.includes('Gita Rai')) throw new Error('Customer name not in detail');
+  });
+
+  await uiTest('EMI: mark installment paid works', async () => {
+    const pmtId = await page.evaluate(() => {
+      const plan = emiPlans.find(p => p.customerName === 'Gita Rai');
+      const pmt = emiPayments.find(p => p.planId === plan.id && !p.paid);
+      return pmt ? pmt.id : null;
+    });
+    if (!pmtId) throw new Error('No unpaid installment found');
+    await page.evaluate(id => markEmiPaid(id), pmtId);
+    await new Promise(r => setTimeout(r, 400));
+    const paid = await page.evaluate(id => emiPayments.find(p => p.id === id)?.paid, pmtId);
+    if (!paid) throw new Error('Installment not marked paid');
+  });
+
+  await uiTest('EMI: invalid plan (installments > 60) rejected', async () => {
+    const before = await page.evaluate(() => emiPlans.length);
+    await page.evaluate(() => goMore('emi'));
+    await new Promise(r => setTimeout(r, 300));
+    await page.evaluate(() => {
+      document.getElementById('emi-cust').value = 'Bad Plan';
+      document.getElementById('emi-total').value = '1000';
+      document.getElementById('emi-down').value = '0';
+      document.getElementById('emi-inst').value = '99';
+    });
+    await page.evaluate(() => createEmiPlan());
+    await new Promise(r => setTimeout(r, 300));
+    const after = await page.evaluate(() => emiPlans.length);
+    if (after !== before) throw new Error('Plan with 99 installments was created!');
+  });
+
+  // ── SECTION 5j: Loan Manager ───────────────────────────────────
+  console.log(`\n${C.bold}  🏦 LOAN MANAGER${C.reset}\n`);
+
+  await uiTest('Loan: renders', async () => {
+    await page.evaluate(() => goMore('loan'));
+    await new Promise(r => setTimeout(r, 400));
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Page appears empty');
+  });
+
+  await uiTest('Loan: create loan works (navigates to detail)', async () => {
+    const before = await page.evaluate(() => loans.length);
+    await page.evaluate(() => {
+      document.getElementById('ln-lender').value = 'Nepal Bank';
+      document.getElementById('ln-amt').value = '120000';
+      document.getElementById('ln-rate').value = '12';
+      document.getElementById('ln-tenure').value = '12';
+    });
+    await page.evaluate(() => createLoan());
+    await new Promise(r => setTimeout(r, 500));
+    const after = await page.evaluate(() => loans.length);
+    if (after <= before) throw new Error('Loan not created');
+    const loan = await page.evaluate(() => loans.find(l => l.lender === 'Nepal Bank'));
+    if (!loan) throw new Error('New loan not found');
+    const pmts = await page.evaluate(id => loanPayments.filter(p => p.loanId === id), loan.id);
+    if (pmts.length !== 12) throw new Error(`Expected 12 EMI entries, got ${pmts.length}`);
+  });
+
+  await uiTest('Loan: loanDetail renders after creation', async () => {
+    const html = await page.$eval('#page-more', el => el.innerHTML);
+    if (html.trim().length < 100) throw new Error('Loan detail appears empty');
+    if (!html.includes('Nepal Bank')) throw new Error('Lender name not in detail');
+  });
+
+  await uiTest('Loan: mark EMI paid reduces outstanding', async () => {
+    const loanId = await page.evaluate(() => loans.find(l => l.lender === 'Nepal Bank')?.id);
+    const before = await page.evaluate(id => loanOutstanding(loans.find(l=>l.id===id)), loanId);
+    const pmtId = await page.evaluate(id => loanPayments.find(p => p.loanId === id && !p.paid)?.id, loanId);
+    if (!pmtId) throw new Error('No unpaid EMI found');
+    await page.evaluate(id => markLoanPaid(id), pmtId);
+    await new Promise(r => setTimeout(r, 400));
+    const after = await page.evaluate(id => loanOutstanding(loans.find(l=>l.id===id)), loanId);
+    if (!(after < before)) throw new Error(`Outstanding did not decrease: ${before} -> ${after}`);
+  });
+
+  await uiTest('Loan: missing lender rejected', async () => {
+    const before = await page.evaluate(() => loans.length);
+    await page.evaluate(() => goMore('loan'));
+    await new Promise(r => setTimeout(r, 300));
+    await page.evaluate(() => {
+      document.getElementById('ln-lender').value = '';
+      document.getElementById('ln-amt').value = '5000';
+      document.getElementById('ln-tenure').value = '6';
+    });
+    await page.evaluate(() => createLoan());
+    await new Promise(r => setTimeout(r, 300));
+    const after = await page.evaluate(() => loans.length);
+    if (after !== before) throw new Error('Loan created without lender!');
+  });
+
+  // ── SECTION 5k: Score / Morning / Reminders / Supplier-Cal ─────
+  console.log(`\n${C.bold}  📈 SCORE, BRIEFING, REMINDERS, SUPPLIER-CAL${C.reset}\n`);
+
+  for (const [key, label] of [['score','Health Score'], ['morning','Morning Briefing'], ['reminders','Reminders'], ['supplier-cal','Supplier Calendar']]) {
+    await uiTest(`More → ${label} renders`, async () => {
+      await page.evaluate(p => goMore(p), key);
+      await new Promise(r => setTimeout(r, 400));
+      const html = await page.$eval('#page-more', el => el.innerHTML);
+      if (html.trim().length < 100) throw new Error('Page appears empty');
+    });
+  }
+
+  // ── SECTION 5l: Walk ALL goMore pages ──────────────────────────
+  console.log(`\n${C.bold}  🚶 WALK ALL goMore PAGES${C.reset}\n`);
+
+  await uiTest('goMore: every page in pages{} renders without throwing', async () => {
+    // Set up "current*Id" preconditions where possible so detail pages don't bounce.
+    await page.evaluate(() => {
+      const c = customers.find(c => c.name === 'Sita Sharma');
+      if (c) currentCustomerId = c.id;
+      currentStaffName = 'Hari Thapa';
+      currentKharidiSupplier = 'Kathmandu Traders';
+      currentDealerName = 'Pokhara Wholesale';
+      const plan = emiPlans.find(p => p.customerName === 'Gita Rai');
+      if (plan) currentEmiPlanId = plan.id;
+      const loan = loans.find(l => l.lender === 'Nepal Bank');
+      if (loan) currentLoanId = loan.id;
+    });
+
+    const keys = await page.evaluate(() => Object.keys({menu:1,expense:1,supplier:1,bill:1,pl:1,export:1,settings:1,kharidi:1,kharidiDetail:1,dealer:1,dealerDetail:1,dashboard:1,cashbook:1,customers:1,customerDetail:1,staffBook:1,staffDetail:1,branches:1,emi:1,emiDetail:1,loan:1,loanDetail:1,score:1,morning:1,'supplier-cal':1,reminders:1,admin:1,payment:1}));
+
+    const failures = [];
+    for (const key of keys) {
+      const result = await page.evaluate(p => {
+        try {
+          goMore(p);
+          const html = document.getElementById('page-more').innerHTML;
+          return { ok: true, len: html.trim().length };
+        } catch (e) {
+          return { ok: false, err: e.message };
+        }
+      }, key);
+      await new Promise(r => setTimeout(r, 150));
+      if (!result.ok) {
+        failures.push(`${key}: threw "${result.err}"`);
+      } else if (result.len < 30) {
+        failures.push(`${key}: rendered near-empty (${result.len} chars)`);
+      }
+    }
+    if (failures.length) throw new Error(failures.join(' | '));
   });
 
   // ── SECTION 6: Katha ─────────────────────────────────────
@@ -453,6 +926,45 @@ const WARN  = `${C.yellow}${C.bold}⚠ WARN${C.reset}`;
         const rpt = generateDailyReport(todayStr());
         check('generateDailyReport: returns text', typeof rpt === 'string' && rpt.length > 10, `Length: ${rpt.length}`);
       } catch(e) { check('generateDailyReport', false, e.message); }
+
+      // parseVoiceInput — representative Nepali/Hindi/English phrases
+      try {
+        // 1. Udhaar add: "[Name] lai [amount] udhaar diye"
+        const r1 = parseVoiceInput('Ramesh lai pach saya udhaar diye', 'ne');
+        check('voice: "Ramesh lai pach saya udhaar diye" → udhaar-add', r1 && r1.intent==='udhaar-add' && r1.amount===500 && /ramesh/i.test(r1.name||''), `Got: ${JSON.stringify(r1)}`);
+
+        // 2. Udhaar paid: "[Name] ko udhaar tiryo"
+        const r2 = parseVoiceInput('Ramesh ko udhaar tiryo', 'ne');
+        check('voice: "Ramesh ko udhaar tiryo" → udhaar-paid', r2 && r2.intent==='udhaar-paid' && /ramesh/i.test(r2.name||''), `Got: ${JSON.stringify(r2)}`);
+
+        // 3. Sale: "tin hajaar ko bikri bhayo"
+        const r3 = parseVoiceInput('tin hajaar ko bikri bhayo', 'ne');
+        check('voice: "tin hajaar ko bikri bhayo" → sale 3000', r3 && r3.intent==='sale' && r3.amount===3000, `Got: ${JSON.stringify(r3)}`);
+
+        // 4. Stock: "pach kilo chini aayo"
+        const r4 = parseVoiceInput('pach kilo chini aayo', 'ne');
+        check('voice: "pach kilo chini aayo" → stock qty=5', r4 && r4.intent==='stock' && r4.qty===5, `Got: ${JSON.stringify(r4)}`);
+
+        // 5. Expense: "bijuli bill tiryo teen saya" → expense, category Electric
+        const r5 = parseVoiceInput('bijuli bill tiryo teen saya', 'hi');
+        check('voice: "bijuli bill tiryo teen saya" → expense 300/Electric', r5 && r5.intent==='expense' && r5.amount===300 && r5.category==='Electric', `Got: ${JSON.stringify(r5)}`);
+
+        // 6. English sale phrase
+        const r6 = parseVoiceInput('sold goods for five hundred', 'en');
+        check('voice: "sold goods for five hundred" → sale 500', r6 && r6.intent==='sale' && r6.amount===500, `Got: ${JSON.stringify(r6)}`);
+
+        // 7. Navigation: "stock khol"
+        const r7 = parseVoiceInput('stock khol', 'ne');
+        check('voice: "stock khol" → nav stock', r7 && r7.intent==='nav' && r7.page==='stock', `Got: ${JSON.stringify(r7)}`);
+
+        // 8. Amount only → unclear
+        const r8 = parseVoiceInput('paanch sau', 'hi');
+        check('voice: "paanch sau" (amount only) → unclear 500', r8 && r8.intent==='unclear' && r8.amount===500, `Got: ${JSON.stringify(r8)}`);
+
+        // 9. Gibberish → null
+        const r9 = parseVoiceInput('lorem ipsum dolor sit amet', 'en');
+        check('voice: gibberish → null (could not parse)', r9 === null, `Got: ${JSON.stringify(r9)}`);
+      } catch(e) { check('parseVoiceInput', false, e.message); }
     } catch(e) {
       results.push({ ok:false, name:'Logic test runner error', note: e.message });
     }
