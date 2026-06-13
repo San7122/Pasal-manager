@@ -3,7 +3,7 @@
 Run these against your Supabase project (`dmacgmvideuylcpkocmz.supabase.co`):
 SQL Editor → New query → paste → Run.
 
-## 2026-06-13 — Sale cost, customer timestamp, payment tier columns (NOT YET APPLIED — CRITICAL)
+## 2026-06-13 — Sale cost, customer timestamp, payment tier columns (APPLIED)
 
 Found while auditing for the same "missing column" bug class as the
 pm_settings fix below. Run all three in one go:
@@ -33,6 +33,11 @@ ALTER TABLE pm_payment_requests ADD COLUMN IF NOT EXISTS tier text DEFAULT 'pro'
 After running, PostgREST's schema cache picks up the new columns
 automatically — no app redeploy needed. Existing rows get the defaults;
 new sales/customers/payment-requests will start saving correctly.
+
+Applied 2026-06-13 — all 3 ALTERs ran successfully, followed by
+`NOTIFY pgrst, 'reload schema'` to force an immediate cache refresh.
+Sales, customer, and payment-request inserts should now sync to the
+cloud without PGRST204 errors.
 
 ---
 
