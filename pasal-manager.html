@@ -3019,7 +3019,9 @@ let S = { country:'IN', language:'en', shopName:'', ownName:'', ownPhone:'', rem
 
 // ───── SUBSCRIPTION CONSTANTS ─────
 const SUB_GRANDFATHER_CUTOFF_MS = new Date('2000-01-01T00:00:00').getTime(); // Set to past — no free forever users
-const SUB_TRIAL_DAYS = 30;
+const SUB_TRIAL_DAYS = 30; // fallback default if pm_app_config is unreachable/unset
+// Effective trial length — overridable app-wide via pm_app_config (see _loadTrialDaysConfig).
+let EFFECTIVE_TRIAL_DAYS = parseInt(localStorage.getItem('pm_trial_days_cache'), 10) || SUB_TRIAL_DAYS;
 const SUB_OWNER_WHATSAPP = '919928095269'; // your number for payment notifications (Sanjana — update if wrong)
 let RAZORPAY_KEY_ID = localStorage.getItem('pm_razorpay_key') || 'rzp_live_Syjv0X2K0TQsxG';
 // Subscription payment recipient (YOUR own IDs — never confuse with a user's own pm_settings.upi_id/np_payment_id,
@@ -3055,7 +3057,7 @@ function getSubscriptionState(){
     return { status:'grandfathered', daysLeft: Infinity };
   }
   // 4. Trial period check
-  const trialEnd = trialStart + SUB_TRIAL_DAYS * 86400000;
+  const trialEnd = trialStart + EFFECTIVE_TRIAL_DAYS * 86400000;
   if(now < trialEnd){
     return { status:'trial', daysLeft: Math.ceil((trialEnd - now) / 86400000), trialStart };
   }
@@ -3087,6 +3089,20 @@ async function _initSubscription(){
   // 3. Brand new user — start trial NOW
   S.trialStartDate = Date.now();
   cacheWrite();
+}
+
+// Loads the admin-configurable trial length from pm_app_config (shared across
+// all users/devices). Falls back to the cached value or SUB_TRIAL_DAYS if
+// offline or the table/row doesn't exist yet.
+async function _loadTrialDaysConfig(){
+  try {
+    const { data } = await sb.from('pm_app_config').select('value').eq('key','trial_days').maybeSingle();
+    const days = parseInt(data?.value, 10);
+    if(days > 0){
+      EFFECTIVE_TRIAL_DAYS = days;
+      localStorage.setItem('pm_trial_days_cache', days.toString());
+    }
+  } catch(e) { /* offline / table not migrated yet — keep cached/default value */ }
 }
 let sales=[], expenses=[], udhaars=[], stock=[], suppliers=[];
 let currentTab='today', moreSubPage='menu';
@@ -4536,6 +4552,8 @@ function showAuthErr(msg){
 }
 
 async function afterLogin(){
+  // Load the admin-configurable trial length before any subscription check.
+  await _loadTrialDaysConfig();
   // Stamp trial start date on first run (sticky). Must run before any
   // subscription check so we know whether to grandfather this user.
   await _initSubscription();
@@ -8686,8 +8704,8 @@ function renderPaymentSettingsPanel(){
     `)}
 
     ${_adminCard('fa-clock','#f59e0b','4. Trial Period',`
-      ${_adminInput('admin-trial-days','Free Trial Days (default: 30)','30', SUB_TRIAL_DAYS+'','number')}
-      <div style="font-size:11px;color:#6b7280;margin-bottom:8px">New users get this many free days before payment required</div>
+      ${_adminInput('admin-trial-days','Free Trial Days (default: 30)','30', EFFECTIVE_TRIAL_DAYS+'','number')}
+      <div style="font-size:11px;color:#6b7280;margin-bottom:8px">Applies to all users (new and existing trials) on their next app load</div>
       ${_adminBtn('adminSaveTrialDays()','⏱ Save Trial Days','#f59e0b')}
     `)}
 
@@ -8771,13 +8789,21 @@ function adminSavePrices(){
   if(typeof _showToast==='function') _showToast('✅ Prices saved! Users will see new prices immediately.');
 }
 
-function adminSaveTrialDays(){
+async function adminSaveTrialDays(){
   const days = parseInt(document.getElementById('admin-trial-days')?.value)||30;
   if(days < 1 || days > 365){ _showToast('Trial days must be between 1 and 365.'); return; }
-  // Update the constant (affects all new checks until page reload)
-  window.SUB_TRIAL_DAYS_OVERRIDE = days;
-  localStorage.setItem('pm_admin_trial_days', days.toString());
-  if(typeof _showToast==='function') _showToast('✅ Trial period set to ' + days + ' days');
+  try {
+    const { error } = await sb.from('pm_app_config').upsert(
+      { key:'trial_days', value:days, updated_at:new Date().toISOString() },
+      { onConflict:'key' }
+    );
+    if(error) throw error;
+    EFFECTIVE_TRIAL_DAYS = days;
+    localStorage.setItem('pm_trial_days_cache', days.toString());
+    if(typeof _showToast==='function') _showToast('✅ Trial period set to ' + days + ' days for all users');
+  } catch(e){
+    _showToast('❌ Error: ' + e.message);
+  }
 }
 
 async function adminGrantFreeAccess(){

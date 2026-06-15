@@ -3,6 +3,41 @@
 Run these against your Supabase project (`dmacgmvideuylcpkocmz.supabase.co`):
 SQL Editor → New query → paste → Run.
 
+## 2026-06-15 — Global app config table (trial period override)
+
+The Admin → "Trial Period" setting saved `SUB_TRIAL_DAYS_OVERRIDE` to
+localStorage, but `getSubscriptionState()` never read it — and even if it
+did, localStorage is per-device, so it could never have changed the trial
+length for real users. This adds a tiny shared config table so the admin
+setting actually applies app-wide.
+
+```sql
+CREATE TABLE IF NOT EXISTS pm_app_config (
+  key        text PRIMARY KEY,
+  value      jsonb NOT NULL,
+  updated_at timestamptz DEFAULT now()
+);
+
+INSERT INTO pm_app_config (key, value) VALUES ('trial_days', '30')
+ON CONFLICT (key) DO NOTHING;
+
+ALTER TABLE pm_app_config ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "config_read_all"   ON pm_app_config;
+DROP POLICY IF EXISTS "config_owner_write" ON pm_app_config;
+CREATE POLICY "config_read_all" ON pm_app_config FOR SELECT USING (true);
+CREATE POLICY "config_owner_write" ON pm_app_config FOR ALL
+  USING (auth.jwt() ->> 'email' = 'sanjanathakur302@gmail.com')
+  WITH CHECK (auth.jwt() ->> 'email' = 'sanjanathakur302@gmail.com');
+```
+
+After running this, every app load fetches `trial_days` from this table
+(falling back to the hardcoded 30-day default if offline or unset). The
+Admin → "Save Trial Days" button now upserts this row, so the new value
+applies to every user on their next load — no redeploy needed.
+
+---
+
 ## 2026-06-13 — Sale cost, customer timestamp, payment tier columns (APPLIED)
 
 Found while auditing for the same "missing column" bug class as the
