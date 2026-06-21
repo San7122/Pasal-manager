@@ -3028,12 +3028,16 @@ let RAZORPAY_KEY_ID = localStorage.getItem('pm_razorpay_key') || 'rzp_live_Syjv0
 // which is their shop's "collect from customer" UPI used for sales, not for paying you).
 let SUB_OWNER_UPI_ID = localStorage.getItem('pm_admin_upi_id') || 'sanjanathakur302@upi';
 let SUB_OWNER_NP_PAYMENT_ID = localStorage.getItem('pm_admin_np_payment_id') || '9928095269';
+const SUB_OWNER_FONEPAY_QR = '0002010102110216427142001818576326350011fonepay.com071622220300181857645204566153035245802NP5918SANJANA SHOE STORE6013DHARAN BRANCH62110707186740963048913';
 
 const SUB_TIERS = {
   basic: { label:'Basic', features:'Sales, stock, udhaar', priceIN: 499, priceNP: 899 },
   pro: { label:'Pro', features:'+ Reports, staff, EMI, loans', priceIN: 999, priceNP: 1799, recommended:true },
   enterprise: { label:'Enterprise', features:'+ Multi-branch, voice, API', priceIN: 1999, priceNP: 3599 }
 };
+// Paywall uses Pro price (the default/recommended tier)
+const SUB_PRICE_IN = SUB_TIERS.pro.priceIN;
+const SUB_PRICE_NP = SUB_TIERS.pro.priceNP;
 
 // Computes subscription state (no side effects). Returns one of:
 //  { status:'grandfathered', daysLeft:Infinity }
@@ -8111,27 +8115,16 @@ function renderPaymentPage(el){
 
   // Payment instructions vary by country
   const payHTML=isNepal?`
-    <div style="background:#fff;border:2px solid #16a34a;border-radius:14px;padding:16px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="background:#16a34a;color:#fff;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800">e</div>
-        <div style="font-size:15px;font-weight:800;color:#1f2937">eSewa</div>
+    <div style="background:#fff;border:2px solid #1a56a0;border-radius:14px;padding:16px;margin-bottom:14px;text-align:center">
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+        <div style="background:#1a56a0;color:#fff;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px">FP</div>
+        <div style="font-size:15px;font-weight:800;color:#1f2937">Fonepay</div>
       </div>
-      <div style="font-size:12px;color:#6b7280;margin-bottom:8px">Send <strong>${cur}${price}</strong> to:</div>
-      <div style="background:#f0fdf4;padding:10px 12px;border-radius:8px;font-family:monospace;font-size:15px;font-weight:700;color:#166534;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center">
-        <span id="esewa-id">${nepalPayId}</span>
-        <button onclick="_copyText('${nepalPayId}','eSewa ID copied')" style="background:#16a34a;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Copy</button>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:12px">Open <strong>any Nepal bank app</strong> → Scan QR → Enter <strong>${cur}${price}</strong> → Pay</div>
+      <div style="display:inline-block;padding:12px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1)">
+        <canvas id="fonepay-sub-qr" width="180" height="180"></canvas>
       </div>
-    </div>
-    <div style="background:#fff;border:2px solid #5C2D91;border-radius:14px;padding:16px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="background:#5C2D91;color:#fff;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800">K</div>
-        <div style="font-size:15px;font-weight:800;color:#1f2937">Khalti</div>
-      </div>
-      <div style="font-size:12px;color:#6b7280;margin-bottom:8px">Send <strong>${cur}${price}</strong> to:</div>
-      <div style="background:#f5f0ff;padding:10px 12px;border-radius:8px;font-family:monospace;font-size:15px;font-weight:700;color:#5C2D91;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center">
-        <span>${nepalPayId}</span>
-        <button onclick="_copyText('${nepalPayId}','Khalti ID copied')" style="background:#5C2D91;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Copy</button>
-      </div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:8px">Works with NIC Asia, Prabhu, Nabil, Everest, Global IME & all major Nepal banks</div>
     </div>
   `:`
     <!-- Razorpay — automatic payment (UPI, Cards, Netbanking, Wallets) -->
@@ -8194,9 +8187,9 @@ function renderPaymentPage(el){
       ${isNepal?`
       <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;text-transform:uppercase">Step 2 · Submit Transaction ID</div>
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px">
-        <div style="font-size:12px;color:#6b7280;margin-bottom:10px">After paying via eSewa/Khalti, enter your transaction ID below.</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:10px">After paying via Fonepay, enter the transaction reference number below.</div>
         <input id="pay-txn-id" type="text" placeholder="Transaction ID (e.g. 9928095269ABC)" style="width:100%;padding:11px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;margin-bottom:10px;box-sizing:border-box">
-        <textarea id="pay-note" placeholder="Note (optional, e.g. 'Paid via Khalti at 3pm')" style="width:100%;padding:11px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;min-height:60px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+        <textarea id="pay-note" placeholder="Note (optional, e.g. 'Paid via Fonepay at 3pm')" style="width:100%;padding:11px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;min-height:60px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
         <button onclick="submitPayment()" id="pay-submit-btn" style="width:100%;padding:13px;background:#3b82f6;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="fas fa-paper-plane"></i> Submit Payment & Notify Owner</button>
       </div>
       ${S.pendingPaymentTxnId?`<div style="background:#fef3c7;color:#92400e;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:600">⏳ Payment under review (Txn: <strong>${esc(S.pendingPaymentTxnId)}</strong>). You'll be notified within 24h.</div>`:''}
@@ -8209,17 +8202,22 @@ function renderPaymentPage(el){
     </div>
   `;
 
-  // Render UPI QR — retry until QRCode library loads (it's deferred)
-  if(!isNepal){
-    const renderQR=()=>{
+  // Render QR — retry until QRCode library loads (it's deferred)
+  const renderQR=()=>{
+    if(isNepal){
+      const cvs=document.getElementById('fonepay-sub-qr');
+      if(!cvs) return;
+      if(typeof QRCode==='undefined'){ setTimeout(renderQR,500); return; }
+      QRCode.toCanvas(cvs,SUB_OWNER_FONEPAY_QR,{width:180,margin:1},err=>{ if(err) console.warn(err); });
+    } else {
       const cvs=document.getElementById('upi-qr');
       if(!cvs) return;
       if(typeof QRCode==='undefined'){ setTimeout(renderQR,500); return; }
       const upiLink=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent('Pasal Manager')}&am=${price}&cu=INR&tn=${encodeURIComponent('PM Subscription')}`;
       QRCode.toCanvas(cvs,upiLink,{width:160,margin:1},err=>{ if(err) console.warn(err); });
-    };
-    setTimeout(renderQR,300);
-  }
+    }
+  };
+  setTimeout(renderQR,300);
 }
 
 function initRazorpayPayment(){
@@ -8363,7 +8361,7 @@ async function submitPayment(){
   const selectedTier = S.subscriptionTier || 'pro';
   const tierData = SUB_TIERS[selectedTier];
   const price = isNepal ? tierData.priceNP : tierData.priceIN;
-  const method=isNepal?'eSewa/Khalti':'UPI';
+  const method=isNepal?'Fonepay':'UPI';
 
   // Save txn ID locally so we can show "under review" status
   S.pendingPaymentTxnId=txnId;
