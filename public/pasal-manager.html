@@ -4848,6 +4848,19 @@ function _enforcePaywall(){
   document.body.appendChild(overlay);
 }
 
+function _subscriptionAccessExpired(){
+  try{return getSubscriptionState().status==='expired';}
+  catch(e){return false;}
+}
+function _allowExpiredRoute(tab=currentTab,page=moreSubPage){
+  return tab==='more' && page==='payment';
+}
+function _forceExpiredPaymentRoute(){
+  document.getElementById('paywall-overlay')?.remove();
+  currentTab='more';
+  moreSubPage='payment';
+}
+
 function _paywallLogout(){
   if(typeof signOut==='function') signOut();
   else { localStorage.clear(); location.reload(); }
@@ -5236,6 +5249,10 @@ function _syncSidebarActive(tab){
 
 // ===== TAB SWITCHING =====
 function switchTab(tab){
+  if(_subscriptionAccessExpired() && !_allowExpiredRoute(tab,moreSubPage)){
+    _forceExpiredPaymentRoute();
+    tab='more';
+  }
   destroyCharts();
   currentTab=tab;
   if(tab==='more'){_moreSearch='';if(!moreSubPage)moreSubPage='menu';}
@@ -5269,6 +5286,9 @@ function _renderIcons(){
 }
 
 function renderTab(){
+  if(_subscriptionAccessExpired() && !_allowExpiredRoute(currentTab,moreSubPage)){
+    _forceExpiredPaymentRoute();
+  }
   const r={today:renderToday,katha:renderKatha,udhaar:renderUdhaar,stock:renderStock,more:renderMore};
   (r[currentTab]||renderToday)();
   _renderIcons();
@@ -7564,7 +7584,7 @@ function renderMore(){
   (pages[moreSubPage]||renderMoreMenu)(el);
   _renderIcons();
 }
-function goMore(page){try{const _fs=new Set(JSON.parse(localStorage.getItem('pm_feature_seen')||'[]'));if(!_fs.has(page)){_fs.add(page);localStorage.setItem('pm_feature_seen',JSON.stringify([..._fs]));trackEvent('feature_first_use',{feature:page});}}catch(e){}if(moreSubPage==='dashboard') destroyCharts();if(moreSubPage==='admin') _adminDestroyCharts();if(moreSubPage==='pl') _destroyPLCharts();if(page==='cashbook'&&moreSubPage!=='cashbook') cashbookViewDate=new Date();if(page==='customers'){custSearch='';custTab='all';}if(page==='staffBook'&&moreSubPage!=='staffBook'&&moreSubPage!=='staffDetail') staffViewDate=new Date();if(page==='menu'){currentEmiPlanId='';currentLoanId='';_scoreCache=null;}if(page==='pl'&&moreSubPage!=='pl'){_plExpandedMonth=null;}moreSubPage=page;document.getElementById('scroll-area').scrollTop=0;renderMore();}
+function goMore(page){if(_subscriptionAccessExpired()&&page!=='payment'){_forceExpiredPaymentRoute();page='payment';}try{const _fs=new Set(JSON.parse(localStorage.getItem('pm_feature_seen')||'[]'));if(!_fs.has(page)){_fs.add(page);localStorage.setItem('pm_feature_seen',JSON.stringify([..._fs]));trackEvent('feature_first_use',{feature:page});}}catch(e){}if(moreSubPage==='dashboard') destroyCharts();if(moreSubPage==='admin') _adminDestroyCharts();if(moreSubPage==='pl') _destroyPLCharts();if(page==='cashbook'&&moreSubPage!=='cashbook') cashbookViewDate=new Date();if(page==='customers'){custSearch='';custTab='all';}if(page==='staffBook'&&moreSubPage!=='staffBook'&&moreSubPage!=='staffDetail') staffViewDate=new Date();if(page==='menu'){currentEmiPlanId='';currentLoanId='';_scoreCache=null;}if(page==='pl'&&moreSubPage!=='pl'){_plExpandedMonth=null;}moreSubPage=page;document.getElementById('scroll-area').scrollTop=0;renderMore();}
 function backBtn(){return `<button class="back-btn" onclick="goMore('menu')">${licon('chevron-left',16)} ${t('back')}</button>`;}
 
 // =============== DASHBOARD ===============
